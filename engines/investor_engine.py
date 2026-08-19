@@ -3,14 +3,16 @@ from datetime import datetime
 from config import DEPRECIATION_TABLES, ZIP_COST_MODIFIERS
 
 
-def _deterministic_hash(value):
-    h = 0
-    for ch in str(value):
-        h = (h * 31 + ord(ch)) & 0xFFFFFFFF
-    return h
-
-
-def analyze_investor_deal(property_data, findings, cost_matrix, capex_analysis):
+def analyze_investor_deal(property_data, findings, cost_matrix, capex_analysis,
+                          market_profile=None, user_inputs=None):
+    """
+    Real deal math. Prefers verified anchors:
+    - list_price/ARV/rent from user MLS (market_profile) or explicit user_inputs
+    - repair costs from the verified cost matrix
+    - 24-month CapEx risk from the capex engine
+    Falls back to clearly-labeled MODELED benchmarks only where no real anchor exists.
+    """
+    user_inputs = user_inputs or {}
     current_year = datetime.now().year
     year_built = property_data.get("year_built", current_year - 20)
     prop_age = current_year - year_built if year_built else 20
@@ -20,27 +22,30 @@ def analyze_investor_deal(property_data, findings, cost_matrix, capex_analysis):
     bedrooms = property_data.get("bedrooms", 3)
     bathrooms = property_data.get("bathrooms", 2)
 
+    mkt = market_profile or {}
     total_repair = cost_matrix.get("summary", {}).get("total_avg", 0)
     total_repair_low = cost_matrix.get("summary", {}).get("total_low", 0)
     total_repair_high = cost_matrix.get("summary", {}).get("total_high", 0)
-    capex_weighted = capex_analysis.get("summary", {}).get("weighted_24mo_risk", 0)
+    capex_weighted = capex_analysis.get("summary", {}).get("weighted_risk_exposure", 0)
 
-    listing_price = _estimate_listing_price(zip_code, sqft, property_data, bedrooms, bathrooms)
-    arv = _estimate_arv(zip_code, sqft, property_data, total_repair, prop_age)
+    listing_price, list_provenance = _listing_price(mkt, user_inputs, zip_code, sqft,
+                                                    property_data, bedrooms, bathrooms)
+    arv, arv_provenance = _arv(mkt, user_inputs, listing_price, total_repair, state,
+                               zip_code, sqft, property_data)
     holding_costs_monthly = _estimate_holding_costs(listing_price, state)
     closing_costs_buyer = listing_price * 0.03
     closing_costs_seller = listing_price * 0.01
-    holding_period_months = 6
+    holding_period_months = int(user_inputs.get("holding_months", 6))
     total_holding = holding_costs_monthly * holding_period_months
     profit_target = listing_price * 0.12
     max_offer = arv - total_repair - total_holding - closing_costs_buyer - closing_costs_seller - profit_target
 
-    monthly_rental = _estimate_rental(zip_code, sqft, bedrooms, bathrooms, state)
+    monthly_rental, rent_provenance = _rental(mkt, user_inputs, zip_code, sqft, bedrooms, bathrooms)
     annual_rental = monthly_rental * 12
     annual_noi = annual_rental * 0.75
     cap_rate = (annual_noi / arv * 100) if arv > 0 else 0
     cash_invested = max_offer + total_repair + closing_costs_buyer
-    monthly_mortgage = max_offer * 0.07 / 12
+    monthly_mortgage = max_offer * (float(user_inputs.get("interest_rate", 0.07)) / 12)
     cash_on_cash = ((annual_noi - (monthly_mortgage * 12)) / cash_invested * 100) if cash_invested > 0 else 0
     capex_reserve_5yr = capex_weighted * 2.5
 
@@ -48,7 +53,10 @@ def analyze_investor_deal(property_data, findings, cost_matrix, capex_analysis):
 
     return {
         "listing_price": round(listing_price, 0),
+        "listing_price_provenance": list_provenance,
         "after_repair_value": round(arv, 0),
+        "arv_provenance": arv_provenance,
+        "monthly_rental_provenance": rent_provenance,
         "max_allowable_offer": round(max_offer, 0),
         "total_repair_cost": round(total_repair, 0),
         "total_repair_range": {"low": round(total_repair_low, 0), "high": round(total_repair_high, 0)},
@@ -67,7 +75,6 @@ def analyze_investor_deal(property_data, findings, cost_matrix, capex_analysis):
             "repair_to_arv_ratio": round(total_repair / max(arv, 1) * 100, 1),
             "offer_to_arv_ratio": round(max_offer / max(arv, 1) * 100, 1),
             "gross_rent_multiplier": round(arv / max(annual_rental, 1), 2),
-            "breakeven_occupancy_pct": round(((max_offer * 0.07 + total_holding / holding_period_months * 12) / max(annual_noi, 1)) * 100, 1),
             "cash_required": round(cash_invested, 0),
             "net_monthly_cashflow": round((annual_noi - (max_offer * 0.07)) / 12, 0),
         },
@@ -81,22 +88,25 @@ def analyze_investor_deal(property_data, findings, cost_matrix, capex_analysis):
     }
 
 
-def _estimate_listing_price(zip_code, sqft, property_data, bedrooms=3, bathrooms=2):
+def _listing_price(mkt, user_inputs, zip_code, sqft, property_data, bedrooms, bathrooms):
+    if user_inputs.get("list_price"):
+        return float(user_inputs["list_price"]), "USER_PROVIDED"
+    if mkt.get("list_price"):
+        return float(mkt["list_price"]), "USER_MLS_VERIFIED"
+    # MODELED fallback: published state-level $/sqft benchmarks
+    return _modeled_listing(zip_code, sqft, property_data, bedrooms, bathrooms), "MODELED_BENCHMARK"
+
+
+def _modeled_listing(zip_code, sqft, property_data, bedrooms=3, bathrooms=2):
     state = property_data.get("state", "")
     year_built = property_data.get("year_built", 2000)
     age = datetime.now().year - year_built if year_built else 20
-
-    state_ppsf = {
-        "CA": 520, "NY": 480, "MA": 420, "WA": 400, "CO": 370, "OR": 350,
-        "TX": 180, "FL": 220, "GA": 200, "NC": 195, "TN": 190, "AZ": 210,
-        "IL": 200, "PA": 195, "OH": 160, "MI": 170, "default": 200,
-    }
+    state_ppsf = {"CA": 520, "NY": 480, "MA": 420, "WA": 400, "CO": 370, "OR": 350,
+                  "TX": 180, "FL": 220, "GA": 200, "NC": 195, "TN": 190, "AZ": 210,
+                  "IL": 200, "PA": 195, "OH": 160, "MI": 170, "default": 200}
     base_ppsf = state_ppsf.get(state, state_ppsf["default"])
-
-    zip_data = ZIP_COST_MODIFIERS.get(zip_code, {})
-    modifier = zip_data.get("modifier", 1.0)
+    modifier = (ZIP_COST_MODIFIERS.get(zip_code) or {}).get("modifier", 1.0)
     adjusted_ppsf = base_ppsf * modifier
-
     if age < 5:
         adjusted_ppsf *= 1.12
     elif age < 10:
@@ -105,20 +115,19 @@ def _estimate_listing_price(zip_code, sqft, property_data, bedrooms=3, bathrooms
         adjusted_ppsf *= 0.88
     elif age > 20:
         adjusted_ppsf *= 0.94
-
     bedroom_premium = 1.0 + (bedrooms - 3) * 0.03
     bathroom_premium = 1.0 + (bathrooms - 2) * 0.02
-
-    base_price = sqft * adjusted_ppsf * bedroom_premium * bathroom_premium
-    return base_price
+    return sqft * adjusted_ppsf * bedroom_premium * bathroom_premium
 
 
-def _estimate_arv(zip_code, sqft, property_data, repair_cost, prop_age):
-    listing = _estimate_listing_price(zip_code, sqft, property_data)
-    state = property_data.get("state", "")
+def _arv(mkt, user_inputs, listing_price, repair_cost, state, zip_code, sqft, property_data):
+    if user_inputs.get("arv"):
+        return float(user_inputs["arv"]), "USER_PROVIDED"
+    if mkt.get("price_per_sqft") and mkt.get("sqft"):
+        return mkt["price_per_sqft"] * mkt["sqft"], "USER_MLS_VERIFIED"
     roi_mults = {"CA": 0.75, "NY": 0.70, "TX": 0.85, "FL": 0.80, "default": 0.72}
     rehab_premium = repair_cost * roi_mults.get(state, roi_mults["default"])
-    return listing + rehab_premium
+    return listing_price + rehab_premium, "MODELED_BENCHMARK"
 
 
 def _estimate_holding_costs(price, state=""):
@@ -132,27 +141,31 @@ def _estimate_holding_costs(price, state=""):
     return round(monthly_tax + monthly_insurance + monthly_interest + monthly_maintenance + monthly_utilities, 0)
 
 
-def _estimate_rental(zip_code, sqft, bedrooms=3, bathrooms=2, state=""):
-    state_rent_ppsf = {
-        "CA": 2.50, "NY": 2.80, "MA": 2.30, "WA": 2.10, "CO": 2.00,
-        "TX": 1.20, "FL": 1.50, "GA": 1.30, "NC": 1.25, "TN": 1.20,
-        "AZ": 1.35, "IL": 1.60, "PA": 1.50, "OH": 1.10, "MI": 1.15,
-        "default": 1.30,
-    }
+def _rental(mkt, user_inputs, zip_code, sqft, bedrooms=3, bathrooms=2):
+    if user_inputs.get("monthly_rent"):
+        return float(user_inputs["monthly_rent"]), "USER_PROVIDED"
+    acs = mkt.get("acs") or {}
+    if acs.get("median_gross_rent"):
+        return float(acs["median_gross_rent"]), f"CENSUS_ACS_{acs.get('acs_year', '')}"
+    state = mkt.get("state", "")
+    state_rent_ppsf = {"CA": 2.50, "NY": 2.80, "MA": 2.30, "WA": 2.10, "CO": 2.00,
+                       "TX": 1.20, "FL": 1.50, "GA": 1.30, "NC": 1.25, "TN": 1.20,
+                       "AZ": 1.35, "IL": 1.60, "PA": 1.50, "OH": 1.10, "MI": 1.15,
+                       "default": 1.30}
     base_ppsf = state_rent_ppsf.get(state, state_rent_ppsf["default"])
     base_rent = sqft * base_ppsf
     bedroom_adj = 1.0 + (bedrooms - 3) * 0.05
     bath_adj = 1.0 + (bathrooms - 2) * 0.03
-    return base_rent * bedroom_adj * bath_adj
+    return base_rent * bedroom_adj * bath_adj, "MODELED_BENCHMARK"
 
 
 def _assess_deal_quality(max_offer, arv, repair, cap_rate, coc):
     if cap_rate > 8 and coc > 15:
-        return {"grade": "A", "verdict": "Excellent deal. Strong cash flow potential with high cap rate and cash-on-cash return."},
+        return {"grade": "A", "verdict": "Excellent deal. Strong cash flow potential with high cap rate and cash-on-cash return."}
     elif cap_rate > 6 and coc > 10:
-        return {"grade": "B", "verdict": "Good deal. Solid investment with reasonable returns. Consider negotiating on price."},
+        return {"grade": "B", "verdict": "Good deal. Solid investment with reasonable returns. Consider negotiating on price."}
     elif cap_rate > 4 and coc > 5:
-        return {"grade": "C", "verdict": "Marginal deal. Returns are acceptable but not compelling. Negotiate aggressively on purchase price."},
+        return {"grade": "C", "verdict": "Marginal deal. Returns are acceptable but not compelling. Negotiate aggressively on purchase price."}
     else:
         return {"grade": "D", "verdict": "Weak deal. Repair costs may erode profit margin. Consider passing or significantly reducing offer."}
 
@@ -166,14 +179,12 @@ def _generate_investment_analysis(listing_price, arv, max_offer, total_repair, m
         analysis.append(f"Repair costs ({repair_to_arv:.1f}% of ARV) are within flip range but above ideal 15% target.")
     else:
         analysis.append(f"Repair costs ({repair_to_arv:.1f}% of ARV) are within ideal range for a flip project.")
-
     if cap_rate > 8:
         analysis.append(f"Cap rate ({cap_rate:.1f}%) exceeds 8% target - strong rental investment indicators.")
     elif cap_rate > 6:
         analysis.append(f"Cap rate ({cap_rate:.1f}%) is acceptable for rental investment in most markets.")
     else:
         analysis.append(f"Cap rate ({cap_rate:.1f}%) is below 6% - rental returns may not justify investment risk.")
-
     if prop_age > 30:
         analysis.append(f"Property age ({prop_age} years) increases CapEx risk. Budget for accelerated system replacements.")
     if sqft < 1200:
@@ -193,10 +204,8 @@ def _build_5yr_capex_forecast(findings, property_data):
         year_costs = []
         for finding in findings:
             system = finding.get("system_category", "OTHER")
-            asset_type = {
-                "HVAC": "hvac", "ROOF": "roof_asphalt", "PLUMBING": "water_heater",
-                "ELECTRICAL": "electrical_panel", "STRUCTURAL": "foundation",
-            }.get(system)
+            asset_type = {"HVAC": "hvac", "ROOF": "roof_asphalt", "PLUMBING": "water_heater",
+                          "ELECTRICAL": "electrical_panel", "STRUCTURAL": "foundation"}.get(system)
             if asset_type:
                 age_at_year = prop_age + year_offset
                 dep = calculate_depreciation_curve(asset_type, age_at_year, finding.get("description", ""))

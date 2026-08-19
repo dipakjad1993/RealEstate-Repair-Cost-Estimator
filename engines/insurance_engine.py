@@ -1,8 +1,16 @@
-import random
+"""
+Insurance Engine (VERIFIED REBUILD)
+===================================
+- Red-flag detection: rule-based on REAL inspection findings (config rules)
+- Base premium: MODELED state benchmark (P&C underwriting requires carrier
+  credentials; user's real carrier quote overrides when supplied)
+- Every output labeled; nothing silently fabricated.
+"""
+
 from datetime import datetime
 from config import INSURANCE_RED_FLAGS
 
-def analyze_insurance_risk(findings, property_data):
+def analyze_insurance_risk(findings, property_data, user_quote=None):
     state = property_data.get("state", "")
     year_built = property_data.get("year_built", 2000)
     current_year = datetime.now().year
@@ -60,14 +68,11 @@ def analyze_insurance_risk(findings, property_data):
                 "recommendation": "Electrical inspection and possible panel upgrade may be required.",
                 "severity": "MEDIUM",
             })
-    if any(r["system"] == "environmental" and "mold" in r["matched_pattern"] for r in red_flags):
-        for flag in red_flags:
-            if flag["system"] == "environmental":
-                flag["annual_premium_impact"] = int(flag["annual_premium_impact"] * 1.3)
     total_annual_impact = sum(r["annual_premium_impact"] for r in red_flags)
     max_denial_prob = max((r["denial_probability"] for r in red_flags), default=0)
     total_replacement = sum(r["replacement_cost"] for r in red_flags)
-    base_premium = _estimate_base_premium(state, prop_age)
+
+    base_premium, premium_provenance = _estimate_base_premium(state, prop_age, user_quote)
     inflated_premium = base_premium + total_annual_impact
     insurability_score = max(10, 100 - (sum(r["risk_score"] for r in red_flags) // len(red_flags)) if red_flags else 100)
     risk_level = "HIGH" if insurability_score < 40 else "MEDIUM" if insurability_score < 70 else "LOW"
@@ -87,16 +92,23 @@ def analyze_insurance_risk(findings, property_data):
             "estimated_inflated_annual_premium": round(inflated_premium, 0),
             "annual_premium_increase": round(total_annual_impact, 0),
             "five_year_cost_impact": round(total_annual_impact * 5, 0),
+            "premium_provenance": premium_provenance,
         },
         "market_context": {
             "state": state,
             "property_age": prop_age,
             "market_year": current_year,
-            "note": "P&C insurance market is volatile in 2026. High-risk properties face non-renewal risk.",
+            "note": "Base premium is a MODELED benchmark. Replace with the buyer's real carrier quote for a binding figure.",
         },
     }
 
-def _estimate_base_premium(state, prop_age):
+def _estimate_base_premium(state, prop_age, user_quote=None):
+    """
+    MODELED state benchmark (not a quote). Overridden by user's real carrier
+    quote when supplied.
+    """
+    if user_quote and user_quote.get("annual_premium"):
+        return float(user_quote["annual_premium"]), "USER_PROVIDED_CARRIER_QUOTE"
     base_premiums = {
         "FL": 4500, "TX": 3800, "LA": 3500, "CA": 3200, "NY": 2800,
         "NJ": 2600, "MA": 2400, "CT": 2200, "RI": 2100,
@@ -107,7 +119,7 @@ def _estimate_base_premium(state, prop_age):
         base *= 1.20
     elif prop_age > 20:
         base *= 1.10
-    return base
+    return base, "MODELED_STATE_BENCHMARK"
 
 def _get_insurance_recommendation(flag):
     system = flag["system"]
@@ -119,8 +131,8 @@ def _get_insurance_recommendation(flag):
     else:
         return f"Monitor {system} condition. Consider proactive repair to prevent future premium increases."
 
-def calculate_insurance_scorecard(findings, property_data):
-    analysis = analyze_insurance_risk(findings, property_data)
+def calculate_insurance_scorecard(findings, property_data, user_quote=None):
+    analysis = analyze_insurance_risk(findings, property_data, user_quote)
     score = analysis["summary"]["insurability_score"]
     return {
         "insurability_score": score,
@@ -130,6 +142,7 @@ def calculate_insurance_scorecard(findings, property_data):
         "annual_impact": analysis["summary"]["total_annual_premium_impact"],
         "five_year_impact": analysis["summary"]["five_year_cost_impact"],
         "verdict": _get_verdict(score),
+        "premium_provenance": analysis["summary"]["premium_provenance"],
         "recommendations": [
             r["recommendation"] for r in analysis["red_flags"][:5]
         ],

@@ -1,8 +1,18 @@
-import random
+"""
+SEO Landing Page Engine (VERIFIED REBUILD)
+==========================================
+Programmatically generated local landing pages from REAL data:
+- Real ZIP code
+- Real repair costs from the verified cost matrix
+- Honest analytics (UNAVAILABLE until a real analytics source is connected)
+
+No random impressions/clicks/traffic or fabricated lead values.
+"""
+
 from datetime import datetime
 
+
 def generate_seo_landing_pages(zip_code, cost_data):
-    pages = []
     systems = [
         ("hvac", "HVAC", "Air Conditioning & Heating"),
         ("roof", "Roof", "Roofing"),
@@ -11,93 +21,117 @@ def generate_seo_landing_pages(zip_code, cost_data):
         ("foundation", "Foundation", "Foundation & Structural"),
         ("windows", "Windows", "Windows & Doors"),
     ]
-    rng = random.Random(sum(ord(c) for c in zip_code))
+    pages = []
+    cost_data = cost_data or {}
+    line_items = cost_data.get("line_items", [])
+    by_system = {}
+    for row in line_items:
+        sys = (row.get("system") or "").lower()
+        by_system.setdefault(sys, []).append(row)
+
     for system_key, system_name, system_display in systems:
-        base_cost = cost_data.get(system_key, rng.randint(500, 5000))
+        rows = by_system.get(system_key, []) or by_system.get(
+            {"foundation": "structural"}.get(system_key), [])
+        if rows:
+            lows = [r["total_low"] for r in rows if r.get("total_low")]
+            highs = [r["total_high"] for r in rows if r.get("total_high")]
+            avg_cost = round(sum((l + h) / 2 for l, h in zip(lows, highs)) / max(len(lows), 1), 0) if lows else None
+        else:
+            avg_cost = None
         slug = f"cost-to-fix-{system_key}-{zip_code}"
         pages.append({
             "zip_code": zip_code,
             "system_type": system_name,
             "system_display": system_display,
-            "avg_cost": round(base_cost * cost_data.get("modifier", 1.0), 0),
+            "avg_cost": avg_cost,
+            "cost_provenance": "VERIFIED_COST_MATRIX" if avg_cost else "NO_FINDINGS",
             "page_slug": slug,
-            "page_title": f"Average Cost to Fix {system_display} in {zip_code} | 2026 Real Data",
-            "meta_description": f"What does it cost to repair {system_display.lower()} in {zip_code}? See real 2026 cost data, contractor rates, and local pricing trends.",
+            "page_title": f"Average Cost to Fix {system_display} in {zip_code}",
+            "meta_description": f"What does it cost to repair {system_display.lower()} in {zip_code}? See verified cost data from real inspection findings and BLS wage data.",
             "h1": f"{system_display} Repair Costs in {zip_code}",
-            "impressions": rng.randint(100, 5000),
-            "clicks": rng.randint(10, 500),
-            "conversions": rng.randint(1, 50),
-            "estimated_monthly_traffic": rng.randint(200, 8000),
-            "keyword_difficulty": round(rng.uniform(15, 65), 1),
-            "content_sections": _generate_content_sections(system_name, zip_code, base_cost),
+            "content_sections": _generate_content_sections(system_name, zip_code, avg_cost),
+            "analytics": {
+                "status": "UNAVAILABLE",
+                "note": "Connect GA4 or your analytics provider to this page's slug to collect real traffic metrics.",
+            },
         })
     return {
         "pages": pages,
         "total_pages": len(pages),
-        "total_estimated_traffic": sum(p["estimated_monthly_traffic"] for p in pages),
-        "total_estimated_impressions": sum(p["impressions"] for p in pages),
+        "analytics_status": "UNAVAILABLE",
+        "analytics_note": "No fabricated traffic data. Connect a real analytics provider.",
     }
 
-def _generate_content_sections(system, zip_code, base_cost):
-    sections = [
-        {
-            "heading": f"What Does {system} Repair Cost in {zip_code}?",
-            "content": f"Based on real inspection data processed through our platform, the average {system.lower()} repair in the {zip_code} area ranges from ${base_cost * 0.6:,.0f} to ${base_cost * 1.5:,.0f}. This data is derived from actual home inspection reports analyzed by our AI engine, combined with localized contractor pricing data.",
-        },
-        {
-            "heading": f"Common {system} Issues Found in {zip_code} Homes",
-            "content": f"Homes in the {zip_code} area frequently exhibit {system.lower()} issues including aging components, deferred maintenance, and code violations. Our analysis of local inspection reports shows the most common issues relate to systems that are approaching or exceeding their expected useful life.",
-        },
-        {
-            "heading": f"DIY vs. Professional {system} Repair in {zip_code}",
-            "content": f"While some {system.lower()} repairs can be handled by experienced homeowners, most significant issues require a licensed contractor. In {zip_code}, professional {system.lower()} contractors typically charge between $60-$120/hour. Our cost estimates include both DIY and professional pricing tiers.",
-        },
-        {
-            "heading": f"When to Negotiate {system} Repairs in {zip_code}",
-            "content": f"If you're buying a home in {zip_code} and the inspection reveals {system.lower()} issues, you have options. You can request the seller make repairs before closing, negotiate a credit for the estimated cost, or reduce the purchase price. Our tool helps you calculate the exact amounts to request.",
-        },
-    ]
-    return sections
 
-def generate_seo_analytics(pages):
-    total_impressions = sum(p["impressions"] for p in pages)
-    total_clicks = sum(p["clicks"] for p in pages)
-    total_conversions = sum(p["conversions"] for p in pages)
-    ctr = round(total_clicks / max(total_impressions, 1) * 100, 2)
-    conversion_rate = round(total_conversions / max(total_clicks, 1) * 100, 2)
+def _generate_content_sections(system, zip_code, avg_cost):
+    cost_line = (
+        f"Verified estimates for this zip range around ${avg_cost:,.0f} (from real inspection "
+        f"findings indexed to BLS OEWS wages and BLS PPI materials)." if avg_cost
+        else "No verified cost data yet for this zip in this system — upload an inspection report to build it."
+    )
+    return [
+        {"heading": f"What Does {system} Repair Cost in {zip_code}?", "content": cost_line},
+        {"heading": f"Common {system} Issues Found in {zip_code} Homes",
+         "content": f"Findings are parsed from actual uploaded home inspection reports. System-level "
+                    f"averages update automatically as verified reports are processed for {zip_code}."},
+        {"heading": f"DIY vs. Professional {system} Repair in {zip_code}",
+         "content": "Labor estimates use real BLS OEWS state median wages for the trade; material "
+                    "estimates are indexed to real BLS PPI construction indexes. DIY estimates reflect "
+                    "materials-only cost."},
+        {"heading": f"When to Negotiate {system} Repairs in {zip_code}",
+         "content": "Request a sellers-credit equal to verified contractor estimates (not just the "
+                    "cheapest quote). The negotiation sandbox on the results page computes exact credit ranges."},
+    ]
+
+
+def generate_seo_analytics(pages, user_analytics=None):
+    """
+    user_analytics: real per-slug {slug: {impressions, clicks, conversions}} from
+    an analytics provider. Returns UNAVAILABLE when none supplied.
+    """
+    if not user_analytics:
+        return {
+            "status": "UNAVAILABLE",
+            "note": "No analytics source connected. Import per-slug metrics (impressions/clicks/conversions) to enable this view.",
+        }
+    total_imp = sum(a.get("impressions", 0) for a in user_analytics.values())
+    total_clk = sum(a.get("clicks", 0) for a in user_analytics.values())
+    total_conv = sum(a.get("conversions", 0) for a in user_analytics.values())
+    ctr = round(total_clk / max(total_imp, 1) * 100, 2)
+    cr = round(total_conv / max(total_clk, 1) * 100, 2)
     return {
-        "total_impressions": total_impressions,
-        "total_clicks": total_clicks,
-        "total_conversions": total_conversions,
+        "status": "VERIFIED",
+        "source": "USER_ANALYTICS",
+        "total_impressions": total_imp,
+        "total_clicks": total_clk,
+        "total_conversions": total_conv,
         "click_through_rate": ctr,
-        "conversion_rate": conversion_rate,
-        "estimated_monthly_value": round(total_conversions * 150, 0),
-        "top_performing_page": max(pages, key=lambda x: x["conversions"]) if pages else None,
+        "conversion_rate": cr,
         "recommendations": [
-            f"Current CTR of {ctr}% can be improved by adding schema markup for local business.",
-            f"Conversion rate of {conversion_rate}% is {'above' if conversion_rate > 3 else 'below'} industry average (3%).",
-            "Add FAQ sections targeting long-tail keywords like 'how much does [system] repair cost near me'.",
-            "Create seasonal content targeting weather-related repair searches.",
+            f"Current CTR of {ctr}% — add schema markup for local business.",
+            f"Conversion rate of {cr}% vs 3% industry average.",
+            "Add FAQ sections targeting long-tail 'cost to fix [system] near me' queries.",
         ],
     }
 
+
 def track_lead_magnet(zip_code, email=None, phone=None):
-    rng = random.Random(datetime.now().timestamp())
+    """Honest lead record — no fabricated IP or lead value."""
     return {
-        "visitor_ip": f"192.168.{rng.randint(1, 255)}.{rng.randint(1, 255)}",
-        "email": email or "visitor@example.com",
+        "email": email or "",
         "phone": phone or "",
         "zip_code": zip_code,
         "lead_captured": bool(email or phone),
-        "source_page": f"/repair-cost-estimator/{zip_code}",
         "conversion_timestamp": datetime.now().isoformat(),
-        "estimated_lead_value": round(rng.uniform(50, 500), 2),
+        "source_page": f"/repair-cost-estimator/{zip_code}",
+        "note": "Lead value is determined by the agent's closed-deal economics, not fabricated here.",
     }
+
 
 def generate_lead_magnet_widget_config(agent_name, agent_email, branding=None):
     config = {
         "widget_title": "Got a Scary Home Inspection Report?",
-        "widget_subtitle": "Upload it here to see the real repair cost in 60 seconds",
+        "widget_subtitle": "Upload it here to see the verified repair cost in 60 seconds",
         "cta_button": "Analyze My Report Now",
         "agent_name": agent_name,
         "agent_email": agent_email,
@@ -108,7 +142,6 @@ def generate_lead_magnet_widget_config(agent_name, agent_email, branding=None):
         },
         "lead_capture_fields": ["email", "phone"],
         "preview_items": 3,
-        "unlock_message": "Enter your email and phone to unlock the full report with local contractor pricing.",
-        "social_proof": f"Join 1,200+ {agent_name.split()[0]}'s clients who saved an average of $4,800 on repairs.",
+        "unlock_message": "Enter your email and phone to unlock the full report with verified local repair estimates.",
     }
     return config

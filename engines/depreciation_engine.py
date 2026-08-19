@@ -26,6 +26,7 @@ def parse_appliance_metadata(text):
     }
     text_lower = text.lower()
     for asset_type, keywords in asset_indicators.items():
+        asset = None
         for kw in keywords:
             if kw in text_lower:
                 asset = {"asset_type": asset_type, "detected_from": kw}
@@ -51,7 +52,7 @@ def parse_appliance_metadata(text):
                 if age_match:
                     asset["age_years"] = int(age_match.group(1))
                 break
-        if asset.get("asset_type"):
+        if asset:
             assets.append(asset)
     return assets
 

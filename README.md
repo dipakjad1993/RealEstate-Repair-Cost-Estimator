@@ -1,874 +1,205 @@
-# 🏠 Real Estate Repair Cost Estimator
+# Real Estate Repair Cost Estimator
 
-> **An enterprise-grade, AI-powered Streamlit application that analyzes real estate inspection reports and generates comprehensive repair cost estimates, contractor bids, environmental risk assessments, investment analysis, and insurance risk profiles — all powered by deterministic, formula-based calculations using real-world data.**
+> **A provenance-tracked property analysis platform.** Turns inspection reports, photos, audio, and floorplans into transparent repair cost estimates across **21 analysis modules** — using real, verifiable government data and fully deterministic calculations. **Nothing is fabricated.**
 
----
-
-## 📋 Table of Contents
-
-- [Overview](#overview)
-- [Key Features](#key-features)
-- [Architecture](#architecture)
-- [Module Breakdown](#module-breakdown)
-- [Data Sources & Methodology](#data-sources--methodology)
-- [Getting Started](#getting-started)
-- [Installation](#installation)
-- [Usage](#usage)
-- [Configuration](#configuration)
-- [Screenshots](#screenshots)
-- [Technology Stack](#technology-stack)
-- [File Structure](#file-structure)
-- [Contributing](#contributing)
-- [Disclaimer](#disclaimer)
-- [License](#license)
-- [Contact](#contact)
+Built with Streamlit, styled like an Apple product: a disciplined design system with Inter typography, frosted-glass navigation, dark/light themes, and a focus on readability.
 
 ---
 
-## 🔍 Overview
+## Why it's different
 
-The **Real Estate Repair Cost Estimator** is a comprehensive property analysis platform designed for real estate investors, buyers, agents, and inspectors. It processes inspection reports (PDF, DOCX, TXT, images) and generates detailed, actionable estimates across 18+ analysis modules.
+| | Typical estimator | This platform |
+|---|---|---|
+| **Numbers** | Random, generic averages | Deterministic + real data |
+| **Sources** | Opaque | Every figure carries a **provenance badge** |
+| **Scope** | Basic cost list | 21 cross-referenced modules |
+| **Output** | One number | Verified, auditable, exportable |
 
-### What Makes This Different
+### Provenance badges
+Every value in the tool is labeled — there are no silent guesses:
 
-Unlike other estimation tools that rely on generic averages or random number generation, this application uses:
-
-- **Deterministic hash-based calculations** — Same input always produces the same output
-- **Real-world data patterns** — State-specific permit fees, FEMA flood zones, USGS seismic data, CAL FIRE wildfire zones, USDA soil classifications, real manufacturer recalls
-- **Formula-based cost estimation** — Material/labor/overhead/profit breakdowns, not random numbers
-- **15+ real contractor profiles** — With license numbers, specialties, and verified pricing patterns
-
-### Who Is This For?
-
-| User | How They Use It |
-|------|----------------|
-| **Real Estate Investors** | Calculate ROI, CapEx forecasts, holding costs, and deal viability before making offers |
-| **Home Buyers** | Understand true repair costs before purchasing, negotiate better prices |
-| **Real Estate Agents** | Provide clients with professional repair cost reports and market insights |
-| **Home Inspectors** | Generate cost estimates alongside inspection findings |
-| **Insurance Professionals** | Assess property risk profiles and calculate insurance implications |
-| **Property Managers** | Budget for maintenance and capital improvements |
+- 🟢 **VERIFIED** — live government data (Census · BLS · FEMA · USGS · CPSC)
+- 🟡 **USER-PROVIDED** — your quotes, MLS data, uploaded documents
+- 🟠 **REQUIRES KEY** — needs an API key for live enrichment
+- 🔵 **MODELED** — deterministic estimate, clearly not a quote
+- ⚪ **UNAVAILABLE** — honestly reported when a source can't be reached
 
 ---
 
-## ✨ Key Features
+## Features
 
-### 🏗️ Core Analysis Engine
-- **Multi-format Report Processing** — Parse PDF, DOCX, TXT, and image-based inspection reports
-- **Computer Vision Integration** — Extract findings from images with AI-powered analysis
-- **NLP-powered Finding Extraction** — Automatically identify and categorize repair items
-- **Real-time Processing** — Live progress updates during analysis
+### Verified data pipeline
+- **Live fetchers** for Census, BLS wages, FEMA flood zones, USGS seismic hazards, and CPSC product recalls — with graceful degradation and honest health reporting when a source is unreachable.
+- **BLS-wage baselines** for labor costs and **state-specific** permit fees, taxes, and market anchors.
+- **Audio transcription** (Whisper) so voice notes from inspections become structured findings.
 
-### 💰 Cost Estimation
-- **18+ Material Categories** — Electrical, plumbing, HVAC, roofing, structural, foundation, exterior, interior, insulation, windows, doors, appliances, garage, deck/patio, pool/spa, landscaping, driveway, and more
-- **Formula-based Calculations** — Every cost uses deterministic formulas, not random numbers
-- **Material/Labor/Overhead/Profit Breakdown** — Transparent pricing structure
-- **Rush Job Estimates** — Cost premiums for expedited timelines
-- **Warranty Terms** — Standard warranty coverage for each repair category
+### 21 analysis modules
+1. **Parse** — extraction from PDF reports (pdfplumber / PyMuPDF)
+2. **Cost** — itemized material / labor / overhead / profit with confidence intervals
+3. **Depreciation** — component-by-component schedules and remaining life
+4. **Market** — price-per-sqft anchors, comparables, trend analysis
+5. **Export** — PDF / Excel / JSON deliverables
+6. **Vision** — evidence summary and photo-to-finding matching
+7. **Permits** — 50-state fee database, unpermitted-work detection, retroactive guidance
+8. **CapEx (24-mo)** — replacement timeline with failure probabilities
+9. **Sandbox** — sellers-credit negotiation scenarios with a live data editor
+10. **Dispatch** — prioritization and urgency ordering
+11. **Legal** — repair addenda and escrow holdback agreements
+12. **Environmental** — flood, seismic, wildfire, and soil risk with mitigation
+13. **Brokerage** — agent performance and brokerage ROI
+14. **Lead magnet** — listing-ready summaries
+15. **Insurance** — insurability score and premium impact
+16. **Investor** — ARV, NOI, cap rate, cash-on-cash, risk scores
+17. **Escrow** — milestone-based holdback structures
+18. **SEO** — listing optimization and analytics
+19. **Audio** — Whisper transcription workflow
+20. **Recalls** — CPSC cross-referenced recall checks
+21. **Spatial** — floor-plan flaw mapping (JSON/CSV/Matterport)
 
-### 🏢 Contractor Management
-- **15 Real Contractor Profiles** — Verified contractors with license numbers, specialties, and rating patterns
-- **Multi-bid Generation** — 3 competitive bids per repair category
-- **License Verification** — State-specific contractor license validation
-- **Payment Terms** — Standard industry payment schedules
-- **Insurance Verification** — General liability and workers' comp status
-
-### 📋 Permit & Compliance
-- **50-State Fee Database** — Real permit fees for all 50 US states
-- **Unpermitted Work Detection** — Cross-reference findings against permit records
-- **Compliance Scoring** — Overall property compliance assessment
-- **Retroactive Permit Guidance** — Steps to regularize unpermitted work
-- **Cost Liability Estimates** — Financial exposure from non-compliant work
-
-### 🌍 Environmental Risk Assessment
-- **FEMA Flood Zone Data** — Real flood zone designations (Zone X, AE, A, VE)
-- **USGS Seismic Zones** — Peak ground acceleration values and shake risk
-- **CAL FIRE Wildfire Risk** — Fire severity zones and defensible space requirements
-- **USDA Soil Classification** — Soil types affecting foundation and drainage
-- **Climate Zone Analysis** — Region-specific climate hazards
-- **Resiliency Recommendations** — Detailed mitigation strategies for each risk
-
-### 💵 Investment Analysis
-- **State-based Price Per Square Foot** — Real market data by state
-- **After Repair Value (ARV)** — Formula-based property valuation
-- **Holding Cost Calculation** — Taxes, insurance, utilities, maintenance during renovation
-- **Net Operating Income (NOI)** — Cash flow projections
-- **Cap Rate & Cash-on-Cash Return** — Investment performance metrics
-- **5-Year CapEx Forecast** — Capital expenditure projections with real component lifespans
-- **Risk Assessment** — Repair risk, hold risk, and capex risk scoring
-
-### 🔧 Specialized Modules
-- **Depreciation Engine** — Component-by-component depreciation schedules
-- **Insurance Risk Profiling** — Underwriting flag detection and premium impact
-- **ROI Calculator** — Return on investment with sensitivity analysis
-- **Escrow Holdback** — Milestone-based holdback calculations
-- **Export Engine** — PDF, Excel, and JSON report generation
-- **Voice Narration** — Text-to-speech report summaries
-- **SEO Analysis** — Property listing optimization
+### Premium UI / UX
+- **Apple-inspired design system** — strict type/spacing/radius/shadow scale, self-hosted **Inter** variable font, hairline borders, single accent color.
+- **Frosted-glass floating navigation** with live status indicator.
+- **Dark / Light themes** that persist in the URL (`?theme=dark`) and recolor every component, table, and chart.
+- **Page hero headers**, segmented-control tabs, metric cards, framed tables and charts.
 
 ---
 
-## 🏛️ Architecture
-
-### System Design
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                    STREAMLIT FRONTEND                           │
-│  ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────┐  │
-│  │ Upload  │ │Dashboard│ │ Bids    │ │Investor │ │  Export  │  │
-│  │ Page    │ │ Page    │ │ Page    │ │ Page    │ │  Page    │  │
-│  └────┬────┘ └────┬────┘ └────┬────┘ └────┬────┘ └────┬────┘  │
-│       │           │           │           │           │         │
-├───────┴───────────┴───────────┴───────────┴───────────┴─────────┤
-│                      ENGINE LAYER                               │
-│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐           │
-│  │  Parser  │ │   CV     │ │   NLP    │ │   Cost   │           │
-│  │  Engine  │ │  Engine  │ │  Engine  │ │  Engine  │           │
-│  └────┬─────┘ └────┬─────┘ └────┬─────┘ └────┬─────┘           │
-│       │            │            │            │                   │
-│  ┌────┴─────┐ ┌────┴─────┐ ┌────┴─────┐ ┌────┴─────┐           │
-│  │Contractor│ │ Permit   │ │Environ-  │ │Investor  │           │
-│  │  Engine  │ │  Engine  │ │ mental   │ │  Engine  │           │
-│  └────┬─────┘ └────┬─────┘ └────┬─────┘ └────┬─────┘           │
-│       │            │            │            │                   │
-│  ┌────┴─────┐ ┌────┴─────┐ ┌────┴─────┐ ┌────┴─────┐           │
-│  │   ROI    │ │Deprec-   │ │Insurance │ │ Market   │           │
-│  │  Engine  │ │iation    │ │  Engine  │ │  Engine  │           │
-│  └──────────┘ └──────────┘ └──────────┘ └──────────┘           │
-├─────────────────────────────────────────────────────────────────┤
-│                      DATA LAYER                                 │
-│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐           │
-│  │  Config  │ │ Real     │ │ State    │ │ Recall   │           │
-│  │  Module  │ │  Data    │ │  Fees    │ │ Database │           │
-│  └──────────┘ └──────────┘ └──────────┘ └──────────┘           │
-└─────────────────────────────────────────────────────────────────┘
-```
-
-### Data Flow
-
-```
-User Upload (PDF/DOCX/TXT/Image)
-        │
-        ▼
-┌───────────────┐
-│ Parser Engine │ ──► Extract text content
-└───────┬───────┘
-        │
-        ▼
-┌───────────────┐
-│   CV Engine   │ ──► Analyze images (if any)
-└───────┬───────┘
-        │
-        ▼
-┌───────────────┐
-│   NLP Engine  │ ──► Identify repair items, categorize findings
-└───────┬───────┘
-        │
-        ▼
-┌───────────────┐
-│  Cost Engine  │ ──► Calculate costs for each item
-└───────┬───────┘
-        │
-        ├──► Contractor Engine ──► Generate competitive bids
-        ├──► Permit Engine ──► Cross-reference permit records
-        ├──► Environmental Engine ──► Assess climate/natural risks
-        ├──► Investor Engine ──► Calculate ROI, CapEx, holding costs
-        ├──► Depreciation Engine ──► Component depreciation schedules
-        └──► Insurance Engine ──► Risk profiling & premium impact
-                │
-                ▼
-        ┌───────────────┐
-        │  Streamlit UI │ ──► Interactive dashboard with all results
-        └───────────────┘
-```
-
----
-
-## 📦 Module Breakdown
-
-### 1. Cost Engine (`engines/cost_engine.py`)
-**Purpose:** Core cost estimation engine that calculates repair costs using formula-based calculations.
-
-**Methodology:**
-- Material costs derived from RS Means and HomeAdvisor regional averages
-- Labor rates based on BLS Occupational Employment Statistics
-- Overhead calculated as percentage of material + labor
-- Profit margins applied per industry standards
-- Rush premiums calculated at 25-40% above standard rates
-
-**Output:**
-- Itemized cost estimates per finding
-- Material/labor/overhead/profit breakdowns
-- Total repair cost summary
-- Confidence intervals for each estimate
-
-### 2. Contractor Engine (`engines/contractor_engine.py`)
-**Purpose:** Generates competitive contractor bids using real contractor profiles.
-
-**Data:**
-- 15 verified contractor profiles with license numbers
-- State-specific contractor databases
-- Historical pricing patterns by trade
-- License verification status
-
-**Output:**
-- 3 competitive bids per repair category
-- Detailed cost breakdowns (materials, labor, overhead, profit)
-- Payment terms and warranty conditions
-- Rush job cost estimates
-- License verification status
-
-### 3. Permit Engine (`engines/permit_engine.py`)
-**Purpose:** Cross-references findings against permit records and calculates compliance.
-
-**Data:**
-- 50-state permit fee database
-- Real contractor names per state
-- Permit processing time estimates
-- Compliance scoring methodology
-
-**Output:**
-- Permit requirements per finding
-- Unpermitted work warnings
-- Retroactive permit guidance
-- Cost liability estimates
-- Overall compliance score
-
-### 4. Environmental Engine (`engines/environmental_engine.py`)
-**Purpose:** Assesses environmental and climate risks using real geographic data.
-
-**Data Sources:**
-- FEMA National Flood Hazard Layer
-- USGS National Seismic Hazard Map
-- CAL FIRE Fire Severity Zones
-- USDA Soil Survey
-- NOAA Climate Zones
-
-**Output:**
-- Flood zone designation and risk level
-- Seismic zone and peak ground acceleration
-- Wildfire risk and defensible space requirements
-- Soil classification and foundation implications
-- Climate zone hazards and mitigation strategies
-- Annual insurance impact estimates
-
-### 5. Investor Engine (`engines/investor_engine.py`)
-**Purpose:** Comprehensive investment analysis for real estate deals.
-
-**Data:**
-- State-based price per square foot (listing and rental)
-- Historical appreciation rates by state
-- Property tax rates by state
-- Insurance cost estimates by state
-- Utility cost estimates
-
-**Output:**
-- After Repair Value (ARV) estimate
-- Monthly rent estimate
-- Net Operating Income (NOI)
-- Cap rate and cash-on-cash return
-- 5-year capital expenditure forecast
-- Risk assessment (repair, hold, capex risks)
-- Investment analysis notes
-
-### 6. ROI Engine (`engines/roi_engine.py`)
-**Purpose:** Return on investment calculations with sensitivity analysis.
-
-**Output:**
-- ROI percentage by repair category
-- Payback period estimates
-- Sensitivity analysis for key variables
-- Agent and inspector company data
-
-### 7. Depreciation Engine (`engines/depreciation_engine.py`)
-**Purpose:** Component-by-component depreciation schedules.
-
-**Data:**
-- IRS publication lifespans for residential property
-- Component-specific depreciation rates
-- Replacement cost estimates
-
-**Output:**
-- Annual depreciation amounts
-- Accumulated depreciation
-- Remaining useful life
-- Replacement cost projections
-
-### 8. Insurance Engine (`engines/insurance_engine.py`)
-**Purpose:** Insurance risk profiling and premium impact analysis.
-
-**Output:**
-- Underwriting red flags
-- Premium impact estimates
-- Coverage recommendations
-- Risk mitigation strategies
-
-### 9. Market Engine (`engines/market_engine.py`)
-**Purpose:** Market analysis and property valuation.
-
-**Output:**
-- Comparable property estimates
-- Market trend analysis
-- Neighborhood scoring
-- Investment potential rating
-
-### 10. Parser Engine (`engines/parser_engine.py`)
-**Purpose:** Multi-format document processing.
-
-**Supported Formats:**
-- PDF (text and scanned)
-- Microsoft Word (.docx)
-- Plain text (.txt)
-- Images (JPG, PNG, TIFF)
-
-**Output:**
-- Extracted text content
-- Metadata (author, creation date, etc.)
-- Image analysis results
-
-### 11. CV Engine (`engines/cv_engine.py`)
-**Purpose:** Computer vision analysis of property images.
-
-**Capabilities:**
-- Object detection (damage, defects, conditions)
-- Material identification
-- Condition assessment
-- Before/after comparison
-
-### 12. Export Engine (`engines/export_engine.py`)
-**Purpose:** Report generation in multiple formats.
-
-**Supported Formats:**
-- PDF reports
-- Excel spreadsheets
-- JSON data exports
-- HTML reports
-
-### 13. Voice Engine (`engines/voice_engine.py`)
-**Purpose:** Text-to-speech narration of reports.
-
-**Features:**
-- Natural language summaries
-- Key findings narration
-- Executive summaries
-
-### 14. SEO Engine (`engines/seo_engine.py`)
-**Purpose:** Property listing optimization.
-
-**Features:**
-- Keyword analysis
-- Listing optimization suggestions
-- Market positioning
-
-### 15. Legal Engine (`engines/legal_engine.py`)
-**Purpose:** Legal compliance and disclosure analysis.
-
-**Features:**
-- Disclosure requirements by state
-- Legal risk assessment
-- Compliance recommendations
-
-### 16. Spatial Engine (`engines/spatial_engine.py`)
-**Purpose:** Geographic and spatial analysis.
-
-**Features:**
-- Location-based risk assessment
-- Proximity analysis
-- Neighborhood scoring
-
-### 17. Escrow Engine (`engines/escrow_engine.py`)
-**Purpose:** Escrow holdback calculations.
-
-**Features:**
-- Milestone-based holdback amounts
-- Release condition definitions
-- Payment schedule generation
-
-### 18. Sandbox Engine (`engines/sandbox_engine.py`)
-**Purpose:** Safe testing environment for calculations.
-
-**Features:**
-- What-if scenario analysis
-- Sensitivity testing
-- Cost comparison tools
-
----
-
-## 📊 Data Sources & Methodology
-
-### Cost Data
-| Source | Usage |
-|--------|-------|
-| RS Means | Material and labor cost baselines |
-| HomeAdvisor | Regional cost adjustments |
-| Angi | Contractor pricing benchmarks |
-| BLS Occupational Statistics | Labor rate validation |
-| HUD | Housing cost indices |
-
-### Environmental Data
-| Source | Usage |
-|--------|-------|
-| FEMA NFHL | Flood zone designations |
-| USGS NSHM | Seismic hazard zones |
-| CAL FIRE | Wildfire severity zones |
-| USDA NRCS | Soil classifications |
-| NOAA | Climate zone data |
-
-### Real Estate Data
-| Source | Usage |
-|--------|-------|
-| Census Bureau | Housing statistics |
-| FHFA | Price indices |
-| Zillow/Redfin | Market comparables |
-| State governments | Tax rates and fees |
-
-### Calculation Methodology
-
-All calculations in this application are **deterministic** — meaning the same input will always produce the same output. This is achieved through:
-
-1. **Hash-based seeded calculations** — A deterministic hash of the property address seeds all random-looking calculations
-2. **Formula-based cost estimation** — Material/labor/overhead/profit breakdowns use fixed formulas
-3. **Real-world data lookups** — State fees, climate zones, soil types use actual data
-4. **No random number generation** — Zero usage of `random` module for any calculations
-
----
-
-## 🚀 Getting Started
+## Getting started
 
 ### Prerequisites
+- Python 3.10+ (tested on 3.13)
+- pip
 
-- **Python 3.10+** (tested on Python 3.13)
-- **pip** (Python package installer)
-- **Git** (for cloning the repository)
-
-### Installation
-
-1. **Clone the repository:**
+### Install & run
 ```bash
 git clone https://github.com/dipakjad1993/RealEstate-Repair-Cost-Estimator.git
 cd RealEstate-Repair-Cost-Estimator
-```
-
-2. **Create a virtual environment (recommended):**
-```bash
 python -m venv venv
-# On Windows:
-venv\Scripts\activate
-# On macOS/Linux:
-source venv/bin/activate
-```
-
-3. **Install dependencies:**
-```bash
+# Windows:  venv\Scripts\activate
+# macOS/Linux: source venv/bin/activate
 pip install -r requirements.txt
-```
-
-4. **Run the application:**
-```bash
 streamlit run app.py
 ```
+Open **http://localhost:8501**.
 
-5. **Open your browser:**
-Navigate to `http://localhost:8501`
+### Workflow
+1. **Inputs** — enter the address + property profile, paste contractor quotes and permits, upload inspection PDFs, photos, audio, a floorplan (JSON/CSV/Matterport URL), or a closed-deal CSV. Press **Run Analysis**.
+2. **Analysis** — review the 21 modules, each with source badges.
+3. **Results** — verified summaries, CapEx timeline, negotiation sandbox, legal documents, and exports.
+4. **Health** — live status of every data source.
 
----
+### Optional API keys
+Create `.env` (or set secrets) to unlock live enrichment:
 
-## 💻 Usage
-
-### Step 1: Upload Inspection Report
-- Navigate to the **Upload** page
-- Drag and drop or browse for your inspection report
-- Supported formats: PDF, DOCX, TXT, JPG, PNG, TIFF
-- The system will automatically parse and analyze the document
-
-### Step 2: Review Analysis Dashboard
-- View all findings organized by category
-- See estimated costs for each item
-- Review confidence scores and data sources
-- Filter by priority, category, or cost
-
-### Step 3: Get Contractor Bids
-- Navigate to the **Contractor Bids** page
-- View 3 competitive bids per repair category
-- See detailed cost breakdowns (materials, labor, overhead, profit)
-- Review payment terms and warranty conditions
-- Compare rush vs. standard timeline options
-
-### Step 4: Check Permit Requirements
-- Navigate to the **Permits** page
-- See which repairs require permits
-- Check for unpermitted work warnings
-- Review compliance score
-- Get retroactive permit guidance if needed
-
-### Step 5: Assess Environmental Risks
-- Navigate to the **Environmental** page
-- Review flood zone designation
-- Check seismic risk
-- Assess wildfire exposure
-- Review soil classification
-- See mitigation recommendations
-
-### Step 6: Analyze Investment Viability
-- Navigate to the **Investor** page
-- Review ARV and rent estimates
-- See NOI and cap rate calculations
-- Review 5-year CapEx forecast
-- Assess risk factors
-- Get investment analysis notes
-
-### Step 7: Export Reports
-- Navigate to the **Export** page
-- Generate PDF reports for clients
-- Export Excel spreadsheets for analysis
-- Download JSON data for integrations
-
----
-
-## ⚙️ Configuration
-
-### Environment Variables
-
-Create a `.env` file in the project root:
-
-```env
-# Optional: API keys for enhanced features
-OPENAI_API_KEY=your_openai_key_here
-GOOGLE_MAPS_API_KEY=your_google_maps_key_here
-
-# Application settings
-STREAMLIT_SERVER_PORT=8501
-STREAMLIT_SERVER_ADDRESS=localhost
+```
+CENSUS_API_KEY=your_key_here
+FEMA_API_KEY=your_key_here
+USGS_API_KEY=your_key_here
+OPENAI_API_KEY=your_key_here
 ```
 
-### Custom Cost Adjustments
+Without keys, the tool still runs — it labels enriched values `REQUIRES_KEY` instead of guessing.
 
-Edit `config.py` to customize cost data:
+---
 
-```python
-# Adjust material costs per square foot
-MATERIAL_COSTS_PER_SQFT = {
-    "electrical": 8.50,
-    "plumbing": 12.00,
-    "hvac": 15.00,
-    # Add more categories...
-}
+## Architecture
 
-# Adjust labor rates by state
-STATE_LABOR_RATES = {
-    "CA": 85.00,
-    "NY": 78.00,
-    "TX": 62.00,
-    # Add more states...
-}
+```
+Streamlit app.py
+   ├── Navigation + theme (frosted glass, dark/light, URL-persisted)
+   ├── Inputs  ── ingestion_engine.py  (validate, import, transcribe)
+   ├── Analysis ── analysis_engine.py   (orchestrates 21 modules)
+   ├── Results ── 21 renderers + exports
+   └── Health  ── real_data_fetcher.check_api_health()
+
+engines/ (each a focused, testable unit)
+   real_data_fetcher.py   live Census/BLS/FEMA/USGS/CPSC
+   cost_engine.py · capex_engine.py · market_engine.py · permit_engine.py
+   environmental_engine.py · insurance_engine.py · investor_engine.py
+   recall_engine.py · roi_engine.py · legal_engine.py · seo_engine.py
+   spatial_engine.py · sandbox_engine.py · contractor_engine.py
+   depreciation_engine.py · parser_engine.py · cv_engine.py
+   export_engine.py · voice_engine.py · ingestion_engine.py · analysis_engine.py
 ```
 
-### Adding Contractor Profiles
-
-Add new contractors to the contractor database in `engines/contractor_engine.py`:
-
-```python
-CONTRACTORS = {
-    "CA": [
-        {
-            "name": "Pacific Coast Builders",
-            "license": "CA-8234567",
-            "specialties": ["general", "electrical", "plumbing"],
-            "rating": 4.8,
-            "years_in_business": 18,
-            "insurance_verified": True
-        },
-        # Add more contractors...
-    ]
-}
-```
+### Design system
+`static/style.css` defines the full palette (light `#F5F5F7` + dark `#000` tokens), and `static/fonts/Inter-VF.woff2` is the self-hosted, offline-safe font. The theme is applied by Streamlit state, mirrored to the URL, and enforced in CSS — no element falls back to framework defaults.
 
 ---
 
-## 🖼️ Screenshots
+## Configuration
 
-### Dashboard Overview
-![Dashboard](screenshots/dashboard.png)
+Key settings live in:
 
-### Contractor Bids
-![Bids](screenshots/contractor_bids.png)
-
-### Environmental Risk
-![Environmental](screenshots/environmental.png)
-
-### Investment Analysis
-![Investor](screenshots/investment.png)
+| File | Purpose |
+|------|---------|
+| `config.py` | Market anchors, thresholds, cost baselines |
+| `.streamlit/config.toml` | Server, static serving, base theme |
+| `requirements.txt` | Runtime dependencies |
 
 ---
 
-## 🛠️ Technology Stack
+## Data sources
 
-| Layer | Technology |
-|-------|------------|
-| **Frontend** | Streamlit 1.32+ |
-| **Backend** | Python 3.13 |
-| **Data Processing** | Pandas, NumPy |
-| **PDF Processing** | PyPDF2, pdfplumber |
-| **DOCX Processing** | python-docx |
-| **Image Processing** | Pillow, OpenCV |
-| **NLP** | spaCy, NLTK |
-| **Visualization** | Plotly, Matplotlib |
-| **File Handling** | pathlib, os |
-| **Hashing** | hashlib (deterministic) |
-| **Export** | openpyxl, reportlab |
+| Source | Used for |
+|--------|----------|
+| **US Census** | Housing statistics, market anchors |
+| **BLS** | Occupational wage baselines for labor |
+| **FEMA NFHL** | Flood zone designations |
+| **USGS** | Seismic hazard / peak ground acceleration |
+| **CPSC** | Product recall cross-referencing |
+| **CAL FIRE / USDA** | Wildfire severity and soil classification |
+
+All calculations are deterministic (hash-seeded, formula-based) — the same input always produces the same output, and no `random` module is used.
 
 ---
 
-## 📁 File Structure
+## Project structure
 
 ```
 RealEstate-Repair-Cost-Estimator/
-│
-├── app.py                          # Main Streamlit application
-├── config.py                       # Configuration and cost data
-├── requirements.txt                # Python dependencies
-├── .gitignore                      # Git ignore rules
-├── README.md                       # This file
-│
-├── engines/                        # Analysis engine modules
-│   ├── __init__.py
-│   ├── cost_engine.py              # Core cost estimation
-│   ├── contractor_engine.py        # Contractor bid generation
-│   ├── permit_engine.py            # Permit compliance
-│   ├── environmental_engine.py     # Environmental risk assessment
-│   ├── investor_engine.py          # Investment analysis
-│   ├── roi_engine.py               # ROI calculations
-│   ├── depreciation_engine.py      # Depreciation schedules
-│   ├── insurance_engine.py         # Insurance risk profiling
-│   ├── market_engine.py            # Market analysis
-│   ├── parser_engine.py            # Document parsing
-│   ├── cv_engine.py                # Computer vision
-│   ├── export_engine.py            # Report generation
-│   ├── voice_engine.py             # Text-to-speech
-│   ├── seo_engine.py               # Listing optimization
-│   ├── legal_engine.py             # Legal compliance
-│   ├── spatial_engine.py           # Geographic analysis
-│   ├── escrow_engine.py            # Escrow calculations
-│   └── sandbox_engine.py           # Testing environment
-│
-├── data/                           # Static data files
-│   ├── contractors/                # Contractor databases
-│   ├── permits/                    # Permit fee data
-│   ├── environmental/              # Environmental data
-│   └── recalls/                    # Product recall data
-│
-├── utils/                          # Utility functions
-│   ├── __init__.py
-│   ├── formatters.py               # Number/currency formatting
-│   ├── validators.py               # Input validation
-│   └── helpers.py                  # Common helpers
-│
-├── assets/                         # Static assets
-│   ├── css/                        # Custom stylesheets
-│   ├── images/                     # Application images
-│   └── fonts/                      # Custom fonts
-│
-├── tests/                          # Test suite
-│   ├── __init__.py
-│   ├── test_cost_engine.py
-│   ├── test_contractor_engine.py
-│   └── test_integration.py
-│
-└── screenshots/                    # Application screenshots
-    ├── dashboard.png
-    ├── contractor_bids.png
-    ├── environmental.png
-    └── investment.png
+├── app.py                      # Streamlit entrypoint (UI, nav, theme)
+├── config.py                   # Baselines & configuration
+├── requirements.txt
+├── .streamlit/config.toml
+├── engines/                    # 22 engine modules (see Architecture)
+├── static/
+│   ├── style.css               # Premium Apple-inspired design system
+│   └── fonts/Inter-VF.woff2    # Self-hosted Inter variable font
+├── templates/                  # Export templates
+├── utils/                      # Shared helpers
+└── data/                       # Local data artifacts
 ```
 
 ---
 
-## 🧪 Testing
+## Tech stack
 
-### Run All Tests
-```bash
-python -m pytest tests/ -v
-```
-
-### Run Specific Test Suite
-```bash
-python -m pytest tests/test_cost_engine.py -v
-```
-
-### Run Integration Tests
-```bash
-python -m pytest tests/test_integration.py -v
-```
+| Layer | Technology |
+|-------|------------|
+| Frontend | Streamlit, Plotly |
+| Data | Pandas, NumPy |
+| Document parsing | pdfplumber, PyMuPDF |
+| Audio | openai-whisper |
+| Live data | requests (Census, BLS, FEMA, USGS, CPSC) |
+| Styling | Custom CSS design system (Inter typeface) |
 
 ---
 
-## 🤝 Contributing
+## Disclaimer
 
-Contributions are welcome! Please follow these steps:
-
-1. **Fork the repository**
-2. **Create a feature branch:**
-   ```bash
-   git checkout -b feature/amazing-feature
-   ```
-3. **Make your changes**
-4. **Add tests for new functionality**
-5. **Ensure all tests pass:**
-   ```bash
-   python -m pytest tests/ -v
-   ```
-6. **Commit your changes:**
-   ```bash
-   git commit -m "Add amazing feature"
-   ```
-7. **Push to the branch:**
-   ```bash
-   git push origin feature/amazing-feature
-   ```
-8. **Open a Pull Request**
-
-### Development Guidelines
-
-- Follow PEP 8 style guide
-- Add docstrings to all new functions
-- Include type hints where possible
-- Write tests for new features
-- Update documentation as needed
+This tool is for **informational purposes only** and is **not** a substitute for licensed inspectors, contractors, insurance agents, real estate agents, attorneys, or financial advisors. Estimates derive from regional averages, government datasets, and deterministic models — always verify with local professionals before making decisions. Provided **as is**, without warranty.
 
 ---
 
-## ⚠️ Disclaimer
+## License
 
-### Important Legal Notice
-
-This application is provided **"as is"** without warranty of any kind. The estimates and analysis generated by this tool are for **informational purposes only** and should not be considered professional advice.
-
-### Not a Substitute for Professional Services
-
-- **Not a substitute for a licensed home inspector** — Always hire a qualified inspector for comprehensive property evaluation
-- **Not a substitute for a licensed contractor** — Get actual bids from licensed contractors before making decisions
-- **Not a substitute for a licensed insurance agent** — Consult with an insurance professional for coverage decisions
-- **Not a substitute for a licensed real estate agent** — Work with a qualified agent for market analysis and transactions
-- **Not a substitute for legal advice** — Consult with an attorney for legal and compliance questions
-- **Not a substitute for financial advice** — Consult with a financial advisor for investment decisions
-
-### Data Accuracy
-
-While this application uses real-world data patterns and formulas, the estimates are based on:
-- Regional averages that may not reflect local conditions
-- Historical data that may not account for recent market changes
-- General formulas that may not apply to unique properties
-- Assumptions about property condition and repair scope
-
-**Always verify estimates with local professionals and current market data.**
-
-### Liability
-
-The developers and contributors of this application shall not be liable for any damages, losses, or decisions made based on the information provided by this tool. Use at your own risk.
+MIT — see [LICENSE](LICENSE).
 
 ---
 
-## 📄 License
+## Contact
 
-This project is licensed under the **MIT License** — see the [LICENSE](LICENSE) file for details.
+**Dipak Jad** · [@dipakjad1993](https://github.com/dipakjad1993) · [Repository](https://github.com/dipakjad1993/RealEstate-Repair-Cost-Estimator)
 
-```
-MIT License
-
-Copyright (c) 2026 Real Estate Repair Cost Estimator
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-```
-
----
-
-## 📞 Contact
-
-### Developer
-**Dipak Jad**
-- GitHub: [@dipakjad1993](https://github.com/dipakjad1993)
-- Repository: [RealEstate-Repair-Cost-Estimator](https://github.com/dipakjad1993/RealEstate-Repair-Cost-Estimator)
-
-### Support
-For issues, questions, or suggestions:
-1. Open an issue on [GitHub Issues](https://github.com/dipakjad1993/RealEstate-Repair-Cost-Estimator/issues)
-2. Contact via GitHub profile
-
-### Feedback
-We welcome feedback! If you have suggestions for improvement, please:
-- Open a feature request issue
-- Submit a pull request with your improvements
-- Share your use case so we can better understand needs
-
----
-
-## 🙏 Acknowledgments
-
-- **Streamlit** — For the amazing web application framework
-- **RS Means** — For construction cost data patterns
-- **FEMA** — For flood zone data
-- **USGS** — For seismic hazard data
-- **CAL FIRE** — For wildfire risk data
-- **USDA** — For soil classification data
-- **Open Source Community** — For all the amazing Python libraries
-
----
-
-## 📊 Project Statistics
-
-| Metric | Value |
-|--------|-------|
-| **Total Modules** | 18+ |
-| **Contractor Profiles** | 15+ |
-| **Recall Database** | 25+ |
-| **State Fee Data** | All 50 states |
-| **Environmental Data Sources** | 5+ |
-| **Output Formats** | PDF, Excel, JSON, HTML |
-| **Supported Input Formats** | PDF, DOCX, TXT, Images |
-
----
-
-## 🔄 Version History
-
-### v2.0.0 (Current)
-- Complete rewrite with deterministic calculations
-- 18+ analysis modules
-- Real-world data patterns
-- Enhanced contractor profiles
-- 50-state permit fee data
-- Environmental risk assessment
-- Investment analysis with 5-year forecasts
-- Insurance risk profiling
-
-### v1.0.0
-- Initial release
-- Basic cost estimation
-- Simple contractor bids
-- Report generation
-
----
-
-<div align="center">
-
-**Made with ❤️ for Real Estate Professionals**
-
-[⬆ Back to Top](#-real-estate-repair-cost-estimator)
-
-</div>
+Issues, questions, and feature requests are welcome via [GitHub Issues](https://github.com/dipakjad1993/RealEstate-Repair-Cost-Estimator/issues).
