@@ -13,14 +13,11 @@ research dossier per module and per finding.
 import logging
 from datetime import datetime
 
-from engines.cost_engine import RealRates
 from engines.depreciation_engine import analyze_all_capex, parse_appliance_metadata
-from engines.legal_engine import generate_escrow_holdback_agreement
 from engines.insurance_engine import analyze_insurance_risk
+from engines.legal_engine import generate_escrow_holdback_agreement
 from engines.recall_engine import check_recalls_for_findings
-from engines.permit_engine import cross_reference_findings_with_permits
 from engines.spatial_engine import create_spatial_map
-from engines.cv_engine import create_evidence_summary
 
 logger = logging.getLogger(__name__)
 
@@ -92,14 +89,16 @@ def _bids_as_list(bids, findings):
         key = f.get("key", f.get("description", ""))
         b = by_key.get(key) or by_key.get(f.get("description", ""))
         if b:
-            out.append({
-                "finding_id": f.get("id"),
-                "finding_key": key,
-                "bid_amount": b.get("bid_avg", 0),
-                "contractor": b.get("contractor", ""),
-                "trade": b.get("trade", ""),
-                "cost_source": b.get("cost_source", ""),
-            })
+            out.append(
+                {
+                    "finding_id": f.get("id"),
+                    "finding_key": key,
+                    "bid_amount": b.get("bid_avg", 0),
+                    "contractor": b.get("contractor", ""),
+                    "trade": b.get("trade", ""),
+                    "cost_source": b.get("cost_source", ""),
+                }
+            )
     return out
 
 
@@ -110,8 +109,6 @@ def _build_deep_findings(session, res):
     capex_by_sys = {it["system"]: it for it in res["capex"]["timeline_items"]}
     bid_by_key = res["bids"] or {}
     perm_xref = res["permit_xref"].get("cross_reference_results", [])
-    ins = res["insurance"]
-    ins_flags = {fl["matched_pattern"]: fl for fl in ins["red_flags"]}
     recalls = res["recalls"].get("recall_results", [])
     recall_by_finding = {}
     for r in recalls:
@@ -124,38 +121,52 @@ def _build_deep_findings(session, res):
     for idx, f in enumerate(findings):
         desc = f.get("description", "")
         key = f.get("key", desc)
-        cost = cost_by_key.get(key) or next((c for c in cm["line_items"]
-                                             if c["finding"] == desc), None)
-        cap = next((it for it in res["capex"]["timeline_items"]
-                    if it["finding"] == desc), capex_by_sys.get(f.get("system_category")))
+        cost = cost_by_key.get(key) or next((c for c in cm["line_items"] if c["finding"] == desc), None)
+        cap = next(
+            (it for it in res["capex"]["timeline_items"] if it["finding"] == desc),
+            capex_by_sys.get(f.get("system_category")),
+        )
         bid = bid_by_key.get(key) or bid_by_key.get(desc)
-        xref = next((x for x in perm_xref if x.get("finding") == desc[:100] or
-                     desc.startswith(x.get("finding", "")[:60])), None)
+        xref = next(
+            (
+                x
+                for x in perm_xref
+                if x.get("finding") == desc[:100] or desc.startswith(x.get("finding", "")[:60])
+            ),
+            None,
+        )
         recalls_f = recall_by_finding.get(desc, [])
-        sp = spatial_by_desc.get(desc[:100]) or next(
-            (m for m in spatial if m["finding"] == desc), None)
-        lic = next((x for x in legal["seller_credits"] + legal["seller_repairs"] +
-                    legal["price_reductions"] if x["description"] == desc[:200]), None)
+        sp = spatial_by_desc.get(desc[:100]) or next((m for m in spatial if m["finding"] == desc), None)
+        lic = next(
+            (
+                x
+                for x in legal["seller_credits"] + legal["seller_repairs"] + legal["price_reductions"]
+                if x["description"] == desc[:200]
+            ),
+            None,
+        )
 
-        deep.append({
-            "index": idx + 1,
-            "id": f.get("id"),
-            "key": key,
-            "system": f.get("system_category", "OTHER"),
-            "severity": f.get("severity", "MEDIUM"),
-            "location": f.get("location", "Not specified"),
-            "source_type": f.get("source_type", "unknown"),
-            "source_file": f.get("source_file", ""),
-            "description": desc,
-            "cost": cost,
-            "capex": cap,
-            "bid": bid,
-            "permit_xref": xref,
-            "recalls": recalls_f,
-            "spatial": sp,
-            "legal_clause": lic,
-            "photos": f.get("photos_matched", []) or [],
-        })
+        deep.append(
+            {
+                "index": idx + 1,
+                "id": f.get("id"),
+                "key": key,
+                "system": f.get("system_category", "OTHER"),
+                "severity": f.get("severity", "MEDIUM"),
+                "location": f.get("location", "Not specified"),
+                "source_type": f.get("source_type", "unknown"),
+                "source_file": f.get("source_file", ""),
+                "description": desc,
+                "cost": cost,
+                "capex": cap,
+                "bid": bid,
+                "permit_xref": xref,
+                "recalls": recalls_f,
+                "spatial": sp,
+                "legal_clause": lic,
+                "photos": f.get("photos_matched", []) or [],
+            }
+        )
     deep.sort(key=lambda d: (SEVERITY_ORDER.get(d["severity"], 5), d["index"]))
     return deep
 
@@ -166,25 +177,34 @@ def _build_master_matrix(deep):
         cost = d["cost"] or {}
         cap = d["capex"] or {}
         xref = d["permit_xref"] or {}
-        rows.append({
-            "System": d["system"],
-            "Severity": d["severity"],
-            "Identified Issue": d["description"][:160],
-            "Location": d["location"],
-            "Immediate Repair Range": (f"${cost.get('total_low', 0):,.0f}–${cost.get('total_high', 0):,.0f}"
-                                       if cost else "—"),
-            "Cost Source": cost.get("cost_source", "—") if cost else "—",
-            "Future Risk Horizon": (f"{cap.get('failure_probability_24mo', 0)}% fail / "
-                                    f"${cap.get('replacement_cost', 0):,.0f} replace"
-                                    if cap else "—"),
-            "Projected Failure": cap.get("projected_failure_date", "—") if cap else "—",
-            "Strategic Action": _action_for(d),
-            "Permit": xref.get("permit_status", "No finding-level record") if xref else "—",
-            "Photos": len(d["photos"]),
-            "Recall Matches": len(d["recalls"]),
-            "Bid": (f"${d['bid'].get('bid_low', 0):,.0f}–${d['bid'].get('bid_high', 0):,.0f}"
-                    if d["bid"] else "Awaiting quote"),
-        })
+        rows.append(
+            {
+                "System": d["system"],
+                "Severity": d["severity"],
+                "Identified Issue": d["description"][:160],
+                "Location": d["location"],
+                "Immediate Repair Range": (
+                    f"${cost.get('total_low', 0):,.0f}–${cost.get('total_high', 0):,.0f}" if cost else "—"
+                ),
+                "Cost Source": cost.get("cost_source", "—") if cost else "—",
+                "Future Risk Horizon": (
+                    f"{cap.get('failure_probability_24mo', 0)}% fail / "
+                    f"${cap.get('replacement_cost', 0):,.0f} replace"
+                    if cap
+                    else "—"
+                ),
+                "Projected Failure": cap.get("projected_failure_date", "—") if cap else "—",
+                "Strategic Action": _action_for(d),
+                "Permit": xref.get("permit_status", "No finding-level record") if xref else "—",
+                "Photos": len(d["photos"]),
+                "Recall Matches": len(d["recalls"]),
+                "Bid": (
+                    f"${d['bid'].get('bid_low', 0):,.0f}–${d['bid'].get('bid_high', 0):,.0f}"
+                    if d["bid"]
+                    else "Awaiting quote"
+                ),
+            }
+        )
     return rows
 
 
@@ -239,15 +259,23 @@ def _module_cost(res, deep):
         ),
         "wage_provenance": s["wage_provenance"],
         "ppi_provenance": s["ppi_provenance"],
-        "total_low": s["total_low"], "total_high": s["total_high"], "total_avg": s["total_avg"],
+        "total_low": s["total_low"],
+        "total_high": s["total_high"],
+        "total_avg": s["total_avg"],
         "by_severity": s["by_severity"],
-        "line_items": [{
-            "system": c["system"], "severity": c["severity"], "finding": c["finding"],
-            "diy": (c["diy_low"], c["diy_high"]),
-            "contractor": (c["contractor_low"], c["contractor_high"]),
-            "emergency": (c["emergency_low"], c["emergency_high"]),
-            "source": c["cost_source"], "provenance": c["provenance"],
-        } for c in cm["line_items"]],
+        "line_items": [
+            {
+                "system": c["system"],
+                "severity": c["severity"],
+                "finding": c["finding"],
+                "diy": (c["diy_low"], c["diy_high"]),
+                "contractor": (c["contractor_low"], c["contractor_high"]),
+                "emergency": (c["emergency_low"], c["emergency_high"]),
+                "source": c["cost_source"],
+                "provenance": c["provenance"],
+            }
+            for c in cm["line_items"]
+        ],
     }
 
 
@@ -263,8 +291,11 @@ def _module_depreciation(capex_deep, deep):
         ),
         "summary": capex_deep["summary"],
         "capex_items": capex_deep["capex_items"],
-        "appliance_metadata": [parse_appliance_metadata(d["description"])
-                               for d in deep if d["system"] in ("APPLIANCES", "HVAC", "PLUMBING")],
+        "appliance_metadata": [
+            parse_appliance_metadata(d["description"])
+            for d in deep
+            if d["system"] in ("APPLIANCES", "HVAC", "PLUMBING")
+        ],
     }
 
 
@@ -278,10 +309,14 @@ def _module_market(res):
             "strategy is computed from real market position (above/at/below zip median), "
             "real days-on-market, and the verified high-risk finding list."
         ),
-        "anchor": m["anchor"], "anchor_description": m["anchor_description"],
-        "list_price": m["list_price"], "price_per_sqft": m["price_per_sqft"],
-        "dom_days": m["dom_days"], "market_position": m["market_position"],
-        "acs": m["acs"], "strategies": res["strategies"],
+        "anchor": m["anchor"],
+        "anchor_description": m["anchor_description"],
+        "list_price": m["list_price"],
+        "price_per_sqft": m["price_per_sqft"],
+        "dom_days": m["dom_days"],
+        "market_position": m["market_position"],
+        "acs": m["acs"],
+        "strategies": res["strategies"],
     }
 
 
@@ -328,8 +363,12 @@ def _build_evidence_summary(session, findings):
     missing = []
     for f in findings:
         ph = f.get("photos_matched", [])
-        entry = {"description": f["description"][:80], "severity": f["severity"],
-                 "system": f.get("system_category", ""), "photo_count": len(ph)}
+        entry = {
+            "description": f["description"][:80],
+            "severity": f["severity"],
+            "system": f.get("system_category", ""),
+            "photo_count": len(ph),
+        }
         if ph:
             matched.append(entry)
             if f["severity"] in ("CRITICAL", "HIGH"):
@@ -341,8 +380,11 @@ def _build_evidence_summary(session, findings):
         "total_images": len(images),
         "match_rate": match_rate,
         "matched": matched,
-        "unmatched": [i for i in images if i.get("index") not in
-                      {p.get("index") for m in matched_by_desc.values() for p in m}],
+        "unmatched": [
+            i
+            for i in images
+            if i.get("index") not in {p.get("index") for m in matched_by_desc.values() for p in m}
+        ],
         "critical_with_photos": critical_with_photos,
         "findings_missing_photos": missing,
     }
@@ -360,7 +402,9 @@ def _module_permits(res, session):
             "work is flagged as HIGH liability. No permit history is ever fabricated."
         ),
         "total_permits": pr["total_permits"],
-        "open": pr["open_permits"], "closed": pr["closed_permits"], "expired": pr["expired_permits"],
+        "open": pr["open_permits"],
+        "closed": pr["closed_permits"],
+        "expired": pr["expired_permits"],
         "compliance": pr["compliance_summary"],
         "cross_reference": xref["cross_reference_results"],
         "unpermitted_flags": xref["unpermitted_flags"],
@@ -406,7 +450,8 @@ def _module_dispatch(res, deep):
     bids = res["bids"] or {}
     return {
         "title": "Module 10 · Live Contractor Bid & Dispatch Engine",
-        "status": "USER_QUOTES" if any(b.get("cost_source") == "USER_QUOTE" for b in bids.values())
+        "status": "USER_QUOTES"
+        if any(b.get("cost_source") == "USER_QUOTE" for b in bids.values())
         else "BLS_WAGE_BASELINE",
         "narrative": (
             "Each finding is packaged into a dispatch request for the correct trade "
@@ -451,8 +496,11 @@ def _module_environmental(res):
             "into an overall risk level."
         ),
         "geocoding": e["geocoding"],
-        "flood": e["flood"], "seismic": e["seismic"], "earthquakes": e["earthquakes"],
-        "weather": e["weather"], "finding_risks": e["finding_derived_risks"],
+        "flood": e["flood"],
+        "seismic": e["seismic"],
+        "earthquakes": e["earthquakes"],
+        "weather": e["weather"],
+        "finding_risks": e["finding_derived_risks"],
         "summary_level": e["summary_level"],
     }
 
@@ -507,10 +555,13 @@ def _module_insurance(ins, res, deep):
             "basis is the user's real carrier quote when provided, else a clearly-labeled "
             "MODELED state benchmark."
         ),
-        "score": sc["insurability_score"], "grade": sc["grade"],
-        "red_flags": ins["red_flags"], "verdict": sc["verdict"],
+        "score": sc["insurability_score"],
+        "grade": sc["grade"],
+        "red_flags": ins["red_flags"],
+        "verdict": sc["verdict"],
         "premium_provenance": sc["premium_provenance"],
-        "annual_impact": sc["annual_impact"], "five_year_impact": sc["five_year_impact"],
+        "annual_impact": sc["annual_impact"],
+        "five_year_impact": sc["five_year_impact"],
         "max_denial": sc["max_denial_prob"],
     }
 
@@ -519,20 +570,29 @@ def _module_investor(res):
     inv = res["investor"]
     return {
         "title": "Module 16 · Investor ARV & Flip Margin Underwriter",
-        "status": "VERIFIED" if inv["listing_price_provenance"] != "MODELED_BENCHMARK" else "MODELED_BENCHMARK",
+        "status": "VERIFIED"
+        if inv["listing_price_provenance"] != "MODELED_BENCHMARK"
+        else "MODELED_BENCHMARK",
         "narrative": (
             "Computes Maximum Allowable Offer = ARV − repairs − holding − closing − profit "
             "target, using the verified repair matrix. Rental cash-flow, cap rate, and "
             "cash-on-cash return use the user's real rent estimate or Census ACS rent."
         ),
-        "listing_price": inv["listing_price"], "list_provenance": inv["listing_price_provenance"],
-        "arv": inv["after_repair_value"], "arv_provenance": inv["arv_provenance"],
+        "listing_price": inv["listing_price"],
+        "list_provenance": inv["listing_price_provenance"],
+        "arv": inv["after_repair_value"],
+        "arv_provenance": inv["arv_provenance"],
         "max_offer": inv["max_allowable_offer"],
-        "repair": inv["total_repair_cost"], "holding": inv["holding_costs_total"],
-        "closing": inv["closing_costs"], "profit_target": inv["profit_target"],
-        "cap_rate": inv["cap_rate"], "coc": inv["cash_on_cash_return"],
-        "rental": inv["monthly_rental_estimate"], "rent_provenance": inv["monthly_rental_provenance"],
-        "metrics": inv["deal_metrics"], "risk": inv["risk_assessment"],
+        "repair": inv["total_repair_cost"],
+        "holding": inv["holding_costs_total"],
+        "closing": inv["closing_costs"],
+        "profit_target": inv["profit_target"],
+        "cap_rate": inv["cap_rate"],
+        "coc": inv["cash_on_cash_return"],
+        "rental": inv["monthly_rental_estimate"],
+        "rent_provenance": inv["monthly_rental_provenance"],
+        "metrics": inv["deal_metrics"],
+        "risk": inv["risk_assessment"],
         "analysis": inv["investment_analysis"],
         "forecast": inv["depreciation_forecast"],
     }
@@ -563,7 +623,8 @@ def _module_seo(res):
             "in [ZIP]') populated with the verified per-system cost data from this dossier. "
             "Personal information is never published."
         ),
-        "pages": seo["pages"], "total_pages": seo["total_pages"],
+        "pages": seo["pages"],
+        "total_pages": seo["total_pages"],
         "analytics_status": seo["analytics_status"],
     }
 
@@ -609,7 +670,8 @@ def _module_spatial(spatial, deep):
             "export, or a clearly-labeled template). Each marker links the line-item cost, "
             "contractor bid, and photo evidence."
         ),
-        "provenance": spatial["floor_plan_provenance"], "note": spatial["floor_plan_note"],
+        "provenance": spatial["floor_plan_provenance"],
+        "note": spatial["floor_plan_note"],
         "floor_plan": spatial["floor_plan"],
         "findings_mapped": spatial["findings_mapped"],
     }

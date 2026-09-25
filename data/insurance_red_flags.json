@@ -1,0 +1,141 @@
+{
+ "version": "2026.09.25",
+ "dataset": "insurance_red_flags",
+ "data": [
+  {
+   "pattern": "polybutylene|poly-b|polybutelyne",
+   "system": "plumbing",
+   "risk_score": 95,
+   "denial_prob": 0.94,
+   "annual_penalty": 3400,
+   "replacement_cost": 9500,
+   "description": "Polybutylene plumbing - known failure risk, most carriers will deny coverage"
+  },
+  {
+   "pattern": "knob.and.tube|K&T|knob & tube",
+   "system": "electrical",
+   "risk_score": 92,
+   "denial_prob": 0.91,
+   "annual_penalty": 3100,
+   "replacement_cost": 14000,
+   "description": "Knob-and-tube wiring - fire hazard, most carriers require full rewiring"
+  },
+  {
+   "pattern": "federal.pacific|FPE|stab-lok",
+   "system": "electrical_panel",
+   "risk_score": 94,
+   "denial_prob": 0.89,
+   "annual_penalty": 2800,
+   "replacement_cost": 2800,
+   "description": "Federal Pacific panel - active class action, 94% denial probability"
+  },
+  {
+   "pattern": "zinsco|zinsco.*panel|Sylvania.*panel",
+   "system": "electrical_panel",
+   "risk_score": 93,
+   "denial_prob": 0.88,
+   "annual_penalty": 2600,
+   "replacement_cost": 3200,
+   "description": "Zinsco panel - known breaker welding/failure under overload"
+  },
+  {
+   "pattern": "aluminum.wiring|aluminum.branch",
+   "system": "electrical",
+   "risk_score": 88,
+   "denial_prob": 0.82,
+   "annual_penalty": 2200,
+   "replacement_cost": 16000,
+   "description": "Aluminum branch wiring - fire/overheating risk at connections"
+  },
+  {
+   "pattern": "asbestos|asbestos.insulation|asbestos.siding",
+   "system": "environmental",
+   "risk_score": 85,
+   "denial_prob": 0.7,
+   "annual_penalty": 1800,
+   "replacement_cost": 28000,
+   "description": "Asbestos materials - specialized abatement required by law"
+  },
+  {
+   "pattern": "lead.paint|lead-based",
+   "system": "environmental",
+   "risk_score": 80,
+   "denial_prob": 0.65,
+   "annual_penalty": 1400,
+   "replacement_cost": 18000,
+   "description": "Lead-based paint - EPA RRP rule compliance required"
+  },
+  {
+   "pattern": "mold|active.mold|mold.growth|mold.colon",
+   "system": "environmental",
+   "risk_score": 82,
+   "denial_prob": 0.75,
+   "annual_penalty": 2400,
+   "replacement_cost": 9500,
+   "description": "Active mold growth - health hazard, carrier may exclude related claims"
+  },
+  {
+   "pattern": "roof.*1[3-9].years|roof.*2[0-9].years|roof.over.*12",
+   "system": "roof",
+   "risk_score": 75,
+   "denial_prob": 0.6,
+   "annual_penalty": 2000,
+   "replacement_cost": 14500,
+   "description": "Aging roof (12+ years) - many carriers require certification or will non-renew"
+  },
+  {
+   "pattern": "active.leak|active.water|water.intrusion|active.dripping",
+   "system": "plumbing",
+   "risk_score": 88,
+   "denial_prob": 0.8,
+   "annual_penalty": 2300,
+   "replacement_cost": 6000,
+   "description": "Active water intrusion - immediate risk of structural damage and mold"
+  },
+  {
+   "pattern": "foundation.crack|structural.crack|settling|shifting",
+   "system": "foundation",
+   "risk_score": 90,
+   "denial_prob": 0.85,
+   "annual_penalty": 3800,
+   "replacement_cost": 25000,
+   "description": "Foundation/structural issues - major liability, often excluded from coverage"
+  },
+  {
+   "pattern": "radon|radon.mitigation|radon.level",
+   "system": "environmental",
+   "risk_score": 70,
+   "denial_prob": 0.5,
+   "annual_penalty": 900,
+   "replacement_cost": 1800,
+   "description": "Radon above 4.0 pCi/L - mitigation system required for occupancy"
+  },
+  {
+   "pattern": "termites|termite.damage|wood.destroying|wdi",
+   "system": "pest",
+   "risk_score": 78,
+   "denial_prob": 0.55,
+   "annual_penalty": 1200,
+   "replacement_cost": 9500,
+   "description": "Termite/WDI - structural wood damage, often excluded from homeowner policies"
+  },
+  {
+   "pattern": "septic|septic.system|septic.tank",
+   "system": "plumbing",
+   "risk_score": 72,
+   "denial_prob": 0.45,
+   "annual_penalty": 1000,
+   "replacement_cost": 18000,
+   "description": "Septic system - potential failure, replacement is major expense"
+  },
+  {
+   "pattern": "well.water|private.well",
+   "system": "plumbing",
+   "risk_score": 65,
+   "denial_prob": 0.35,
+   "annual_penalty": 700,
+   "replacement_cost": 9500,
+   "description": "Private well - water quality risk, no municipal backup"
+  }
+ ]
+}

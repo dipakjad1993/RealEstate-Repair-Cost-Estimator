@@ -26,13 +26,13 @@ Authoritative format references:
 
 from __future__ import annotations
 
-import os
 import json
-import time
 import logging
-from dataclasses import dataclass, field, asdict
-from datetime import datetime, timedelta
-from typing import Optional, Dict, Any, List
+import os
+import time
+from dataclasses import asdict, dataclass, field
+from datetime import datetime, timedelta, timezone
+from typing import Any
 
 import requests
 
@@ -42,10 +42,10 @@ logger = logging.getLogger(__name__)
 # Configuration
 # ============================================================
 
-REQUEST_TIMEOUT = 20
-CACHE_TTL_SECONDS = 900          # 15 min cache
-MAX_RETRIES = 2
-RETRY_DELAY = 1.2
+REQUEST_TIMEOUT = 15
+CACHE_TTL_SECONDS = 86400  # 24h cache (@st.cache_data(ttl=86400) equivalent for gov baselines)
+MAX_RETRIES = 3  # retries + backoff via http_client shared session
+RETRY_DELAY = 0.8
 
 # Free API keys (optional, read from environment). Tool degrades gracefully
 # and labels REQUIRES_KEY when these are absent.
@@ -72,13 +72,17 @@ NOMINATIM_BASE = "https://nominatim.openstreetmap.org/search"
 # Provenance
 # ============================================================
 
+
 @dataclass
 class Provenance:
     """Verifiable record of where a piece of data came from."""
+
     source: str
     url: str = ""
-    status: str = "VERIFIED"     # VERIFIED | USER_PROVIDED | REQUIRES_KEY | UNAVAILABLE | MODELED
-    fetched_at: str = field(default_factory=lambda: datetime.utcnow().isoformat() + "Z")
+    status: str = "VERIFIED"  # VERIFIED | USER_PROVIDED | REQUIRES_KEY | UNAVAILABLE | MODELED
+    fetched_at: str = field(
+        default_factory=lambda: datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+    )
     detail: str = ""
     raw: Any = None
 
@@ -89,6 +93,7 @@ class Provenance:
 @dataclass
 class DataResult:
     """A value plus its provenance. Never return bare fabricated numbers."""
+
     value: Any
     provenance: Provenance
 
@@ -100,9 +105,10 @@ class DataResult:
 # Caching
 # ============================================================
 
+
 class TimedCache:
     def __init__(self, ttl_seconds: int = CACHE_TTL_SECONDS):
-        self._cache: Dict[str, tuple] = {}
+        self._cache: dict[str, tuple] = {}
         self._ttl = ttl_seconds
 
     def get(self, key: str):
@@ -123,9 +129,15 @@ class TimedCache:
 _cache = TimedCache()
 
 
-def _cached_api_call(url: str, params: dict = None, cache_key: str = None,
-                     method: str = "GET", json_body: dict = None,
-                     headers: dict = None, timeout: int = REQUEST_TIMEOUT) -> Optional[Any]:
+def _cached_api_call(
+    url: str,
+    params: dict = None,
+    cache_key: str = None,
+    method: str = "GET",
+    json_body: dict = None,
+    headers: dict = None,
+    timeout: int = REQUEST_TIMEOUT,
+) -> Any | None:
     if cache_key is None:
         cache_key = f"{method}:{url}:{json.dumps(params or {}, sort_keys=True)}"
     cached = _cache.get(cache_key)
@@ -176,16 +188,56 @@ def _cached_api_call(url: str, params: dict = None, cache_key: str = None,
 # ============================================================
 
 STATE_ABBREV_TO_FIPS = {
-    "AL": "01", "AK": "02", "AZ": "04", "AR": "05", "CA": "06",
-    "CO": "08", "CT": "09", "DE": "10", "FL": "12", "GA": "13",
-    "HI": "15", "ID": "16", "IL": "17", "IN": "18", "IA": "19",
-    "KS": "20", "KY": "21", "LA": "22", "ME": "23", "MD": "24",
-    "MA": "25", "MI": "26", "MN": "27", "MS": "28", "MO": "29",
-    "MT": "30", "NE": "31", "NV": "32", "NH": "33", "NJ": "34",
-    "NM": "35", "NY": "36", "NC": "37", "ND": "38", "OH": "39",
-    "OK": "40", "OR": "41", "PA": "42", "RI": "44", "SC": "45",
-    "SD": "46", "TN": "47", "TX": "48", "UT": "49", "VT": "50",
-    "VA": "51", "WA": "53", "WV": "54", "WI": "55", "WY": "56",
+    "AL": "01",
+    "AK": "02",
+    "AZ": "04",
+    "AR": "05",
+    "CA": "06",
+    "CO": "08",
+    "CT": "09",
+    "DE": "10",
+    "FL": "12",
+    "GA": "13",
+    "HI": "15",
+    "ID": "16",
+    "IL": "17",
+    "IN": "18",
+    "IA": "19",
+    "KS": "20",
+    "KY": "21",
+    "LA": "22",
+    "ME": "23",
+    "MD": "24",
+    "MA": "25",
+    "MI": "26",
+    "MN": "27",
+    "MS": "28",
+    "MO": "29",
+    "MT": "30",
+    "NE": "31",
+    "NV": "32",
+    "NH": "33",
+    "NJ": "34",
+    "NM": "35",
+    "NY": "36",
+    "NC": "37",
+    "ND": "38",
+    "OH": "39",
+    "OK": "40",
+    "OR": "41",
+    "PA": "42",
+    "RI": "44",
+    "SC": "45",
+    "SD": "46",
+    "TN": "47",
+    "TX": "48",
+    "UT": "49",
+    "VT": "50",
+    "VA": "51",
+    "WA": "53",
+    "WV": "54",
+    "WI": "55",
+    "WY": "56",
     "DC": "11",
 }
 
@@ -203,7 +255,8 @@ def state_fips_to_area_code(fips2: str) -> str:
 # GEOCODING  (US Census Geocoder v1.0 - VERIFIED WORKING)
 # ============================================================
 
-def geocode_address(address: str) -> Optional[Dict[str, Any]]:
+
+def geocode_address(address: str) -> dict[str, Any] | None:
     """
     Real geocoding via the US Census Geocoder (v1.0 onelineaddress endpoint).
     Returns {"lat","lon","matched_address","county","state"} or None.
@@ -222,8 +275,8 @@ def geocode_address(address: str) -> Optional[Dict[str, Any]]:
         return None
     best = matches[0]
     coords = best.get("coordinates", {}) or {}
-    counties = ((best.get("geographies") or {}).get("Counties") or [])
-    states = ((best.get("geographies") or {}).get("States") or [])
+    counties = (best.get("geographies") or {}).get("Counties") or []
+    states = (best.get("geographies") or {}).get("States") or []
     return {
         "lat": coords.get("y"),
         "lon": coords.get("x"),
@@ -233,7 +286,7 @@ def geocode_address(address: str) -> Optional[Dict[str, Any]]:
     }
 
 
-def geocode_zip(zip_code: str) -> Optional[Dict[str, Any]]:
+def geocode_zip(zip_code: str) -> dict[str, Any] | None:
     """
     Approximate geocode for a ZIP using the Census geocoder with a fake
     placeholder address on that ZIP's carrier route is unreliable; instead
@@ -252,8 +305,13 @@ def geocode_zip(zip_code: str) -> Optional[Dict[str, Any]]:
         )
         if data and isinstance(data, list) and data:
             item = data[0]
-            return {"lat": float(item["lat"]), "lon": float(item["lon"]),
-                    "matched_address": item.get("display_name", ""), "county": "", "state": ""}
+            return {
+                "lat": float(item["lat"]),
+                "lon": float(item["lon"]),
+                "matched_address": item.get("display_name", ""),
+                "county": "",
+                "state": "",
+            }
     except Exception as e:
         logger.warning(f"zip geocode failed for {zip_code}: {e}")
     return None
@@ -273,15 +331,19 @@ def get_flood_zone_by_coords(lat: float, lon: float) -> DataResult:
     hosts with retry. Returns honest UNAVAILABLE if unreachable.
     """
     if lat is None or lon is None:
-        return DataResult(None, Provenance("FEMA NFHL", status="UNAVAILABLE",
-                                           detail="No coordinates available to query."))
+        return DataResult(
+            None, Provenance("FEMA NFHL", status="UNAVAILABLE", detail="No coordinates available to query.")
+        )
     last_err = ""
     for host in FEMA_NFHL_ENDPOINTS:
         params = {
-            "geometry": f"{lon},{lat}", "geometryType": "esriGeometryPoint",
-            "inSR": "4326", "outSR": "4326",
+            "geometry": f"{lon},{lat}",
+            "geometryType": "esriGeometryPoint",
+            "inSR": "4326",
+            "outSR": "4326",
             "spatialRel": "esriSpatialRelIntersects",
-            "returnGeometry": "false", "f": "json",
+            "returnGeometry": "false",
+            "f": "json",
             "outFields": "FLD_ZONE,SFHA,ZONE_SUBTY,DFIRM_ID,STATIC_BFE,FLOOD_INSURANCE_RATE_INDICATOR,LOMC_FTYP",
         }
         try:
@@ -294,31 +356,56 @@ def get_flood_zone_by_coords(lat: float, lon: float) -> DataResult:
         features = data.get("features", [])
         if not features:
             return DataResult(
-                {"flood_zone": "X", "in_special_flood_hazard_area": False,
-                 "risk_level": "Minimal", "base_flood_elevation": None,
-                 "dfirm_id": None, "zone_subtype": None},
-                Provenance("FEMA National Flood Hazard Layer (NFHL)", url=host, status="VERIFIED",
-                           detail="No mapped SFHA features at this coordinate; default Zone X (minimal risk).",
-                           raw=data))
+                {
+                    "flood_zone": "X",
+                    "in_special_flood_hazard_area": False,
+                    "risk_level": "Minimal",
+                    "base_flood_elevation": None,
+                    "dfirm_id": None,
+                    "zone_subtype": None,
+                },
+                Provenance(
+                    "FEMA National Flood Hazard Layer (NFHL)",
+                    url=host,
+                    status="VERIFIED",
+                    detail="No mapped SFHA features at this coordinate; default Zone X (minimal risk).",
+                    raw=data,
+                ),
+            )
         attrs = features[0].get("attributes", {}) or {}
         zone = (attrs.get("FLD_ZONE") or "X").strip()
         sfha = bool(attrs.get("SFHA"))
         risk = "High" if (zone in FLOOD_RISK_ZONES or sfha) else ("Moderate" if zone == "X" else "Minimal")
         return DataResult(
-            {"flood_zone": zone, "in_special_flood_hazard_area": sfha, "risk_level": risk,
-             "base_flood_elevation": attrs.get("STATIC_BFE"),
-             "zone_subtype": attrs.get("ZONE_SUBTY"),
-             "dfirm_id": attrs.get("DFIRM_ID"),
-             "mapped": True},
-            Provenance("FEMA National Flood Hazard Layer (NFHL)", url=host, status="VERIFIED",
-                       detail=f"Zone {zone} at ({lat:.5f},{lon:.5f})", raw=attrs))
-    return DataResult(None, Provenance("FEMA NFHL", status="UNAVAILABLE",
-                                       detail=f"All FEMA endpoints unreachable: {last_err[:200]}"))
+            {
+                "flood_zone": zone,
+                "in_special_flood_hazard_area": sfha,
+                "risk_level": risk,
+                "base_flood_elevation": attrs.get("STATIC_BFE"),
+                "zone_subtype": attrs.get("ZONE_SUBTY"),
+                "dfirm_id": attrs.get("DFIRM_ID"),
+                "mapped": True,
+            },
+            Provenance(
+                "FEMA National Flood Hazard Layer (NFHL)",
+                url=host,
+                status="VERIFIED",
+                detail=f"Zone {zone} at ({lat:.5f},{lon:.5f})",
+                raw=attrs,
+            ),
+        )
+    return DataResult(
+        None,
+        Provenance(
+            "FEMA NFHL", status="UNAVAILABLE", detail=f"All FEMA endpoints unreachable: {last_err[:200]}"
+        ),
+    )
 
 
 # ============================================================
 # USGS SEISMIC HAZARD
 # ============================================================
+
 
 def get_seismic_hazard_by_coords(lat: float, lon: float) -> DataResult:
     """
@@ -327,62 +414,97 @@ def get_seismic_hazard_by_coords(lat: float, lon: float) -> DataResult:
     design values, and the official USGS earthquake catalog for recent quakes.
     """
     if lat is None or lon is None:
-        return DataResult(None, Provenance("USGS NSHM", status="UNAVAILABLE",
-                                           detail="No coordinates available."))
-    data = _cached_api_call(f"{USGS_SEISMIC_MIRROR}/risk",
-                            params={"lat": lat, "lon": lon},
-                            cache_key=f"seis_{lat}_{lon}")
+        return DataResult(
+            None, Provenance("USGS NSHM", status="UNAVAILABLE", detail="No coordinates available.")
+        )
+    data = _cached_api_call(
+        f"{USGS_SEISMIC_MIRROR}/risk", params={"lat": lat, "lon": lon}, cache_key=f"seis_{lat}_{lon}"
+    )
     if not data or "hazard" not in data:
-        return DataResult(None, Provenance("USGS National Seismic Hazard Model",
-                                           status="UNAVAILABLE",
-                                           detail="Seismic service unreachable."))
+        return DataResult(
+            None,
+            Provenance(
+                "USGS National Seismic Hazard Model",
+                status="UNAVAILABLE",
+                detail="Seismic service unreachable.",
+            ),
+        )
     h = data.get("hazard", {}) or {}
     return DataResult(
-        {"pga": h.get("pga"), "ss": h.get("ss"), "s1": h.get("s1"),
-         "sds": h.get("sds"), "sd1": h.get("sd1"),
-         "seismic_design_category": h.get("sdc", "Unknown"),
-         "hazard_level": h.get("level", "Unknown"),
-         "nearest_fault": data.get("nearest_fault"),
-         "report_url": data.get("report_url")},
-        Provenance("USGS National Seismic Hazard Model (ASCE 7-16 design values)",
-                   url=data.get("report_url", f"{USGS_SEISMIC_MIRROR}/risk?lat={lat}&lon={lon}"),
-                   status="VERIFIED", detail=f"PGA={h.get('pga')}g SDC={h.get('sdc')}", raw=data))
+        {
+            "pga": h.get("pga"),
+            "ss": h.get("ss"),
+            "s1": h.get("s1"),
+            "sds": h.get("sds"),
+            "sd1": h.get("sd1"),
+            "seismic_design_category": h.get("sdc", "Unknown"),
+            "hazard_level": h.get("level", "Unknown"),
+            "nearest_fault": data.get("nearest_fault"),
+            "report_url": data.get("report_url"),
+        },
+        Provenance(
+            "USGS National Seismic Hazard Model (ASCE 7-16 design values)",
+            url=data.get("report_url", f"{USGS_SEISMIC_MIRROR}/risk?lat={lat}&lon={lon}"),
+            status="VERIFIED",
+            detail=f"PGA={h.get('pga')}g SDC={h.get('sdc')}",
+            raw=data,
+        ),
+    )
 
 
-def get_recent_earthquakes(lat: float, lon: float, radius_km: float = 100,
-                           days_back: int = 365, min_magnitude: float = 2.5) -> DataResult:
+def get_recent_earthquakes(
+    lat: float, lon: float, radius_km: float = 100, days_back: int = 365, min_magnitude: float = 2.5
+) -> DataResult:
     """Real USGS earthquake catalog query."""
-    end = datetime.utcnow()
+    end = datetime.now(timezone.utc)
     start = end - timedelta(days=days_back)
     params = {
-        "format": "geojson", "starttime": start.strftime("%Y-%m-%d"),
-        "endtime": end.strftime("%Y-%m-%d"), "latitude": lat, "longitude": lon,
-        "maxradiuskm": radius_km, "minmagnitude": min_magnitude, "orderby": "magnitude",
+        "format": "geojson",
+        "starttime": start.strftime("%Y-%m-%d"),
+        "endtime": end.strftime("%Y-%m-%d"),
+        "latitude": lat,
+        "longitude": lon,
+        "maxradiuskm": radius_km,
+        "minmagnitude": min_magnitude,
+        "orderby": "magnitude",
     }
-    data = _cached_api_call(f"{USGS_EARTHQUAKE_API_BASE}/query", params=params,
-                            cache_key=f"quakes_{lat}_{lon}_{radius_km}_{days_back}")
+    data = _cached_api_call(
+        f"{USGS_EARTHQUAKE_API_BASE}/query",
+        params=params,
+        cache_key=f"quakes_{lat}_{lon}_{radius_km}_{days_back}",
+    )
     quakes = []
     if data and "features" in data:
         for f in data.get("features", []):
             p = f.get("properties", {})
             coords = f.get("geometry", {}).get("coordinates", [0, 0, 0])
-            quakes.append({"magnitude": p.get("mag"), "place": p.get("place", ""),
-                           "time": p.get("time"), "depth_km": coords[2] if len(coords) > 2 else None,
-                           "url": p.get("url", "")})
+            quakes.append(
+                {
+                    "magnitude": p.get("mag"),
+                    "place": p.get("place", ""),
+                    "time": p.get("time"),
+                    "depth_km": coords[2] if len(coords) > 2 else None,
+                    "url": p.get("url", ""),
+                }
+            )
     max_mag = max((q["magnitude"] for q in quakes if q["magnitude"]), default=None)
     return DataResult(
         {"earthquakes": quakes, "total_count": len(quakes), "max_magnitude": max_mag},
-        Provenance("USGS Earthquake Hazards Program (Earthquake Catalog)",
-                   url=f"{USGS_EARTHQUAKE_API_BASE}/query", status="VERIFIED",
-                   detail=f"{len(quakes)} events within {radius_km}km, {days_back}d"))
+        Provenance(
+            "USGS Earthquake Hazards Program (Earthquake Catalog)",
+            url=f"{USGS_EARTHQUAKE_API_BASE}/query",
+            status="VERIFIED",
+            detail=f"{len(quakes)} events within {radius_km}km, {days_back}d",
+        ),
+    )
 
 
 # ============================================================
 # CPSC RECALLS  (VERIFIED WORKING with browser UA)
 # ============================================================
 
-def search_cpsc_recalls(keyword: str = "", product: str = "",
-                        max_results: int = 25) -> DataResult:
+
+def search_cpsc_recalls(keyword: str = "", product: str = "", max_results: int = 25) -> DataResult:
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36",
         "Accept": "application/json",
@@ -393,26 +515,46 @@ def search_cpsc_recalls(keyword: str = "", product: str = "",
     if product:
         params["ProductName"] = product
     try:
-        data = _cached_api_call(CPSC_RECALL_API_BASE, params=params, headers=headers,
-                                cache_key=f"cpsc_{keyword}_{product}", timeout=25)
+        data = _cached_api_call(
+            CPSC_RECALL_API_BASE,
+            params=params,
+            headers=headers,
+            cache_key=f"cpsc_{keyword}_{product}",
+            timeout=25,
+        )
     except Exception as e:
-        return DataResult([], Provenance("CPSC SaferProducts.gov", status="UNAVAILABLE",
-                                         detail=str(e)[:200]))
+        return DataResult([], Provenance("CPSC SaferProducts.gov", status="UNAVAILABLE", detail=str(e)[:200]))
     recalls = data if isinstance(data, list) else (data.get("Recalls", []) if isinstance(data, dict) else [])
     out = []
     for r in recalls[:max_results]:
         products = [p.get("Name", "") for p in r.get("Products", []) if p.get("Name")]
         mfrs = [m.get("Name", "") for m in r.get("Manufacturers", []) if m.get("Name")]
         hazards = [h.get("Name", "") for h in r.get("Hazards", []) if h.get("Name")]
-        out.append({"recall_number": r.get("RecallNumber", ""), "recall_date": r.get("RecallDate", ""),
-                    "title": r.get("Title", ""), "description": r.get("Description", ""),
-                    "remedy": r.get("Remedy", ""), "remedy_type": r.get("RemedyType", ""),
-                    "product_names": products, "manufacturers": mfrs, "hazard_types": hazards,
-                    "units": r.get("Units", ""), "url": r.get("URL", "")})
-    return DataResult(out, Provenance(
-        "CPSC SaferProducts.gov (U.S. Consumer Product Safety Commission)",
-        url="https://www.saferproducts.gov/", status="VERIFIED" if data is not None else "UNAVAILABLE",
-        detail=f"{len(out)} recalls for '{keyword or product or 'all'}'", raw=data))
+        out.append(
+            {
+                "recall_number": r.get("RecallNumber", ""),
+                "recall_date": r.get("RecallDate", ""),
+                "title": r.get("Title", ""),
+                "description": r.get("Description", ""),
+                "remedy": r.get("Remedy", ""),
+                "remedy_type": r.get("RemedyType", ""),
+                "product_names": products,
+                "manufacturers": mfrs,
+                "hazard_types": hazards,
+                "units": r.get("Units", ""),
+                "url": r.get("URL", ""),
+            }
+        )
+    return DataResult(
+        out,
+        Provenance(
+            "CPSC SaferProducts.gov (U.S. Consumer Product Safety Commission)",
+            url="https://www.saferproducts.gov/",
+            status="VERIFIED" if data is not None else "UNAVAILABLE",
+            detail=f"{len(out)} recalls for '{keyword or product or 'all'}'",
+            raw=data,
+        ),
+    )
 
 
 # ============================================================
@@ -438,10 +580,15 @@ ACS_VARS = {
 def get_acs_housing_data(zip_code: str = "", state_fips: str = "") -> DataResult:
     """Real US Census ACS 5-year data. REQUIRES_KEY without a free Census key."""
     if not CENSUS_API_KEY:
-        return DataResult(None, Provenance(
-            "US Census ACS 5-Year Estimates",
-            url="https://api.census.gov/data/key_signup.html", status="REQUIRES_KEY",
-            detail="Free key required: https://api.census.gov/data/key_signup.html"))
+        return DataResult(
+            None,
+            Provenance(
+                "US Census ACS 5-Year Estimates",
+                url="https://api.census.gov/data/key_signup.html",
+                status="REQUIRES_KEY",
+                detail="Free key required: https://api.census.gov/data/key_signup.html",
+            ),
+        )
     year = "2023"
     vars_str = "NAME," + ",".join(ACS_VARS.keys())
     params = {"get": vars_str, "for": "state:*", "key": CENSUS_API_KEY}
@@ -450,13 +597,16 @@ def get_acs_housing_data(zip_code: str = "", state_fips: str = "") -> DataResult
         params["in"] = f"state:{state_fips or '*'}"
     elif state_fips:
         params["for"] = f"state:{state_fips}"
-    data = _cached_api_call(f"{CENSUS_ACS_API_BASE}/{year}/acs/acs5", params=params,
-                            cache_key=f"acs_{zip_code}_{state_fips}")
+    data = _cached_api_call(
+        f"{CENSUS_ACS_API_BASE}/{year}/acs/acs5", params=params, cache_key=f"acs_{zip_code}_{state_fips}"
+    )
     if not isinstance(data, list) or len(data) < 2:
-        return DataResult(None, Provenance("US Census ACS", status="UNAVAILABLE",
-                                           detail="No data returned for this geography."))
+        return DataResult(
+            None,
+            Provenance("US Census ACS", status="UNAVAILABLE", detail="No data returned for this geography."),
+        )
     headers, values = data[0], data[1]
-    row = dict(zip(headers, values))
+    row = dict(zip(headers, values, strict=False))
 
     def num(v):
         try:
@@ -469,10 +619,15 @@ def get_acs_housing_data(zip_code: str = "", state_fips: str = "") -> DataResult
     for var, label in ACS_VARS.items():
         out[label] = num(row.get(var))
     out["zip_code"] = row.get("zip code tabulation area", "")
-    return DataResult(out, Provenance(
-        "US Census Bureau American Community Survey (ACS) 5-Year Estimates",
-        url=f"https://api.census.gov/data/{year}/acs/acs5", status="VERIFIED",
-        detail=f"{out.get('name')}" ))
+    return DataResult(
+        out,
+        Provenance(
+            "US Census Bureau American Community Survey (ACS) 5-Year Estimates",
+            url=f"https://api.census.gov/data/{year}/acs/acs5",
+            status="VERIFIED",
+            detail=f"{out.get('name')}",
+        ),
+    )
 
 
 # ============================================================
@@ -501,25 +656,35 @@ def _build_oews_series(fips2: str, soc6: str, datatype: str) -> str:
 def get_bls_wages(fips2: str) -> DataResult:
     """Real BLS OEWS wages for construction trades in a state (annual median + mean)."""
     if not fips2 or fips2 == "00":
-        return DataResult(None, Provenance("BLS OEWS", status="UNAVAILABLE",
-                                           detail="Invalid state FIPS."))
+        return DataResult(None, Provenance("BLS OEWS", status="UNAVAILABLE", detail="Invalid state FIPS."))
     series = []
     for soc in CONSTRUCTION_TRADES:
-        series.append(_build_oews_series(fips2, soc, "04"))   # annual mean
-        series.append(_build_oews_series(fips2, soc, "13"))   # annual median
-        series.append(_build_oews_series(fips2, soc, "08"))   # hourly median
+        series.append(_build_oews_series(fips2, soc, "04"))  # annual mean
+        series.append(_build_oews_series(fips2, soc, "13"))  # annual median
+        series.append(_build_oews_series(fips2, soc, "08"))  # hourly median
     try:
         data = _cached_api_call(
-            BLS_API_BASE, method="POST",
-            json_body={"seriesid": series, "startyear": str(datetime.now().year - 1),
-                       "endyear": str(datetime.now().year), "registrationkey": BLS_API_KEY},
+            BLS_API_BASE,
+            method="POST",
+            json_body={
+                "seriesid": series,
+                "startyear": str(datetime.now().year - 1),
+                "endyear": str(datetime.now().year),
+                "registrationkey": BLS_API_KEY,
+            },
             cache_key=f"oews_{fips2}_{datetime.now().year}",
         )
     except Exception as e:
         return DataResult(None, Provenance("BLS OEWS", status="UNAVAILABLE", detail=str(e)[:200]))
     if not isinstance(data, dict) or data.get("status") != "REQUEST_SUCCEEDED":
-        return DataResult(None, Provenance("BLS OEWS", status="REQUIRES_KEY" if not BLS_API_KEY else "UNAVAILABLE",
-                                           detail=str(data.get("message", "request failed"))[:200]))
+        return DataResult(
+            None,
+            Provenance(
+                "BLS OEWS",
+                status="REQUIRES_KEY" if not BLS_API_KEY else "UNAVAILABLE",
+                detail=str(data.get("message", "request failed"))[:200],
+            ),
+        )
     wages = {}
     for s in data.get("Results", {}).get("series", []):
         sid = s.get("seriesID", "")
@@ -544,10 +709,15 @@ def get_bls_wages(fips2: str) -> DataResult:
         elif dt == "08":
             wages[title]["hourly_median_wage"] = fv
         wages[title]["year"] = rows[0].get("year")
-    return DataResult(wages, Provenance(
-        "BLS Occupational Employment and Wage Statistics (OEWS)",
-        url="https://www.bls.gov/oes/", status="VERIFIED" if wages else "UNAVAILABLE",
-        detail=f"{len(wages)} construction occupations"))
+    return DataResult(
+        wages,
+        Provenance(
+            "BLS Occupational Employment and Wage Statistics (OEWS)",
+            url="https://www.bls.gov/oes/",
+            status="VERIFIED" if wages else "UNAVAILABLE",
+            detail=f"{len(wages)} construction occupations",
+        ),
+    )
 
 
 # Real PPI commodity series for construction materials
@@ -568,13 +738,13 @@ def get_bls_ppi_materials() -> DataResult:
     series = list(PPI_MATERIAL_SERIES.keys())
     year = str(datetime.now().year - 1)
     data = _cached_api_call(
-        BLS_API_BASE, method="POST",
-        json_body={"seriesid": series, "startyear": year, "endyear": year,
-                   "registrationkey": BLS_API_KEY},
-        cache_key=f"ppi_{year}")
+        BLS_API_BASE,
+        method="POST",
+        json_body={"seriesid": series, "startyear": year, "endyear": year, "registrationkey": BLS_API_KEY},
+        cache_key=f"ppi_{year}",
+    )
     if not isinstance(data, dict) or data.get("status") != "REQUEST_SUCCEEDED":
-        return DataResult(None, Provenance("BLS PPI", status="UNAVAILABLE",
-                                           detail="PPI request failed."))
+        return DataResult(None, Provenance("BLS PPI", status="UNAVAILABLE", detail="PPI request failed."))
     out = {}
     for s in data.get("Results", {}).get("series", []):
         sid = s.get("seriesID", "")
@@ -584,28 +754,38 @@ def get_bls_ppi_materials() -> DataResult:
                 out[PPI_MATERIAL_SERIES.get(sid, sid)] = float(rows[0].get("value"))
             except (TypeError, ValueError):
                 pass
-    return DataResult(out, Provenance(
-        "BLS Producer Price Index (PPI) - Construction Materials",
-        url="https://www.bls.gov/ppi/", status="VERIFIED" if out else "UNAVAILABLE",
-        detail=f"{len(out)} material indexes (baseline 1982=100)"))
+    return DataResult(
+        out,
+        Provenance(
+            "BLS Producer Price Index (PPI) - Construction Materials",
+            url="https://www.bls.gov/ppi/",
+            status="VERIFIED" if out else "UNAVAILABLE",
+            detail=f"{len(out)} material indexes (baseline 1982=100)",
+        ),
+    )
 
 
 # ============================================================
 # OPEN-METEO WEATHER  (VERIFIED WORKING, no key)
 # ============================================================
 
+
 def get_weather(lat: float, lon: float) -> DataResult:
     """Real current weather + 7-day forecast for the property (Open-Meteo)."""
     if lat is None or lon is None:
-        return DataResult(None, Provenance("Open-Meteo", status="UNAVAILABLE",
-                                           detail="No coordinates."))
+        return DataResult(None, Provenance("Open-Meteo", status="UNAVAILABLE", detail="No coordinates."))
     data = _cached_api_call(
         f"{OPEN_METEO_BASE}/forecast",
-        params={"latitude": lat, "longitude": lon,
-                "current": "temperature_2m,relative_humidity_2m,precipitation,wind_speed_10m,weather_code",
-                "daily": "temperature_2m_max,temperature_2m_min,precipitation_sum,wind_speed_10m_max",
-                "timezone": "auto", "forecast_days": 7},
-        cache_key=f"wx_{lat}_{lon}")
+        params={
+            "latitude": lat,
+            "longitude": lon,
+            "current": "temperature_2m,relative_humidity_2m,precipitation,wind_speed_10m,weather_code",
+            "daily": "temperature_2m_max,temperature_2m_min,precipitation_sum,wind_speed_10m_max",
+            "timezone": "auto",
+            "forecast_days": 7,
+        },
+        cache_key=f"wx_{lat}_{lon}",
+    )
     if not data:
         return DataResult(None, Provenance("Open-Meteo", status="UNAVAILABLE"))
     cur = data.get("current") or {}
@@ -614,25 +794,48 @@ def get_weather(lat: float, lon: float) -> DataResult:
     precip = daily.get("precipitation_sum") or []
     temp_c = cur.get("temperature_2m")
     return DataResult(
-        {"temperature_f": round(temp_c * 9 / 5 + 32, 1) if temp_c is not None else None,
-         "humidity": cur.get("relative_humidity_2m"),
-         "precipitation_inches": round((cur.get("precipitation") or 0) / 25.4, 2),
-         "wind_mph": round((cur.get("wind_speed_10m") or 0) * 0.621371, 1),
-         "conditions": _wmo_code(cur.get("weather_code")),
-         "forecast_high_f": [round(t * 9 / 5 + 32, 1) for t in temps if t is not None][:7],
-         "forecast_rain_inches": [round(p / 25.4, 2) for p in precip][:7]},
-        Provenance("Open-Meteo (NOAA/ECMWF gridded forecast data)",
-                   url="https://open-meteo.com/", status="VERIFIED",
-                   detail=f"Current {cur.get('weather_code')} at {lat},{lon}"))
+        {
+            "temperature_f": round(temp_c * 9 / 5 + 32, 1) if temp_c is not None else None,
+            "humidity": cur.get("relative_humidity_2m"),
+            "precipitation_inches": round((cur.get("precipitation") or 0) / 25.4, 2),
+            "wind_mph": round((cur.get("wind_speed_10m") or 0) * 0.621371, 1),
+            "conditions": _wmo_code(cur.get("weather_code")),
+            "forecast_high_f": [round(t * 9 / 5 + 32, 1) for t in temps if t is not None][:7],
+            "forecast_rain_inches": [round(p / 25.4, 2) for p in precip][:7],
+        },
+        Provenance(
+            "Open-Meteo (NOAA/ECMWF gridded forecast data)",
+            url="https://open-meteo.com/",
+            status="VERIFIED",
+            detail=f"Current {cur.get('weather_code')} at {lat},{lon}",
+        ),
+    )
 
 
 def _wmo_code(code):
-    mapping = {0: "Clear sky", 1: "Mainly clear", 2: "Partly cloudy", 3: "Overcast",
-               45: "Fog", 48: "Depositing rime fog", 51: "Light drizzle", 53: "Drizzle",
-               55: "Dense drizzle", 61: "Light rain", 63: "Rain", 65: "Heavy rain",
-               71: "Light snow", 73: "Snow", 75: "Heavy snow", 80: "Light showers",
-               81: "Showers", 82: "Violent showers", 95: "Thunderstorm",
-               96: "Thunderstorm with hail", 99: "Severe thunderstorm with hail"}
+    mapping = {
+        0: "Clear sky",
+        1: "Mainly clear",
+        2: "Partly cloudy",
+        3: "Overcast",
+        45: "Fog",
+        48: "Depositing rime fog",
+        51: "Light drizzle",
+        53: "Drizzle",
+        55: "Dense drizzle",
+        61: "Light rain",
+        63: "Rain",
+        65: "Heavy rain",
+        71: "Light snow",
+        73: "Snow",
+        75: "Heavy snow",
+        80: "Light showers",
+        81: "Showers",
+        82: "Violent showers",
+        95: "Thunderstorm",
+        96: "Thunderstorm with hail",
+        99: "Severe thunderstorm with hail",
+    }
     return mapping.get(code, "Unknown")
 
 
@@ -640,7 +843,8 @@ def _wmo_code(code):
 # AGGREGATION
 # ============================================================
 
-def fetch_all_real_data(lat=None, lon=None, zip_code="", state="") -> Dict[str, DataResult]:
+
+def fetch_all_real_data(lat=None, lon=None, zip_code="", state="") -> dict[str, DataResult]:
     """Fetch every available real data source for a location, with provenance."""
     results = {}
     fips2 = state_to_fips(state)
@@ -651,9 +855,12 @@ def fetch_all_real_data(lat=None, lon=None, zip_code="", state="") -> Dict[str, 
             lat, lon = geo["lat"], geo["lon"]
     results["geocoding"] = DataResult(
         {"lat": lat, "lon": lon},
-        Provenance("US Census Geocoder" if lat else "Geocoding",
-                   status="VERIFIED" if lat else "UNAVAILABLE",
-                   detail="Coordinates resolved" if lat else "Could not resolve location"))
+        Provenance(
+            "US Census Geocoder" if lat else "Geocoding",
+            status="VERIFIED" if lat else "UNAVAILABLE",
+            detail="Coordinates resolved" if lat else "Could not resolve location",
+        ),
+    )
 
     results["flood_zone"] = get_flood_zone_by_coords(lat, lon)
     results["seismic_hazard"] = get_seismic_hazard_by_coords(lat, lon)
@@ -665,14 +872,16 @@ def fetch_all_real_data(lat=None, lon=None, zip_code="", state="") -> Dict[str, 
     return results
 
 
-def check_api_health() -> Dict[str, Any]:
+def check_api_health() -> dict[str, Any]:
     """Live health check of every real data source."""
     lat, lon = 34.0522, -118.2437
     health = {}
     health["census_geocoder"] = bool(geocode_address("1600 Pennsylvania Ave NW, Washington DC 20500"))
     health["nominatim_zip_geocoder"] = bool(geocode_zip("90210"))
-    health["usgs_earthquake"] = get_recent_earthquakes(lat, lon, radius_km=50, days_back=7,
-                                                       min_magnitude=3.0).provenance.status == "VERIFIED"
+    health["usgs_earthquake"] = (
+        get_recent_earthquakes(lat, lon, radius_km=50, days_back=7, min_magnitude=3.0).provenance.status
+        == "VERIFIED"
+    )
     health["usgs_seismic"] = get_seismic_hazard_by_coords(lat, lon).provenance.status == "VERIFIED"
     health["fema_nfhl"] = get_flood_zone_by_coords(lat, lon).provenance.status == "VERIFIED"
     health["cpsc_recalls"] = search_cpsc_recalls(keyword="generator").provenance.status == "VERIFIED"

@@ -1,0 +1,20 @@
+# Repair Estimator — provenance-tracked property intelligence
+
+> Every figure carries VERIFIED / USER_PROVIDED / MODELED / REQUIRES_KEY / UNAVAILABLE. Nothing is fabricated.
+
+## Key pages
+- /app — Streamlit estimator (progressive intake: address -> ballpark -> deep dive)
+- /api/openapi.json — agent API (estimate_repair)
+- /s/{token} — lender-ready share portal (public URL, expiring HMAC token)
+
+## Cost methodology
+Deterministic cost = BLS OEWS trade wages + BLS PPI materials + state multipliers.
+USER_QUOTE rows are authoritative. Baselines labeled VERIFIED/MODELED, never quotes.
+
+## Sources (official)
+Census Geocoder + ACS, USGS Earthquake Catalog + Design Maps ASCE 7-22,
+FEMA NFHL ArcGIS/WMS, BLS OEWS/PPI, CPSC recalls, Open-Meteo supplemental.
+Proxies (floodzonemap.org, faultlinemap.com, Nominatim) are fallback-only.
+
+## Agent access
+Allowed: GPTBot, ClaudeBot, PerplexityBot. MCP: repair-estimator-mcp (tools/call estimate_repair).

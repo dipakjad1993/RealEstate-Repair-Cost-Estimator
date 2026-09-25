@@ -1,0 +1,565 @@
+{
+ "version": "2026.09.25",
+ "dataset": "material_costs_2026",
+ "data": {
+  "asphalt_shingles_per_sq": {
+   "min": 110,
+   "avg": 160,
+   "max": 220,
+   "unit": "per square (100 sq ft)",
+   "note": "Architectural shingles avg 15-20% more than 3-tab; designer shingles 30-50% more"
+  },
+  "asphalt_shingles_3tab_per_sq": {
+   "min": 85,
+   "avg": 120,
+   "max": 165,
+   "unit": "per square (100 sq ft)",
+   "note": "Basic 3-tab; increasingly rare as architectural becomes standard"
+  },
+  "metal_roofing_per_sq": {
+   "min": 350,
+   "avg": 550,
+   "max": 850,
+   "unit": "per square (100 sq ft)",
+   "note": "Standing seam; corrugated 30-40% less"
+  },
+  "roof_underlayment_per_sq": {
+   "min": 25,
+   "avg": 45,
+   "max": 75,
+   "unit": "per square (100 sq ft)",
+   "note": "Synthetic underlayment; felt paper 40% less"
+  },
+  "roof_flashing_per_ft": {
+   "min": 11,
+   "avg": 19,
+   "max": 32,
+   "unit": "per linear foot"
+  },
+  "roof_ice_water_shield_per_sq": {
+   "min": 40,
+   "avg": 65,
+   "max": 95,
+   "unit": "per square (100 sq ft)",
+   "note": "Self-adhering membrane for eaves/valleys"
+  },
+  "roof_ridge_vent_per_ft": {
+   "min": 4,
+   "avg": 7,
+   "max": 12,
+   "unit": "per linear foot installed"
+  },
+  "roof_pipe_boot": {
+   "min": 25,
+   "avg": 50,
+   "max": 90,
+   "unit": "each installed",
+   "note": "Neoprene or silicone roof boot for plumbing penetrations"
+  },
+  "plywood_sheet_4x8": {
+   "min": 40,
+   "avg": 55,
+   "max": 72,
+   "unit": "per sheet",
+   "note": "CDX grade 1/2 inch; OSB 20-25% less"
+  },
+  "osb_sheet_4x8": {
+   "min": 28,
+   "avg": 38,
+   "max": 52,
+   "unit": "per sheet",
+   "note": "Oriented strand board 7/16 inch"
+  },
+  "hvac_full_system": {
+   "min": 5800,
+   "avg": 9000,
+   "max": 15000,
+   "unit": "installed",
+   "note": "SEER2 ratings now required; R-454B refrigerant transition underway"
+  },
+  "hvac_condenser_unit": {
+   "min": 1500,
+   "avg": 2800,
+   "max": 5500,
+   "unit": "each",
+   "note": "Outdoor condensing unit; 3 ton avg 16 SEER2"
+  },
+  "hvac_evaporator_coil": {
+   "min": 750,
+   "avg": 1400,
+   "max": 2900,
+   "unit": "each"
+  },
+  "hvac_furnace_gas": {
+   "min": 2200,
+   "avg": 3800,
+   "max": 6500,
+   "unit": "installed",
+   "note": "80% AFUE standard; 96% AFUE 30-40% more"
+  },
+  "hvac_compressor": {
+   "min": 1000,
+   "avg": 1900,
+   "max": 3600,
+   "unit": "each",
+   "note": "R-410A phase-out driving R-454B transition costs in 2026"
+  },
+  "hvac_motor": {
+   "min": 190,
+   "avg": 440,
+   "max": 1000,
+   "unit": "each",
+   "note": "ECM motors cost 30-50% more than PSC but save 70% energy"
+  },
+  "hvac_capacitor": {
+   "min": 20,
+   "avg": 58,
+   "max": 145,
+   "unit": "each"
+  },
+  "hvac_ductwork_per_sqft": {
+   "min": 8,
+   "avg": 15,
+   "max": 28,
+   "unit": "per sq ft of conditioned space",
+   "note": "New ductwork installation including trunk and branches"
+  },
+  "hvac_thermostat_smart": {
+   "min": 150,
+   "avg": 280,
+   "max": 450,
+   "unit": "each installed",
+   "note": "WiFi-enabled programmable thermostat"
+  },
+  "water_heater_50gal_tank": {
+   "min": 1000,
+   "avg": 1700,
+   "max": 2900,
+   "unit": "installed",
+   "note": "Standard tank; 2026 national avg pricing"
+  },
+  "water_heater_tankless": {
+   "min": 2300,
+   "avg": 3700,
+   "max": 5800,
+   "unit": "installed",
+   "note": "Energy savings of 30-40% vs tank; requires gas line upgrade often"
+  },
+  "water_heater_80gal_tank": {
+   "min": 1500,
+   "avg": 2400,
+   "max": 4000,
+   "unit": "installed",
+   "note": "Large tank for high-demand households"
+  },
+  "electrical_panel_200amp": {
+   "min": 1900,
+   "avg": 3200,
+   "max": 5200,
+   "unit": "installed",
+   "note": "AFCI/GFCI breakers add $40-80 each; smart panels add $800+"
+  },
+  "electrical_panel_100amp": {
+   "min": 1200,
+   "avg": 2200,
+   "max": 3800,
+   "unit": "installed"
+  },
+  "electrical_outlet_gfci": {
+   "min": 16,
+   "avg": 32,
+   "max": 58,
+   "unit": "each installed"
+  },
+  "electrical_outlet_standard": {
+   "min": 8,
+   "avg": 18,
+   "max": 35,
+   "unit": "each installed"
+  },
+  "electrical_switch": {
+   "min": 8,
+   "avg": 16,
+   "max": 30,
+   "unit": "each installed"
+  },
+  "electrical_wire_14awg_per_ft": {
+   "min": 0.3,
+   "avg": 0.55,
+   "max": 0.9,
+   "unit": "per foot",
+   "note": "14/2 NM-B (Romex) for 15A circuits"
+  },
+  "electrical_wire_12awg_per_ft": {
+   "min": 0.45,
+   "avg": 0.8,
+   "max": 1.3,
+   "unit": "per foot",
+   "note": "12/2 NM-B (Romex) for 20A circuits"
+  },
+  "copper_pipe_per_ft": {
+   "min": 5.5,
+   "avg": 11,
+   "max": 20,
+   "unit": "per foot",
+   "note": "Copper prices at historic highs in 2026 due to global supply constraints"
+  },
+  "pex_pipe_per_ft": {
+   "min": 1.3,
+   "avg": 3.2,
+   "max": 6.5,
+   "unit": "per foot"
+  },
+  "pvc_pipe_per_ft": {
+   "min": 0.8,
+   "avg": 2.0,
+   "max": 4.5,
+   "unit": "per foot",
+   "note": "Schedule 40 PVC for drain/waste/vent"
+  },
+  "cast_iron_pipe_per_ft": {
+   "min": 8,
+   "avg": 15,
+   "max": 28,
+   "unit": "per foot installed",
+   "note": "For sewer line replacement"
+  },
+  "toilet": {
+   "min": 200,
+   "avg": 400,
+   "max": 800,
+   "unit": "each installed",
+   "note": "Standard two-piece; comfort height 10-15% more"
+  },
+  "faucet_kitchen": {
+   "min": 150,
+   "avg": 350,
+   "max": 700,
+   "unit": "each installed"
+  },
+  "faucet_bathroom": {
+   "min": 100,
+   "avg": 250,
+   "max": 550,
+   "unit": "each installed"
+  },
+  "sink_kitchen": {
+   "min": 200,
+   "avg": 450,
+   "max": 1000,
+   "unit": "each installed",
+   "note": "Stainless steel standard; granite composite 40-60% more"
+  },
+  "garbage_disposal": {
+   "min": 120,
+   "avg": 220,
+   "max": 400,
+   "unit": "each installed",
+   "note": "1/2 HP standard; 3/4 HP and above 30-50% more"
+  },
+  "drywall_sheet_4x8": {
+   "min": 15,
+   "avg": 19,
+   "max": 30,
+   "unit": "per sheet",
+   "note": "1/2 inch standard; fire-rated 20-30% more"
+  },
+  "drywall_repair_per_sqft": {
+   "min": 11,
+   "avg": 20,
+   "max": 32,
+   "unit": "per sq ft"
+  },
+  "insulation_batt_per_sqft": {
+   "min": 1.0,
+   "avg": 1.85,
+   "max": 3.75,
+   "unit": "per sq ft installed",
+   "note": "Fiberglass batt, R-13 to R-19; blown-in 15-25% less per R-value"
+  },
+  "spray_foam_per_sqft": {
+   "min": 2.75,
+   "avg": 4.5,
+   "max": 7.5,
+   "unit": "per sq ft installed",
+   "note": "Closed-cell spray foam, R-6.5/inch; open-cell 40% less"
+  },
+  "blown_insulation_per_sqft": {
+   "min": 0.8,
+   "avg": 1.5,
+   "max": 3.0,
+   "unit": "per sq ft installed",
+   "note": "Cellulose or fiberglass loose-fill"
+  },
+  "window_standard": {
+   "min": 520,
+   "avg": 1000,
+   "max": 1900,
+   "unit": "each installed",
+   "note": "Double-pane vinyl, ENERGY STAR rated; wood clad 50-80% more"
+  },
+  "door_interior": {
+   "min": 190,
+   "avg": 370,
+   "max": 750,
+   "unit": "each installed"
+  },
+  "door_exterior": {
+   "min": 650,
+   "avg": 1300,
+   "max": 3200,
+   "unit": "each installed",
+   "note": "Fiberglass/steel, insulated; wood 60-100% more"
+  },
+  "sliding_patio_door": {
+   "min": 800,
+   "avg": 1600,
+   "max": 3500,
+   "unit": "each installed",
+   "note": "Vinyl standard; French doors 40-70% more"
+  },
+  "deck_boards_per_sqft": {
+   "min": 5.5,
+   "avg": 9.0,
+   "max": 16,
+   "unit": "per sq ft",
+   "note": "Composite decking 40-60% more than pressure-treated lumber"
+  },
+  "concrete_per_yard": {
+   "min": 145,
+   "avg": 180,
+   "max": 235,
+   "unit": "per cubic yard delivered",
+   "note": "Ready-mix 3000 PSI standard"
+  },
+  "concrete_repair_per_sqft": {
+   "min": 11,
+   "avg": 20,
+   "max": 38,
+   "unit": "per sq ft"
+  },
+  "stucco_per_sqft": {
+   "min": 7.5,
+   "avg": 13,
+   "max": 20,
+   "unit": "per sq ft"
+  },
+  "vinyl_siding_per_sqft": {
+   "min": 3.5,
+   "avg": 6.5,
+   "max": 11,
+   "unit": "per sq ft installed"
+  },
+  "hardie_siding_per_sqft": {
+   "min": 6,
+   "avg": 10,
+   "max": 16,
+   "unit": "per sq ft installed",
+   "note": "Fiber cement (HardiePlank); premium 20-30% more"
+  },
+  "brick_veneer_per_sqft": {
+   "min": 10,
+   "avg": 18,
+   "max": 30,
+   "unit": "per sq ft installed"
+  },
+  "gutter_per_ft": {
+   "min": 8,
+   "avg": 15,
+   "max": 28,
+   "unit": "per linear foot installed",
+   "note": "Aluminum 6-inch seamless; copper 80-120% more"
+  },
+  "downspout_per_ft": {
+   "min": 6,
+   "avg": 12,
+   "max": 22,
+   "unit": "per linear foot installed"
+  },
+  "fence_per_ft": {
+   "min": 18,
+   "avg": 30,
+   "max": 55,
+   "unit": "per linear foot installed",
+   "note": "6-foot privacy fence; chain link 40-50% less"
+  },
+  "sod_per_sqft": {
+   "min": 0.45,
+   "avg": 0.85,
+   "max": 1.5,
+   "unit": "per sq ft installed"
+  },
+  "paint_interior_per_sqft": {
+   "min": 2.0,
+   "avg": 4.0,
+   "max": 7.0,
+   "unit": "per sq ft",
+   "note": "Two coats; prep work included in estimate"
+  },
+  "paint_exterior_per_sqft": {
+   "min": 2.5,
+   "avg": 5.0,
+   "max": 9.0,
+   "unit": "per sq ft",
+   "note": "Includes power wash, prep, prime, two coats"
+  },
+  "trim_per_ft": {
+   "min": 4,
+   "avg": 8,
+   "max": 15,
+   "unit": "per linear foot installed",
+   "note": "Baseboard or crown molding; MDF standard; hardwood 50-100% more"
+  },
+  "crown_molding_per_ft": {
+   "min": 6,
+   "avg": 12,
+   "max": 22,
+   "unit": "per linear foot installed"
+  },
+  "pipe_snaking": {
+   "min": 130,
+   "avg": 260,
+   "max": 420,
+   "unit": "per occurrence"
+  },
+  "hydro_jetting": {
+   "min": 300,
+   "avg": 550,
+   "max": 900,
+   "unit": "per occurrence",
+   "note": "High-pressure water jet for sewer main clearing"
+  },
+  "sewer_scope": {
+   "min": 180,
+   "avg": 340,
+   "max": 575,
+   "unit": "per inspection",
+   "note": "Camera inspection of main sewer line"
+  },
+  "mold_remediation_per_sqft": {
+   "min": 13,
+   "avg": 26,
+   "max": 48,
+   "unit": "per sq ft",
+   "note": "Professional remediation, includes containment and HEPA filtration"
+  },
+  "radon_mitigation_system": {
+   "min": 950,
+   "avg": 1800,
+   "max": 3000,
+   "unit": "installed",
+   "note": "Sub-slab depressurization system with fan and piping"
+  },
+  "epoxy_garage_floor_per_sqft": {
+   "min": 4,
+   "avg": 7,
+   "max": 12,
+   "unit": "per sq ft",
+   "note": "Two-part epoxy with flake broadcast"
+  },
+  "hardwood_floor_per_sqft": {
+   "min": 6,
+   "avg": 10,
+   "max": 18,
+   "unit": "per sq ft installed",
+   "note": "Solid hardwood; engineered 15-25% less"
+  },
+  "tile_floor_per_sqft": {
+   "min": 8,
+   "avg": 15,
+   "max": 28,
+   "unit": "per sq ft installed",
+   "note": "Ceramic tile; porcelain 20-30% more"
+  },
+  "carpet_per_sqft": {
+   "min": 3,
+   "avg": 6,
+   "max": 11,
+   "unit": "per sq ft installed",
+   "note": "Includes pad and installation; premium wool 80-150% more"
+  },
+  "lvp_flooring_per_sqft": {
+   "min": 3.5,
+   "avg": 6.5,
+   "max": 12,
+   "unit": "per sq ft installed",
+   "note": "Luxury vinyl plank; waterproof, increasingly popular"
+  },
+  "labor_hourly_handyman": {
+   "min": 42,
+   "avg": 65,
+   "max": 100,
+   "unit": "per hour",
+   "note": "Skilled labor shortage driving rates up 8-12% annually"
+  },
+  "labor_hourly_electrician": {
+   "min": 72,
+   "avg": 100,
+   "max": 155,
+   "unit": "per hour",
+   "note": "Licensed master electrician rates"
+  },
+  "labor_hourly_plumber": {
+   "min": 75,
+   "avg": 110,
+   "max": 180,
+   "unit": "per hour",
+   "note": "Licensed master plumber rates"
+  },
+  "labor_hourly_hvac_tech": {
+   "min": 80,
+   "avg": 118,
+   "max": 190,
+   "unit": "per hour",
+   "note": "EPA 608 certified technician rates"
+  },
+  "labor_hourly_roofer": {
+   "min": 52,
+   "avg": 76,
+   "max": 118,
+   "unit": "per hour"
+  },
+  "labor_hourly_general": {
+   "min": 48,
+   "avg": 72,
+   "max": 112,
+   "unit": "per hour"
+  },
+  "labor_hourly_mason": {
+   "min": 55,
+   "avg": 82,
+   "max": 130,
+   "unit": "per hour"
+  },
+  "labor_hourly_painter": {
+   "min": 40,
+   "avg": 60,
+   "max": 95,
+   "unit": "per hour"
+  },
+  "labor_hourly_landscaper": {
+   "min": 35,
+   "avg": 55,
+   "max": 85,
+   "unit": "per hour"
+  },
+  "labor_hourly_framer": {
+   "min": 48,
+   "avg": 72,
+   "max": 110,
+   "unit": "per hour"
+  },
+  "labor_hourly_drywall": {
+   "min": 42,
+   "avg": 65,
+   "max": 100,
+   "unit": "per hour"
+  },
+  "labor_hourly_flooring": {
+   "min": 40,
+   "avg": 62,
+   "max": 95,
+   "unit": "per hour"
+  }
+ }
+}

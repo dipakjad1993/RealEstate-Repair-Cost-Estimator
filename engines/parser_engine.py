@@ -1,25 +1,59 @@
-import re
-import json
 import hashlib
+import re
 from collections import defaultdict
+
 from config import INSPECTION_SYSTEM_PATTERNS, SeverityLevels
 
+
 def extract_text_from_pdf(pdf_file):
-    import pdfplumber
+    """Chunk-perfect extraction via PyMuPDF + pymupdf4llm (single stack).
+
+    pdfplumber retired (duplicate). pymupdf4llm yields markdown with page
+    chunks ideal for RAG; raw fitz text is the fallback. Tables via
+    page.find_tables().
+    """
     text_content = []
     page_texts = []
     tables_found = []
     try:
-        with pdfplumber.open(pdf_file) as pdf:
-            for i, page in enumerate(pdf.pages):
-                page_text = page.extract_text() or ""
-                text_content.append(page_text)
-                page_texts.append({"page": i + 1, "text": page_text, "char_count": len(page_text)})
-                page_tables = page.extract_tables()
-                if page_tables:
-                    for table in page_tables:
-                        if table:
-                            tables_found.append({"page": i + 1, "rows": len(table), "cols": len(table[0]) if table else 0, "data": table})
+        import fitz
+
+        data = pdf_file.read() if hasattr(pdf_file, "read") else bytes(pdf_file)
+        if hasattr(pdf_file, "seek"):
+            try:
+                pdf_file.seek(0)
+            except Exception:
+                pass
+        # Preferred: pymupdf4llm markdown (chunk-perfect for RAG)
+        try:
+            import pymupdf4llm
+
+            md = pymupdf4llm.to_markdown(fitz.open(stream=data, filetype="pdf"))
+            pages = md.split("\n\n---\n\n") if "---" in md else md.split("\f")
+            for i, p in enumerate(pages):
+                text_content.append(p)
+                page_texts.append({"page": i + 1, "text": p, "char_count": len(p)})
+        except Exception:
+            doc = fitz.open(stream=data, filetype="pdf")
+            for i, page in enumerate(doc):
+                t = page.get_text("text") or ""
+                text_content.append(t)
+                page_texts.append({"page": i + 1, "text": t, "char_count": len(t)})
+                try:
+                    tabs = page.find_tables()
+                    for tb in tabs:
+                        df = tb.to_pandas()
+                        tables_found.append(
+                            {
+                                "page": i + 1,
+                                "rows": len(df),
+                                "cols": len(df.columns),
+                                "data": df.values.tolist(),
+                            }
+                        )
+                except Exception:
+                    pass
+            doc.close()
     except Exception as e:
         text_content = [f"Error extracting text: {str(e)}"]
     return {
@@ -28,11 +62,14 @@ def extract_text_from_pdf(pdf_file):
         "total_pages": len(text_content),
         "tables_found": tables_found,
         "char_count": sum(len(t) for t in text_content),
-        "has_text_layer": any(len(t) > 50 for t in text_content)
+        "has_text_layer": any(len(t) > 50 for t in text_content),
+        "extractor": "pymupdf4llm+fitz",
     }
+
 
 def extract_images_from_pdf(pdf_file):
     import fitz
+
     images = []
     try:
         doc = fitz.open(stream=pdf_file.read(), filetype="pdf")
@@ -44,19 +81,22 @@ def extract_images_from_pdf(pdf_file):
                 xref = img[0]
                 base_image = doc.extract_image(xref)
                 if base_image:
-                    images.append({
-                        "page": page_num + 1,
-                        "index": img_idx,
-                        "image_data": base_image["image"],
-                        "ext": base_image.get("ext", "png"),
-                        "width": base_image.get("width", 0),
-                        "height": base_image.get("height", 0),
-                        "bbox": list(img[1:5]) if len(img) > 5 else None
-                    })
+                    images.append(
+                        {
+                            "page": page_num + 1,
+                            "index": img_idx,
+                            "image_data": base_image["image"],
+                            "ext": base_image.get("ext", "png"),
+                            "width": base_image.get("width", 0),
+                            "height": base_image.get("height", 0),
+                            "bbox": list(img[1:5]) if len(img) > 5 else None,
+                        }
+                    )
         doc.close()
     except Exception:
         pass
     return images
+
 
 def classify_severity(text):
     text_lower = text.lower()
@@ -65,51 +105,164 @@ def classify_severity(text):
             for kw in keywords:
                 if kw.lower() in text_lower:
                     return severity, system_name
-    if any(w in text_lower for w in [
-        "dangerous", "immediate", "safety hazard", "fire risk", "gas leak",
-        "collapse", "structural failure", "emergency", "hazardous", "life-threatening",
-        "toxic", "severe risk", "critical condition", "inoperable", "total failure",
-        "active leak", "flooding", "electrocution", "carbon monoxide",
-    ]):
+    if any(
+        w in text_lower
+        for w in [
+            "dangerous",
+            "immediate",
+            "safety hazard",
+            "fire risk",
+            "gas leak",
+            "collapse",
+            "structural failure",
+            "emergency",
+            "hazardous",
+            "life-threatening",
+            "toxic",
+            "severe risk",
+            "critical condition",
+            "inoperable",
+            "total failure",
+            "active leak",
+            "flooding",
+            "electrocution",
+            "carbon monoxide",
+        ]
+    ):
         return "CRITICAL", "UNCLASSIFIED"
-    if any(w in text_lower for w in [
-        "broken", "damaged", "failing", "leak", "crack", "malfunction",
-        "defective", "compromised", "severe", "corroded", "rot", "rust",
-        "not working", "inoperable", "missing", "failed", "fractured",
-        "water damage", "mold", "active moisture", "code violation",
-        "improper", "unsafe", "hazard", "deteriorated", "deteriorating",
-        "should be replaced", "past useful life", "end of useful life",
-        "nearing end", "approaching end", "service life exceeded",
-        "requires replacement", "needs immediate", "urgent repair",
-        "substantial damage", "significant deterioration", "widespread",
-        "system failure", "major deficiency", "numerous deficiencies",
-    ]):
+    if any(
+        w in text_lower
+        for w in [
+            "broken",
+            "damaged",
+            "failing",
+            "leak",
+            "crack",
+            "malfunction",
+            "defective",
+            "compromised",
+            "severe",
+            "corroded",
+            "rot",
+            "rust",
+            "not working",
+            "inoperable",
+            "missing",
+            "failed",
+            "fractured",
+            "water damage",
+            "mold",
+            "active moisture",
+            "code violation",
+            "improper",
+            "unsafe",
+            "hazard",
+            "deteriorated",
+            "deteriorating",
+            "should be replaced",
+            "past useful life",
+            "end of useful life",
+            "nearing end",
+            "approaching end",
+            "service life exceeded",
+            "requires replacement",
+            "needs immediate",
+            "urgent repair",
+            "substantial damage",
+            "significant deterioration",
+            "widespread",
+            "system failure",
+            "major deficiency",
+            "numerous deficiencies",
+        ]
+    ):
         return "HIGH", "UNCLASSIFIED"
-    if any(w in text_lower for w in [
-        "worn", "aging", "maintenance", "minor", "recommend", "needs attention",
-        "requires repair", "not functioning properly", "inadequate", "deficient",
-        "substandard", "non-compliant", "outdated", "caulk", "sealant",
-        "should be repaired", "should be serviced", "needs cleaning",
-        "needs replacement", "past warranty", "warranty expired",
-        "minor damage", "moderate", "slight", "partial", "limited",
-        "maintenance item", "service needed", "service recommended",
-        "operational with issues", "reduced efficiency", "declining performance",
-        "should be upgraded", "does not meet current", "no longer adequate",
-        "near end", "nearing end of life", "approaching end of life",
-        "end of useful life", "past expected life", "overdue for",
-        "neglected", "overdue maintenance", "deferred maintenance",
-    ]):
+    if any(
+        w in text_lower
+        for w in [
+            "worn",
+            "aging",
+            "maintenance",
+            "minor",
+            "recommend",
+            "needs attention",
+            "requires repair",
+            "not functioning properly",
+            "inadequate",
+            "deficient",
+            "substandard",
+            "non-compliant",
+            "outdated",
+            "caulk",
+            "sealant",
+            "should be repaired",
+            "should be serviced",
+            "needs cleaning",
+            "needs replacement",
+            "past warranty",
+            "warranty expired",
+            "minor damage",
+            "moderate",
+            "slight",
+            "partial",
+            "limited",
+            "maintenance item",
+            "service needed",
+            "service recommended",
+            "operational with issues",
+            "reduced efficiency",
+            "declining performance",
+            "should be upgraded",
+            "does not meet current",
+            "no longer adequate",
+            "near end",
+            "nearing end of life",
+            "approaching end of life",
+            "end of useful life",
+            "past expected life",
+            "overdue for",
+            "neglected",
+            "overdue maintenance",
+            "deferred maintenance",
+        ]
+    ):
         return "MEDIUM", "UNCLASSIFIED"
-    if any(w in text_lower for w in [
-        "cosmetic", "normal wear", "routine", "cleaning", "minor paint",
-        "optional", "suggested", "noted", "informational", "for reference",
-        "end of life", "expected", "typical", "standard", "age noted",
-        "operational", "functioning", "serviceable", "acceptable condition",
-        "minor cosmetic", "superficial", "surface", "aesthetic", "decoration",
-        "general", "observation", "informational only", "note",
-    ]):
+    if any(
+        w in text_lower
+        for w in [
+            "cosmetic",
+            "normal wear",
+            "routine",
+            "cleaning",
+            "minor paint",
+            "optional",
+            "suggested",
+            "noted",
+            "informational",
+            "for reference",
+            "end of life",
+            "expected",
+            "typical",
+            "standard",
+            "age noted",
+            "operational",
+            "functioning",
+            "serviceable",
+            "acceptable condition",
+            "minor cosmetic",
+            "superficial",
+            "surface",
+            "aesthetic",
+            "decoration",
+            "general",
+            "observation",
+            "informational only",
+            "note",
+        ]
+    ):
         return "LOW", "UNCLASSIFIED"
     return "INFO", "UNCLASSIFIED"
+
 
 def extract_severity_block(text):
     severity_markers = {
@@ -215,21 +368,24 @@ def extract_severity_block(text):
             r"(?:not (?:included|part of|covered by) (?:this )?(?:inspection|report))[^.]*\.",
             r"(?:for (?:informational|reference|documentation))[^.]*\.",
             r"(?:photograph(?:ed)? for (?:documentation|reference|record))[^.]*\.",
-        ]
+        ],
     }
     blocks = []
     for severity, patterns in severity_markers.items():
         for pattern in patterns:
             matches = re.finditer(pattern, text, re.IGNORECASE | re.MULTILINE)
             for match in matches:
-                blocks.append({
-                    "text": match.group().strip(),
-                    "severity": severity,
-                    "start_pos": match.start(),
-                    "end_pos": match.end()
-                })
+                blocks.append(
+                    {
+                        "text": match.group().strip(),
+                        "severity": severity,
+                        "start_pos": match.start(),
+                        "end_pos": match.end(),
+                    }
+                )
     blocks.sort(key=lambda x: x["start_pos"])
     return blocks
+
 
 def classify_finding_system(text):
     text_lower = text.lower()
@@ -252,6 +408,7 @@ def classify_finding_system(text):
             best_match = system_name
     return best_match
 
+
 def extract_location_info(text):
     location_patterns = [
         r"(?:in the|located in|at the|inside the)\s+([\w\s]+(?:room|bathroom|kitchen|bedroom|basement|attic|garage|exterior|roof|crawl space|utility|laundry|hallway|closet|den|office|family room|living room|dining room|master|guest|half bath|full bath))",
@@ -268,6 +425,7 @@ def extract_location_info(text):
                 locations.append(loc)
     return locations[0] if locations else "Not specified"
 
+
 def extract_appliance_metadata(text):
     metadata = []
     make_model_patterns = [
@@ -282,15 +440,18 @@ def extract_appliance_metadata(text):
     for pattern in make_model_patterns:
         matches = re.finditer(pattern, text, re.IGNORECASE)
         for match in matches:
-            metadata.append({
-                "type": pattern.split("(")[0].strip()[:20] if "(" in pattern else "info",
-                "value": match.group(1).strip() if match.lastindex else match.group().strip()
-            })
+            metadata.append(
+                {
+                    "type": pattern.split("(")[0].strip()[:20] if "(" in pattern else "info",
+                    "value": match.group(1).strip() if match.lastindex else match.group().strip(),
+                }
+            )
     year_pattern = r"(?:20[0-2]\d|19[89]\d)"
     year_matches = re.findall(year_pattern, text)
     for ym in year_matches:
         metadata.append({"type": "year", "value": ym})
     return metadata
+
 
 def deduplicate_findings(findings):
     seen_hashes = {}
@@ -298,8 +459,8 @@ def deduplicate_findings(findings):
     duplicate_groups = defaultdict(list)
     for finding in findings:
         desc = finding.get("description", "")
-        normalized = re.sub(r'\s+', ' ', desc.lower().strip())
-        normalized = re.sub(r'\d+', 'N', normalized)
+        normalized = re.sub(r"\s+", " ", desc.lower().strip())
+        normalized = re.sub(r"\d+", "N", normalized)
         text_hash = hashlib.md5(normalized.encode()).hexdigest()[:12]
         similar = False
         for existing_hash in list(seen_hashes.keys()):
@@ -319,7 +480,9 @@ def deduplicate_findings(findings):
         group = finding.get("dedup_group", "")
         if group in duplicate_groups:
             all_in_group = [finding] + duplicate_groups[group]
-            all_in_group.sort(key=lambda x: SeverityLevels.get(x.get("severity", "LOW"), {}).get("priority", 5))
+            all_in_group.sort(
+                key=lambda x: SeverityLevels.get(x.get("severity", "LOW"), {}).get("priority", 5)
+            )
             best = all_in_group[0]
             best["merged_count"] = len(all_in_group)
             best["merged_descriptions"] = [f.get("description", "") for f in all_in_group]
@@ -327,6 +490,7 @@ def deduplicate_findings(findings):
         else:
             unique_findings.append(finding)
     return unique_findings
+
 
 def _text_similarity(text1, text2):
     words1 = set(text1.split())
@@ -337,35 +501,80 @@ def _text_similarity(text1, text2):
     union = words1.union(words2)
     return len(intersection) / len(union) if union else 0.0
 
+
 def parse_structured_findings(text, page_texts):
     findings = []
-    sections = re.split(r'\n{2,}|\r\n{2,}', text)
+    sections = re.split(r"\n{2,}|\r\n{2,}", text)
     section_headers = [
-        "roofing", "roof", "plumbing", "electrical", "hvac", "heating", "cooling",
-        "structural", "foundation", "exterior", "interior", "insulation", "windows",
-        "doors", "fireplace", "chimney", "garage", "appliance", "moisture",
-        "ventilation", "grading", "drainage", "siding", "deck", "porch", "balcony",
-        "crawl space", "basement", "attic", "summary", "findings", "deficiencies",
-        "recommendations", "concerns", "observations", "conditions", "items",
-        "issues", "problems", "repair", "maintenance", "safety", "code",
-        "deficiency", "deficiencies", "note", "notes", "comment", "comments",
+        "roofing",
+        "roof",
+        "plumbing",
+        "electrical",
+        "hvac",
+        "heating",
+        "cooling",
+        "structural",
+        "foundation",
+        "exterior",
+        "interior",
+        "insulation",
+        "windows",
+        "doors",
+        "fireplace",
+        "chimney",
+        "garage",
+        "appliance",
+        "moisture",
+        "ventilation",
+        "grading",
+        "drainage",
+        "siding",
+        "deck",
+        "porch",
+        "balcony",
+        "crawl space",
+        "basement",
+        "attic",
+        "summary",
+        "findings",
+        "deficiencies",
+        "recommendations",
+        "concerns",
+        "observations",
+        "conditions",
+        "items",
+        "issues",
+        "problems",
+        "repair",
+        "maintenance",
+        "safety",
+        "code",
+        "deficiency",
+        "deficiencies",
+        "note",
+        "notes",
+        "comment",
+        "comments",
     ]
     current_section = "General"
     for section in sections:
         section_stripped = section.strip()
         if not section_stripped or len(section_stripped) < 15:
             continue
-        first_line = section_stripped.split('\n')[0].lower().strip().rstrip(':')
+        first_line = section_stripped.split("\n")[0].lower().strip().rstrip(":")
         for header in section_headers:
             if header in first_line and len(first_line) < 60:
                 current_section = header.title()
                 break
-        sentences = re.split(r'(?<=[.!?])\s+', section_stripped)
+        sentences = re.split(r"(?<=[.!?])\s+", section_stripped)
         for sentence in sentences:
             sentence = sentence.strip()
             if len(sentence) < 15:
                 continue
-            if any(skip in sentence.lower() for skip in [" inspector", " this report", " the buyer", " the seller", " disclaimer"]):
+            if any(
+                skip in sentence.lower()
+                for skip in [" inspector", " this report", " the buyer", " the seller", " disclaimer"]
+            ):
                 continue
             severity, system = classify_severity(sentence)
             finding = {
@@ -377,10 +586,11 @@ def parse_structured_findings(text, page_texts):
                 "component": current_section,
                 "subsystem": _extract_sub_component(sentence),
                 "source_section": current_section,
-                "confidence_score": 0.85 if severity in ["CRITICAL", "HIGH"] else 0.75
+                "confidence_score": 0.85 if severity in ["CRITICAL", "HIGH"] else 0.75,
             }
             findings.append(finding)
     return findings
+
 
 def _extract_sub_component(text):
     text_lower = text.lower()
@@ -439,30 +649,111 @@ def _extract_sub_component(text):
             return component
     return ""
 
+
 def extract_findings_from_tables(tables_found):
     findings = []
     finding_keywords = [
-        "deficien", "issue", "problem", "concern", "damage", "defect", "fail",
-        "broken", "missing", "leak", "crack", "corrosion", "rot", "mold",
-        "unsafe", "hazard", "replace", "repair", "maintenance", "service",
-        "inadequate", "deficient", "substandard", "non-compliant", "outdated",
-        "deteriorat", "worn", "aging", "end of life", "past useful life",
-        "needs attention", "requires repair", "should be", "recommend",
-        "not functioning", "improper", "code violation", "observation",
+        "deficien",
+        "issue",
+        "problem",
+        "concern",
+        "damage",
+        "defect",
+        "fail",
+        "broken",
+        "missing",
+        "leak",
+        "crack",
+        "corrosion",
+        "rot",
+        "mold",
+        "unsafe",
+        "hazard",
+        "replace",
+        "repair",
+        "maintenance",
+        "service",
+        "inadequate",
+        "deficient",
+        "substandard",
+        "non-compliant",
+        "outdated",
+        "deteriorat",
+        "worn",
+        "aging",
+        "end of life",
+        "past useful life",
+        "needs attention",
+        "requires repair",
+        "should be",
+        "recommend",
+        "not functioning",
+        "improper",
+        "code violation",
+        "observation",
     ]
     severity_keywords = {
-        "CRITICAL": ["critical", "immediate", "dangerous", "hazard", "emergency",
-                      "safety", "structural failure", "active leak", "fire", "gas leak",
-                      "collapse", "unsafe", "do not use", "red tag"],
-        "HIGH": ["high", "severe", "damaged", "broken", "failing", "leaking",
-                 "cracked", "corroded", "rot", "mold", "replacement needed",
-                 "end of life", "past useful life", "not functioning",
-                 "code violation", "major", "significant"],
-        "MEDIUM": ["medium", "moderate", "worn", "aging", "maintenance",
-                   "service needed", "needs attention", "recommend", "caulk",
-                   "seal", "should be repaired", "minor issue", "monitoring"],
-        "LOW": ["low", "cosmetic", "minor", "normal wear", "routine",
-                "cleaning", "optional", "suggested", "informational"],
+        "CRITICAL": [
+            "critical",
+            "immediate",
+            "dangerous",
+            "hazard",
+            "emergency",
+            "safety",
+            "structural failure",
+            "active leak",
+            "fire",
+            "gas leak",
+            "collapse",
+            "unsafe",
+            "do not use",
+            "red tag",
+        ],
+        "HIGH": [
+            "high",
+            "severe",
+            "damaged",
+            "broken",
+            "failing",
+            "leaking",
+            "cracked",
+            "corroded",
+            "rot",
+            "mold",
+            "replacement needed",
+            "end of life",
+            "past useful life",
+            "not functioning",
+            "code violation",
+            "major",
+            "significant",
+        ],
+        "MEDIUM": [
+            "medium",
+            "moderate",
+            "worn",
+            "aging",
+            "maintenance",
+            "service needed",
+            "needs attention",
+            "recommend",
+            "caulk",
+            "seal",
+            "should be repaired",
+            "minor issue",
+            "monitoring",
+        ],
+        "LOW": [
+            "low",
+            "cosmetic",
+            "minor",
+            "normal wear",
+            "routine",
+            "cleaning",
+            "optional",
+            "suggested",
+            "informational",
+        ],
         "INFO": ["informational", "note", "observation", "comment", "noted"],
     }
     for table_info in tables_found:
@@ -470,7 +761,6 @@ def extract_findings_from_tables(tables_found):
         if not rows or len(rows) < 2:
             continue
         header_row = rows[0]
-        header_text = " ".join(str(cell).lower() for cell in header_row if cell)
         severity_col = -1
         desc_col = -1
         item_col = -1
@@ -480,7 +770,19 @@ def extract_findings_from_tables(tables_found):
             cell_lower = str(cell).lower()
             if any(w in cell_lower for w in ["severity", "priority", "rating", "risk", "level"]):
                 severity_col = idx
-            if any(w in cell_lower for w in ["description", "finding", "detail", "comment", "note", "observation", "item", "condition"]):
+            if any(
+                w in cell_lower
+                for w in [
+                    "description",
+                    "finding",
+                    "detail",
+                    "comment",
+                    "note",
+                    "observation",
+                    "item",
+                    "condition",
+                ]
+            ):
                 desc_col = idx
             if any(w in cell_lower for w in ["item", "component", "system", "area", "location"]):
                 if item_col == -1:
@@ -531,10 +833,11 @@ def extract_findings_from_tables(tables_found):
                 "component": component or "Table Finding",
                 "subsystem": _extract_sub_component(full_text),
                 "source_section": f"Table (Page {table_info.get('page', '?')})",
-                "confidence_score": 0.70
+                "confidence_score": 0.70,
             }
             findings.append(finding)
     return findings
+
 
 def _extract_list_items(text):
     findings = []
@@ -546,21 +849,57 @@ def _extract_list_items(text):
         r"(?:^|\n)\s*(?:\([a-z]\)\s+)(.+?)(?=\n|$)",
     ]
     finding_keywords = [
-        "deficien", "issue", "problem", "concern", "damage", "defect", "fail",
-        "broken", "missing", "leak", "crack", "corrosion", "rot", "mold",
-        "unsafe", "hazard", "replace", "repair", "maintenance", "service",
-        "inadequate", "deficient", "substandard", "non-compliant", "outdated",
-        "deteriorat", "worn", "aging", "end of life", "past useful life",
-        "needs attention", "requires repair", "should be", "recommend",
-        "not functioning", "improper", "code violation", "observation",
-        "caulk", "seal", "stain", "cosmetic", "damage", "not operating",
+        "deficien",
+        "issue",
+        "problem",
+        "concern",
+        "damage",
+        "defect",
+        "fail",
+        "broken",
+        "missing",
+        "leak",
+        "crack",
+        "corrosion",
+        "rot",
+        "mold",
+        "unsafe",
+        "hazard",
+        "replace",
+        "repair",
+        "maintenance",
+        "service",
+        "inadequate",
+        "deficient",
+        "substandard",
+        "non-compliant",
+        "outdated",
+        "deteriorat",
+        "worn",
+        "aging",
+        "end of life",
+        "past useful life",
+        "needs attention",
+        "requires repair",
+        "should be",
+        "recommend",
+        "not functioning",
+        "improper",
+        "code violation",
+        "observation",
+        "caulk",
+        "seal",
+        "stain",
+        "cosmetic",
+        "damage",
+        "not operating",
     ]
     seen = set()
     for pattern in list_patterns:
         matches = re.finditer(pattern, text, re.IGNORECASE | re.MULTILINE)
         for match in matches:
             item_text = match.group(1).strip() if match.lastindex else match.group(0).strip()
-            item_text = re.sub(r'\s+', ' ', item_text).strip()
+            item_text = re.sub(r"\s+", " ", item_text).strip()
             if len(item_text) < 12:
                 continue
             item_lower = item_text.lower()
@@ -581,10 +920,11 @@ def _extract_list_items(text):
                 "component": "List Item",
                 "subsystem": _extract_sub_component(item_text),
                 "source_section": "List Extraction",
-                "confidence_score": 0.65
+                "confidence_score": 0.65,
             }
             findings.append(finding)
     return findings
+
 
 def process_uploaded_report(pdf_file):
     extraction_result = extract_text_from_pdf(pdf_file)
@@ -594,35 +934,34 @@ def process_uploaded_report(pdf_file):
     severity_blocks = extract_severity_block(text)
     for block in severity_blocks:
         already_found = any(
-            _text_similarity(block["text"][:100], f["description"][:100]) > 0.5
-            for f in findings
+            _text_similarity(block["text"][:100], f["description"][:100]) > 0.5 for f in findings
         )
         if not already_found:
             system = classify_finding_system(block["text"])
-            findings.append({
-                "description": block["text"],
-                "severity": block["severity"],
-                "severity_score": SeverityLevels.get(block["severity"], {}).get("priority", 5),
-                "system_category": system,
-                "location": extract_location_info(block["text"]),
-                "component": "Parsed Block",
-                "subsystem": _extract_sub_component(block["text"]),
-                "source_section": "Severity Parser",
-                "confidence_score": 0.80
-            })
+            findings.append(
+                {
+                    "description": block["text"],
+                    "severity": block["severity"],
+                    "severity_score": SeverityLevels.get(block["severity"], {}).get("priority", 5),
+                    "system_category": system,
+                    "location": extract_location_info(block["text"]),
+                    "component": "Parsed Block",
+                    "subsystem": _extract_sub_component(block["text"]),
+                    "source_section": "Severity Parser",
+                    "confidence_score": 0.80,
+                }
+            )
     table_findings = extract_findings_from_tables(extraction_result["tables_found"])
     for tf in table_findings:
         already_found = any(
-            _text_similarity(tf["description"][:100], f["description"][:100]) > 0.5
-            for f in findings
+            _text_similarity(tf["description"][:100], f["description"][:100]) > 0.5 for f in findings
         )
         if not already_found:
             findings.append(tf)
     list_findings = _extract_list_items(text)
     for lf in list_findings:
         already_found = any(
-            _text_similarity(lf["description"][:100], f["description"][:100]) > 0.5
-            for f in findings
+            _text_similarity(lf["description"][:100], f["description"][:100]) > 0.5 for f in findings
         )
         if not already_found:
             findings.append(lf)
@@ -642,9 +981,10 @@ def process_uploaded_report(pdf_file):
             "image_count": len(images),
             "table_count": len(extraction_result["tables_found"]),
             "finding_count": len(deduplicated),
-            "has_text_layer": extraction_result["has_text_layer"]
-        }
+            "has_text_layer": extraction_result["has_text_layer"],
+        },
     }
+
 
 def _match_photos_to_finding(finding, images, full_text):
     matched = []

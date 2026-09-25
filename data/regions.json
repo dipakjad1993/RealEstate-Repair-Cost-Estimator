@@ -1,0 +1,66 @@
+{
+ "version": "2026.09.25",
+ "dataset": "regions",
+ "data": {
+  "northeast": [
+   "CT",
+   "ME",
+   "MA",
+   "NH",
+   "NJ",
+   "NY",
+   "PA",
+   "RI",
+   "VT"
+  ],
+  "southeast": [
+   "AL",
+   "AR",
+   "DE",
+   "FL",
+   "GA",
+   "KY",
+   "LA",
+   "MD",
+   "MS",
+   "NC",
+   "SC",
+   "TN",
+   "VA",
+   "WV"
+  ],
+  "midwest": [
+   "IL",
+   "IN",
+   "IA",
+   "KS",
+   "MI",
+   "MN",
+   "MO",
+   "NE",
+   "ND",
+   "OH",
+   "SD",
+   "WI"
+  ],
+  "southwest": [
+   "AZ",
+   "NM",
+   "OK",
+   "TX"
+  ],
+  "west": [
+   "AK",
+   "CA",
+   "CO",
+   "HI",
+   "ID",
+   "MT",
+   "NV",
+   "OR",
+   "UT",
+   "WA",
+   "WY"
+  ]
+ }
+}

@@ -1,5 +1,5 @@
 from datetime import datetime
-from config import SeverityLevels
+
 
 def generate_legal_addendum(property_data, findings, cost_matrix, selected_items=None):
     address = f"{property_data.get('address', 'N/A')}, {property_data.get('city', 'N/A')}, {property_data.get('state', 'N/A')} {property_data.get('zip_code', 'N/A')}"
@@ -38,7 +38,9 @@ def generate_legal_addendum(property_data, findings, cost_matrix, selected_items
             seller_credits.append(entry)
         else:
             price_reductions.append(entry)
-    addendum_text = _assemble_addendum(address, today, seller_repairs, seller_credits, price_reductions, property_data)
+    addendum_text = _assemble_addendum(
+        address, today, seller_repairs, seller_credits, price_reductions, property_data
+    )
     return {
         "addendum_type": "Repair Request Addendum (RR)",
         "addendum_text": addendum_text,
@@ -55,6 +57,7 @@ def generate_legal_addendum(property_data, findings, cost_matrix, selected_items
         ),
     }
 
+
 def _get_cost_for_item(item, cost_matrix):
     if isinstance(item, dict):
         if item.get("estimated_cost"):
@@ -66,6 +69,7 @@ def _get_cost_for_item(item, cost_matrix):
         if line.get("finding", "")[:40] == desc or line.get("system", "") == item.get("system_category", ""):
             return line.get("total_avg", 0)
     return 0
+
 
 def _generate_repair_clause(system, description, severity, cost_est, repair_type):
     system_lower = system.lower() if system else "component"
@@ -95,15 +99,16 @@ def _generate_repair_clause(system, description, severity, cost_est, repair_type
         )
     return clause
 
+
 def _assemble_addendum(address, date, repairs, credits, reductions, property_data):
     buyer_name = "[BUYER NAME]"
     seller_name = "[SELLER NAME]"
     text = f"""
-{'='*80}
+{"=" * 80}
 REAL ESTATE REPAIR REQUEST ADDENDUM
 Property Address: {address}
 Date: {date}
-{'='*80}
+{"=" * 80}
 
 This Repair Request Addendum ("Addendum") is made part of the Purchase and Sale
 Agreement dated ____________ between {buyer_name} ("Buyer") and {seller_name} ("Seller")
@@ -121,18 +126,18 @@ NOW, THEREFORE, the parties agree as follows:
     if repairs:
         text += f"""
 ARTICLE I - SELLER-REPAIRED ITEMS ({len(repairs)} items, Est. Total: ${sum(r["estimated_cost"] for r in repairs):,.0f})
-{'─'*80}
+{"─" * 80}
 Seller agrees to repair the following items at Seller's sole cost and expense prior
 to the close of escrow:
 
 """
         for idx, item in enumerate(repairs, 1):
             text += f"""
-  Item {idx}: {item['system'].upper()} - Severity: {item['severity']}
-  Description: {item['description'][:200]}
-  Estimated Cost: ${item['estimated_cost']:,.0f}
+  Item {idx}: {item["system"].upper()} - Severity: {item["severity"]}
+  Description: {item["description"][:200]}
+  Estimated Cost: ${item["estimated_cost"]:,.0f}
 
-  Contractual Obligation: {item['clause_text']}
+  Contractual Obligation: {item["clause_text"]}
 
 """
         text += """
@@ -146,17 +151,17 @@ to the close of escrow:
     if credits:
         text += f"""
 ARTICLE II - SELLER CREDIT ITEMS ({len(credits)} items, Est. Total: ${sum(c["estimated_cost"] for c in credits):,.0f})
-{'─'*80}
+{"─" * 80}
 Seller agrees to provide Buyer with a monetary credit at closing for the following items:
 
 """
         for idx, item in enumerate(credits, 1):
             text += f"""
-  Item {idx}: {item['system'].upper()} - Severity: {item['severity']}
-  Description: {item['description'][:200]}
-  Credit Amount: ${item['estimated_cost']:,.0f}
+  Item {idx}: {item["system"].upper()} - Severity: {item["severity"]}
+  Description: {item["description"][:200]}
+  Credit Amount: ${item["estimated_cost"]:,.0f}
 
-  Contractual Obligation: {item['clause_text']}
+  Contractual Obligation: {item["clause_text"]}
 
 """
         total_credit = sum(c["estimated_cost"] for c in credits)
@@ -168,17 +173,17 @@ Seller agrees to provide Buyer with a monetary credit at closing for the followi
     if reductions:
         text += f"""
 ARTICLE III - PURCHASE PRICE REDUCTIONS ({len(reductions)} items, Est. Total: ${sum(r["estimated_cost"] for r in reductions):,.0f})
-{'─'*80}
+{"─" * 80}
 The parties agree to the following purchase price adjustments:
 
 """
         for idx, item in enumerate(reductions, 1):
             text += f"""
-  Item {idx}: {item['system'].upper()} - Severity: {item['severity']}
-  Description: {item['description'][:200]}
-  Price Reduction: ${item['estimated_cost']:,.0f}
+  Item {idx}: {item["system"].upper()} - Severity: {item["severity"]}
+  Description: {item["description"][:200]}
+  Price Reduction: ${item["estimated_cost"]:,.0f}
 
-  Contractual Obligation: {item['clause_text']}
+  Contractual Obligation: {item["clause_text"]}
 
 """
         total_reduction = sum(r["estimated_cost"] for r in reductions)
@@ -189,7 +194,7 @@ The parties agree to the following purchase price adjustments:
     total_all = sum(r["estimated_cost"] for r in repairs + credits + reductions)
     text += f"""
 ARTICLE IV - GENERAL PROVISIONS
-{'─'*80}
+{"─" * 80}
 
 1. TOTAL FINANCIAL IMPACT: The total estimated financial impact of this Addendum
    is ${total_all:,.0f} (repairs: ${sum(r["estimated_cost"] for r in repairs):,.0f},
@@ -226,14 +231,15 @@ SELLER: _____________________________   DATE: _____________
         {seller_name}
 
 
-{'='*80}
+{"=" * 80}
 DISCLAIMER: This addendum was generated by automated analysis software and is
 provided as a template for real estate professionals. It should be reviewed by
 a licensed attorney in the applicable jurisdiction before execution. This document
 does not constitute legal advice.
-{'='*80}
+{"=" * 80}
 """
     return text.strip()
+
 
 def generate_escrow_holdback_agreement(property_data, high_risk_findings, contractor_bids):
     address = f"{property_data.get('address', 'N/A')}, {property_data.get('city', 'N/A')}, {property_data.get('state', 'N/A')} {property_data.get('zip_code', 'N/A')}"
@@ -245,18 +251,20 @@ def generate_escrow_holdback_agreement(property_data, high_risk_findings, contra
         bid_amount = bid.get("bid_amount", 0) if bid else finding.get("estimated_cost_avg", 0)
         holdback = bid_amount * 1.5
         total_holdback += holdback
-        items.append({
-            "finding": finding.get("description", "")[:100],
-            "system": finding.get("system_category", "OTHER"),
-            "severity": finding.get("severity", "HIGH"),
-            "contractor_bid": round(bid_amount, 0),
-            "holdback_amount": round(holdback, 0),
-            "release_conditions": _generate_release_conditions(finding),
-            "milestone_1": "50% upon commencement of repairs by licensed contractor",
-            "milestone_1_pct": 50,
-            "milestone_2": "50% upon completion, final inspection, and Buyer written approval",
-            "milestone_2_pct": 50,
-        })
+        items.append(
+            {
+                "finding": finding.get("description", "")[:100],
+                "system": finding.get("system_category", "OTHER"),
+                "severity": finding.get("severity", "HIGH"),
+                "contractor_bid": round(bid_amount, 0),
+                "holdback_amount": round(holdback, 0),
+                "release_conditions": _generate_release_conditions(finding),
+                "milestone_1": "50% upon commencement of repairs by licensed contractor",
+                "milestone_1_pct": 50,
+                "milestone_2": "50% upon completion, final inspection, and Buyer written approval",
+                "milestone_2_pct": 50,
+            }
+        )
     return {
         "property_address": address,
         "date": today,
@@ -265,12 +273,14 @@ def generate_escrow_holdback_agreement(property_data, high_risk_findings, contra
         "holdback_multiplier": 1.5,
     }
 
+
 def _get_best_bid(finding, contractor_bids):
     matching = [b for b in contractor_bids if b.get("finding_id") == finding.get("id")]
     if matching:
         matching.sort(key=lambda x: x.get("bid_amount", float("inf")))
         return matching[0]
     return None
+
 
 def _generate_release_conditions(finding):
     system = finding.get("system_category", "OTHER")

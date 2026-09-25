@@ -62,8 +62,12 @@
   color-scheme: light;
 }
 
-/* ── TOKENS · DARK (Apple true black) ──────────────────── */
-:root.dark-mode {
+/* ── TOKENS · DARK (CSP-safe: .dark-mode class OR [data-theme="dark"], plus
+   native prefers-color-scheme + Streamlit [data-theme] hooks. No JS needed.) ─ */
+:root.dark-mode,
+:root:has([data-theme-hook="active"][data-theme="dark"]),
+[data-theme="dark"],
+.stApp[data-theme="dark"] {
   --bg: #000000;
   --bg-soft: #101012;
   --surface: #161618;
@@ -682,4 +686,25 @@ hr { border-color: var(--line) !important; }
   .block-container { padding-left: 1rem !important; padding-right: 1rem !important; }
   .prem-brand-sub { display: none; }
   .hero-title { font-size: 1.6rem !important; }
+}
+
+/* ── MOBILE-FIRST PWA (70% of walkthroughs are on phone in crawlspace) ── */
+@media (max-width: 640px) {
+  .block-container { padding-left: 0.75rem !important; padding-right: 0.75rem !important; max-width: 100vw !important; }
+  .hero-title { font-size: 1.35rem !important; line-height: 1.2 !important; }
+  .hero-sub { font-size: 0.85rem !important; }
+  .prem-brand-title { font-size: 0.95rem !important; }
+  /* Stack Streamlit columns vertically on phones */
+  [data-testid="column"] { min-width: 100% !important; flex: 1 1 100% !important; }
+  [data-testid="stHorizontalBlock"] { flex-wrap: wrap !important; }
+  /* Tables: horizontal scroll, sticky first col, larger touch targets */
+  [data-testid="stDataFrame"], .stDataEditor { overflow-x: auto !important; font-size: 0.8rem !important; }
+  .stButton > button, .stDownloadButton > button { min-height: 44px !important; font-size: 1rem !important; }
+  .stTabs [data-baseweb="tab-list"] { overflow-x: auto !important; }
+  .stTabs [data-baseweb="tab"] { padding: 10px 12px !important; font-size: 0.85rem !important; }
+  input, select, textarea { font-size: 16px !important; } /* prevent iOS zoom */
+}
+/* Native dark-scheme support (no JS): follows OS when app theme unset */
+@media (prefers-color-scheme: dark) {
+  :root:not(.force-light) { color-scheme: dark; }
 }

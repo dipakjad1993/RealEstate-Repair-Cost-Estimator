@@ -1,0 +1,1601 @@
+{
+ "version": "2026.09.25",
+ "dataset": "inspection_system_patterns",
+ "data": {
+  "HVAC": {
+   "keywords": [
+    "hvac",
+    "heating",
+    "cooling",
+    "air conditioner",
+    "air conditioning",
+    "furnace",
+    "heat pump",
+    "duct",
+    "vent",
+    "thermostat",
+    "condenser",
+    "compressor",
+    "evaporator coil",
+    "blower",
+    "heat exchanger",
+    "inducer motor",
+    "capacitor",
+    "refrigerant",
+    "air handler",
+    "mini split",
+    "ductless",
+    "air handler",
+    "plenum",
+    "register",
+    "return air",
+    "supply air",
+    "zoning damper",
+    "combustion air",
+    "gas valve",
+    "ignitor",
+    "flame sensor",
+    "condensate drain",
+    "r-410a",
+    "r-454b",
+    "seer2",
+    "afue",
+    "hspf"
+   ],
+   "severity_keywords": {
+    "CRITICAL": [
+     "carbon monoxide",
+     "gas leak",
+     "heat exchanger crack",
+     "gas furnace crack",
+     "no heat",
+     "combustion gas leak",
+     "gas odor",
+     "cracked heat exchanger",
+     "co detector alarm"
+    ],
+    "HIGH": [
+     "rust",
+     "leaking",
+     "no cooling",
+     "no ac",
+     "refrigerant leak",
+     "electrical burn",
+     "unusual noise",
+     "blower motor",
+     "inducer motor",
+     "cracked coil",
+     "failed compressor",
+     "frozen coil",
+     "water leak ac",
+     "condensate overflow",
+     "malfunctioning",
+     "not operating"
+    ],
+    "MEDIUM": [
+     "dirty filter",
+     "needs cleaning",
+     "condensation",
+     "mild noise",
+     "thermostat calibration",
+     "duct leak",
+     "uneven heating",
+     "uneven cooling",
+     "minor corrosion",
+     "low refrigerant",
+     "dirty coil",
+     "noisy blower",
+     "weak airflow"
+    ],
+    "LOW": [
+     "filter replacement",
+     "cosmetic",
+     "minor dust",
+     "normal wear",
+     "age noted",
+     "service recommended",
+     "seasonal maintenance",
+     "clean condensate",
+     "lubricate bearings"
+    ]
+   }
+  },
+  "ROOF": {
+   "keywords": [
+    "roof",
+    "shingle",
+    "flashing",
+    "gutter",
+    "downspout",
+    "chimney flashing",
+    "roof vent",
+    "attic",
+    "soffit",
+    "fascia",
+    "drip edge",
+    "underlayment",
+    "roof decking",
+    "skylight",
+    "roof valley",
+    "ridge vent",
+    "ice and water shield",
+    "roof boot",
+    "pipe boot",
+    "roof turbine",
+    "ridge cap",
+    "starter strip",
+    "roof sheathing",
+    "roof felt",
+    "synthetic underlayment",
+    "ice dam",
+    "roof saturation",
+    "granule loss"
+   ],
+   "severity_keywords": {
+    "CRITICAL": [
+     "active leak",
+     "hole in roof",
+     "missing structural",
+     "sagging roof",
+     "roof collapse",
+     "large area missing",
+     "structural failure"
+    ],
+    "HIGH": [
+     "damaged flashing",
+     "missing shingles",
+     "active water",
+     "rot",
+     "water intrusion",
+     "damaged step flashing",
+     "ice dam",
+     "saturated",
+     "delamination",
+     "soft decking",
+     "missing underlayment",
+     "failed boot",
+     "deteriorated"
+    ],
+    "MEDIUM": [
+     "aging shingles",
+     "granule loss",
+     "minor flash gap",
+     "caulk needed",
+     "minor wear",
+     "staining",
+     "near end of life",
+     "worn",
+     "curling shingles",
+     "minor algae",
+     "loose flashing"
+    ],
+    "LOW": [
+     "cosmetic",
+     "moss",
+     "algae",
+     "minor debris",
+     "cleaning needed",
+     "age noted",
+     "minor granule loss"
+    ]
+   }
+  },
+  "ELECTRICAL": {
+   "keywords": [
+    "electrical",
+    "wiring",
+    "panel",
+    "circuit",
+    "breaker",
+    "gfci",
+    "outlet",
+    "switch",
+    "grounding",
+    "conduit",
+    "subpanel",
+    "arc fault",
+    "afci",
+    "service entrance",
+    "meter",
+    "disconnect",
+    "fuse",
+    "knob and tube",
+    "aluminum wiring",
+    "junction box",
+    "romex",
+    "nm cable",
+    "mc cable",
+    "branch circuit",
+    "dedicated circuit",
+    "200 amp",
+    "100 amp",
+    "service drop",
+    "ground rod",
+    "bonding",
+    "neutral bar",
+    "ground bar"
+   ],
+   "severity_keywords": {
+    "CRITICAL": [
+     "arcing",
+     "burn marks",
+     "hot wire",
+     "exposed live",
+     "no grounding",
+     "fire hazard",
+     "double tapped",
+     "overloaded panel",
+     "federal pacific",
+     "zinsco",
+     "knob and tube",
+     "charred wiring",
+     "melting"
+    ],
+    "HIGH": [
+     "ungrounded",
+     "no gfci",
+     "missing gfci",
+     "double tapped",
+     "open junction",
+     "improper wiring",
+     "aluminum wiring",
+     "code violation",
+     "missing breaker lock",
+     "undersized",
+     "reverse polarity",
+     "bootleg ground"
+    ],
+    "MEDIUM": [
+     "loose outlet",
+     "flickering",
+     "minor code",
+     "missing cover",
+     "aged wiring",
+     "non-standard",
+     "unlabeled panel",
+     "missing label",
+     "missing cap",
+     "improper splice"
+    ],
+    "LOW": [
+     "cosmetic plate",
+     "paint on outlet",
+     "standard wear",
+     "minor",
+     "recommend upgrade",
+     "outdated receptacle"
+    ]
+   }
+  },
+  "PLUMBING": {
+   "keywords": [
+    "plumbing",
+    "pipe",
+    "drain",
+    "faucet",
+    "toilet",
+    "sink",
+    "water heater",
+    "sewer",
+    "supply line",
+    "waste",
+    "trap",
+    "valve",
+    "hose bib",
+    "sump pump",
+    "backflow",
+    "polybutylene",
+    "copper",
+    "pex",
+    "cast iron",
+    "pvc",
+    "abs",
+    "galvanized",
+    "main water line",
+    "shut off",
+    "angle stop",
+    "ball valve",
+    "gate valve",
+    "check valve",
+    "prv",
+    "pressure regulator",
+    "water softener",
+    "backwater valve",
+    "cleanout"
+   ],
+   "severity_keywords": {
+    "CRITICAL": [
+     "active leak",
+     "burst pipe",
+     "sewer backup",
+     "no water",
+     "gas leak",
+     "water heater failure",
+     "main line break",
+     "flooding",
+     "sewage",
+     "overflow",
+     "broken pipe"
+    ],
+    "HIGH": [
+     "slow drain",
+     "leaking pipe",
+     "corroded",
+     "rust",
+     "active drip",
+     "water damage",
+     "polybutylene",
+     "sagging pipe",
+     "wrong material",
+     "waste leak",
+     "supply leak",
+     "failed valve",
+     "low hot water"
+    ],
+    "MEDIUM": [
+     "low pressure",
+     "minor drip",
+     "slow flow",
+     "age noted",
+     "hard water",
+     "caulk needed",
+     "minor corrosion",
+     "loose faucet",
+     "running toilet",
+     "minor seep"
+    ],
+    "LOW": [
+     "cosmetic",
+     "staining",
+     "normal wear",
+     "maintenance recommended",
+     "drip faucet",
+     "calcification",
+     "minor mineral"
+    ]
+   }
+  },
+  "STRUCTURAL": {
+   "keywords": [
+    "foundation",
+    "crack",
+    "settling",
+    "shifting",
+    "beam",
+    "joist",
+    "stud",
+    "load bearing",
+    "structural",
+    "retaining wall",
+    "post",
+    "column",
+    "header",
+    "shear wall",
+    "crawl space",
+    "basement",
+    "garage slab",
+    "concrete",
+    "masonry",
+    "brick",
+    "sill plate",
+    "rim joist",
+    "subfloor",
+    "lally column",
+    "pier",
+    " footing",
+    "stem wall",
+    "slab",
+    "basement wall",
+    "parging"
+   ],
+   "severity_keywords": {
+    "CRITICAL": [
+     "structural failure",
+     "collapse risk",
+     "major settling",
+     "large crack",
+     "bowing wall",
+     "floor sag",
+     "load bearing damage",
+     "rotten sill",
+     "foundation failure",
+     "wall rotation"
+    ],
+    "HIGH": [
+     "active crack",
+     "settling crack",
+     "vertical crack",
+     "horizontal crack",
+     "foundation crack",
+     "wall crack",
+     "floor crack",
+     "door won't close",
+     "step crack",
+     "displaced brick",
+     "rotten joist",
+     "sagging floor"
+    ],
+    "MEDIUM": [
+     "hairline crack",
+     "minor settling",
+     "small crack",
+     "caulk crack",
+     "age related",
+     "minor settlement",
+     "stair step crack",
+     "minor deflection"
+    ],
+    "LOW": [
+     "cosmetic crack",
+     "minor",
+     "staining",
+     "normal settling",
+     "painted crack",
+     "shrinkage crack"
+    ]
+   }
+  },
+  "EXTERIOR": {
+   "keywords": [
+    "siding",
+    "exterior",
+    "paint",
+    "stucco",
+    "brick",
+    "stone",
+    "deck",
+    "patio",
+    "porch",
+    "balcony",
+    "railing",
+    "fence",
+    "driveway",
+    "walkway",
+    "grading",
+    "drainage",
+    "landscape",
+    "retaining",
+    "garage",
+    "windows",
+    "doors",
+    "fascia",
+    "soffit",
+    "trim",
+    "caulk",
+    "expansion joint",
+    "EIFS",
+    "hardie board",
+    "vinyl siding",
+    "wood siding",
+    "brick veneer"
+   ],
+   "severity_keywords": {
+    "CRITICAL": [
+     "structural failure",
+     "collapse",
+     "rotten deck",
+     "unsafe railing",
+     "severe erosion",
+     "unsafe balcony",
+     "detached railing"
+    ],
+    "HIGH": [
+     "rot",
+     "damage",
+     "missing",
+     "broken",
+     "peeling paint",
+     "water damage",
+     "improper drainage",
+     "safety hazard",
+     "missing handrail",
+     "detached siding",
+     "cracked stucco",
+     "rotten trim",
+     "failing EIFS"
+    ],
+    "MEDIUM": [
+     "aging",
+     "minor damage",
+     "caulk needed",
+     "minor rot",
+     "staining",
+     "settling",
+     "weathering",
+     "faded paint",
+     "minor cracking",
+     "efflorescence"
+    ],
+    "LOW": [
+     "cosmetic",
+     "minor paint",
+     "touch up",
+     "cleaning",
+     "normal wear",
+     "dirt",
+     "minor mildew"
+    ]
+   }
+  },
+  "INSULATION": {
+   "keywords": [
+    "insulation",
+    "vapor barrier",
+    "attic insulation",
+    "wall insulation",
+    "air sealing",
+    "energy",
+    "R-value",
+    "spray foam",
+    "fiberglass",
+    "cellulose",
+    "mineral wool",
+    "radiant barrier",
+    "house wrap",
+    "weatherization",
+    "thermal envelope"
+   ],
+   "severity_keywords": {
+    "CRITICAL": [
+     "asbestos",
+     "vermiculite",
+     "no insulation",
+     "wet insulation",
+     "mold insulation"
+    ],
+    "HIGH": [
+     "compressed",
+     "wet",
+     "missing",
+     "damaged",
+     "improper",
+     "gaps",
+     "air leak",
+     "void",
+     "water damaged"
+    ],
+    "MEDIUM": [
+     "insufficient",
+     "settled",
+     "thin",
+     "age noted",
+     "minor gaps",
+     "incomplete coverage"
+    ],
+    "LOW": [
+     "cosmetic",
+     "minor",
+     "recommend upgrade",
+     "standard wear",
+     "could improve"
+    ]
+   }
+  },
+  "APPLIANCES": {
+   "keywords": [
+    "appliance",
+    "stove",
+    "oven",
+    "refrigerator",
+    "dishwasher",
+    "microwave",
+    "washer",
+    "dryer",
+    "garbage disposal",
+    "range hood",
+    "built-in",
+    "cooktop",
+    "freezer",
+    "ice maker",
+    "wine cooler",
+    "trash compactor",
+    "instant hot"
+   ],
+   "severity_keywords": {
+    "CRITICAL": [
+     "fire hazard",
+     "gas leak",
+     "no function",
+     "dangerous"
+    ],
+    "HIGH": [
+     "not working",
+     "broken",
+     "damaged",
+     "leaking",
+     "electrical issue",
+     "rust"
+    ],
+    "MEDIUM": [
+     "cosmetic damage",
+     "noisy",
+     "minor issue",
+     "aging",
+     "needs repair"
+    ],
+    "LOW": [
+     "cosmetic",
+     "normal wear",
+     "end of life",
+     "recommend replacement"
+    ]
+   }
+  },
+  "WINDOWS_DOORS": {
+   "keywords": [
+    "window",
+    "door",
+    "sliding",
+    "patio door",
+    "french",
+    "screen",
+    "glass",
+    "frame",
+    "sill",
+    "lintel",
+    "weather stripping",
+    "lock",
+    "hardware",
+    "double pane",
+    "single pane",
+    "low-e",
+    "tempered",
+    "argon",
+    "bay window",
+    "bow window",
+    "casement",
+    "double hung",
+    "picture window",
+    "transom",
+    "sidelight"
+   ],
+   "severity_keywords": {
+    "CRITICAL": [
+     "broken glass",
+     "security hazard",
+     "stuck open",
+     "structural issue"
+    ],
+    "HIGH": [
+     "broken seal",
+     "failed",
+     "rot",
+     "water intrusion",
+     "won't lock",
+     "damaged frame",
+     "condensation between panes",
+     "draft severe",
+     "stuck"
+    ],
+    "MEDIUM": [
+     "draft",
+     "minor damage",
+     "aging",
+     "sticking",
+     "caulk needed",
+     "weatherstrip",
+     "minor seal fog"
+    ],
+    "LOW": [
+     "cosmetic",
+     "minor",
+     "paint",
+     "normal wear"
+    ]
+   }
+  },
+  "FIRE_SAFETY": {
+   "keywords": [
+    "smoke detector",
+    "carbon monoxide",
+    "fire",
+    "sprinkler",
+    "egress",
+    "fireplace",
+    "chimney",
+    "damper",
+    "flue",
+    "hearth",
+    "fire extinguisher",
+    "fire rated",
+    "fire block",
+    "intumescent"
+   ],
+   "severity_keywords": {
+    "CRITICAL": [
+     "no smoke detector",
+     "no co detector",
+     "blocked egress",
+     "fire hazard",
+     "gas leak fireplace",
+     "chimney fire damage"
+    ],
+    "HIGH": [
+     "missing detector",
+     "non-functioning",
+     "damaged flue",
+     "creosote buildup",
+     "cracked flue tile",
+     "missing cap",
+     "damper inoperable",
+     "damaged firebox"
+    ],
+    "MEDIUM": [
+     "aging detector",
+     "minor damage",
+     "needs cleaning",
+     "recommend service",
+     "test needed"
+    ],
+    "LOW": [
+     "cosmetic",
+     "normal wear",
+     "recommend upgrade"
+    ]
+   }
+  },
+  "MOISTURE": {
+   "keywords": [
+    "moisture",
+    "water",
+    "damp",
+    "humidity",
+    "condensation",
+    "mold",
+    "mildew",
+    "water stain",
+    "efflorescence",
+    "seepage",
+    "leakage",
+    "penetration",
+    "vapor",
+    "sweating",
+    "dew point"
+   ],
+   "severity_keywords": {
+    "CRITICAL": [
+     "active mold",
+     "structural water damage",
+     "flooding",
+     "major water intrusion",
+     "black mold"
+    ],
+    "HIGH": [
+     "active moisture",
+     "water stain",
+     "damp",
+     "mold growth",
+     "musty odor",
+     "condensation",
+     "efflorescence"
+    ],
+    "MEDIUM": [
+     "high humidity",
+     "minor stain",
+     "condensation seasonal",
+     "minor damp"
+    ],
+    "LOW": [
+     "cosmetic stain",
+     "minor",
+     "seasonal",
+     "normal"
+    ]
+   }
+  },
+  "SOLAR": {
+   "keywords": [
+    "solar panel",
+    "photovoltaic",
+    "pv system",
+    "inverter",
+    "solar array",
+    "solar cells",
+    "net meter",
+    "microinverter",
+    "string inverter",
+    "solar battery",
+    "powerwall",
+    "solar mount",
+    "solar racking",
+    "optimizers",
+    "rapid shutdown"
+   ],
+   "severity_keywords": {
+    "CRITICAL": [
+     "electrical hazard",
+     "fire risk",
+     "roof penetration leak",
+     "arcing inverter"
+    ],
+    "HIGH": [
+     "cracked panel",
+     "inverter failure",
+     "microinverters offline",
+     "rapid shutdown failure",
+     "damaged wiring"
+    ],
+    "MEDIUM": [
+     "dirty panels",
+     "minor micro cracks",
+     "degraded output",
+     "loose mounting",
+     "aging inverter"
+    ],
+    "LOW": [
+     "cosmetic",
+     "normal degradation",
+     "panel cleaning needed",
+     "monitoring offline"
+    ]
+   }
+  },
+  "EV_CHARGER": {
+   "keywords": [
+    "ev charger",
+    "evSE",
+    "electric vehicle",
+    "level 2 charger",
+    "charging station",
+    "nema 14-50",
+    "dedicated circuit ev",
+    "tesla charger",
+    "wall connector",
+    "chargepoint"
+   ],
+   "severity_keywords": {
+    "CRITICAL": [
+     "arcing",
+     "burn marks",
+     "no ground",
+     "electrical hazard"
+    ],
+    "HIGH": [
+     "not charging",
+     "tripping breaker",
+     "damaged connector",
+     "improper install",
+     "missing permit"
+    ],
+    "MEDIUM": [
+     "slow charge",
+     "loose mount",
+     "weather damage cover",
+     "fault code"
+    ],
+    "LOW": [
+     "cosmetic",
+     "cover missing",
+     "firmware update needed"
+    ]
+   }
+  },
+  "SMART_HOME": {
+   "keywords": [
+    "smart home",
+    "smart lock",
+    "smart thermostat",
+    "ring doorbell",
+    "nest",
+    "alexa",
+    "smart switch",
+    "smart outlet",
+    "home automation",
+    "wifi thermostat",
+    "smart sensor",
+    "smart sprinkler",
+    "smart garage"
+   ],
+   "severity_keywords": {
+    "CRITICAL": [
+     "security breach",
+     "lock failure",
+     "fire hazard smart device"
+    ],
+    "HIGH": [
+     "not connected",
+     "dead battery lock",
+     "firmware failure",
+     "unresponsive"
+    ],
+    "MEDIUM": [
+     "intermittent",
+     "wifi disconnect",
+     "outdated firmware",
+     "compatibility issue"
+    ],
+    "LOW": [
+     "cosmetic",
+     "cosmetic mount",
+     "battery low",
+     "recommend upgrade"
+    ]
+   }
+  },
+  "GARAGE": {
+   "keywords": [
+    "garage",
+    "garage door",
+    "garage door opener",
+    "garage floor",
+    "garage wall",
+    "garage ceiling",
+    "garage framing",
+    "epoxy floor",
+    "garage spring",
+    "garage track",
+    "garage sensor",
+    "garage remote",
+    "garage weatherstrip"
+   ],
+   "severity_keywords": {
+    "CRITICAL": [
+     "spring broken",
+     "door fallen",
+     "structural failure",
+     "co from attached garage"
+    ],
+    "HIGH": [
+     "opener failure",
+     "off track",
+     "damaged spring",
+     "rotten framing",
+     "water intrusion",
+     "no fire separation"
+    ],
+    "MEDIUM": [
+     "noisy operation",
+     "minor dents",
+     "weatherstrip worn",
+     "sensor misalignment",
+     "minor rust"
+    ],
+    "LOW": [
+     "cosmetic",
+     "lubrication needed",
+     "remote battery",
+     "cosmetic floor"
+    ]
+   }
+  },
+  "ATTIC": {
+   "keywords": [
+    "attic",
+    "attic access",
+    "attic fan",
+    "attic ventilation",
+    "attic insulation",
+    "attic roof decking",
+    "attic storage",
+    "radiant barrier",
+    "attic hatch",
+    "attic ladder"
+   ],
+   "severity_keywords": {
+    "CRITICAL": [
+     "sagging roof deck visible",
+     "active leak in attic",
+     "structural damage",
+     "widespread mold"
+    ],
+    "HIGH": [
+     "insufficient ventilation",
+     "missing insulation",
+     "rot",
+     "water staining",
+     "pest damage",
+     "no vapor barrier"
+    ],
+    "MEDIUM": [
+     "minor staining",
+     "dust accumulation",
+     "minor insulation gaps",
+     "minor condensation"
+    ],
+    "LOW": [
+     "cosmetic",
+     "dust",
+     "minor",
+     "recommend insulation upgrade"
+    ]
+   }
+  },
+  "CRAWLSPACE": {
+   "keywords": [
+    "crawl space",
+    "crawlspace",
+    "crawl area",
+    "vapor barrier crawl",
+    "pier crawl",
+    "vent crawl",
+    "encapsulation",
+    "sub-area"
+   ],
+   "severity_keywords": {
+    "CRITICAL": [
+     "standing water",
+     "structural failure",
+     "rotten joists",
+     "gas accumulation",
+     "radon high"
+    ],
+    "HIGH": [
+     "moisture",
+     "mold",
+     "pest damage",
+     "missing vapor barrier",
+     "sagging insulation",
+     "rotten subfloor"
+    ],
+    "MEDIUM": [
+     "damp",
+     "minor moisture",
+     "debris",
+     "minor settling",
+     "disconnected duct"
+    ],
+    "LOW": [
+     "cosmetic",
+     "minor debris",
+     "dust",
+     "minor"
+    ]
+   }
+  },
+  "GRADING_DRAINAGE": {
+   "keywords": [
+    "grading",
+    "drainage",
+    "slope",
+    "gutter slope",
+    "downspout extension",
+    "French drain",
+    "surface drain",
+    "swale",
+    "positive drainage",
+    "regrading",
+    "water runoff",
+    "erosion",
+    "landscape grading"
+   ],
+   "severity_keywords": {
+    "CRITICAL": [
+     "water flowing toward foundation",
+     "severe erosion",
+     "foundation undermining",
+     "active flooding"
+    ],
+    "HIGH": [
+     "improper slope",
+     "downspout discharge near foundation",
+     "standing water",
+     "erosion near foundation"
+    ],
+    "MEDIUM": [
+     "minor slope issues",
+     "minor erosion",
+     "downspout needs extension"
+    ],
+    "LOW": [
+     "minor grading",
+     "landscape maintenance",
+     "cosmetic"
+    ]
+   }
+  },
+  "RETAINING_WALL": {
+   "keywords": [
+    "retaining wall",
+    "gravity wall",
+    "segmental wall",
+    "moss wall",
+    "crib wall",
+    "gabion wall",
+    "keystone wall",
+    "block wall",
+    "battered wall"
+   ],
+   "severity_keywords": {
+    "CRITICAL": [
+     "wall failure",
+     "tilting > 2 inches",
+     "bulging",
+     "collapsed section"
+    ],
+    "HIGH": [
+     "cracking",
+     "tilting",
+     "water pressure behind wall",
+     "missing drainage",
+     "soil pushing"
+    ],
+    "MEDIUM": [
+     "minor lean",
+     "minor cracking",
+     "efflorescence",
+     "aging"
+    ],
+    "LOW": [
+     "cosmetic",
+     "minor",
+     "staining",
+     "vegetation",
+     "minor mortar"
+    ]
+   }
+  },
+  "STAIRS_RAILINGS": {
+   "keywords": [
+    "stairs",
+    "stairway",
+    "railing",
+    "handrail",
+    "guardrail",
+    "baluster",
+    "tread",
+    "riser",
+    "stringer",
+    "landing",
+    "stair nosing",
+    "winder",
+    "spiral stair"
+   ],
+   "severity_keywords": {
+    "CRITICAL": [
+     "collapsed stair",
+     "missing guardrail",
+     "unstable railing",
+     "rotten stringer"
+    ],
+    "HIGH": [
+     "loose railing",
+     "missing balusters",
+     "rotten tread",
+     "wobbly handrail",
+     "code violation height"
+    ],
+    "MEDIUM": [
+     "loose tread",
+     "minor wobble",
+     "worn nosing",
+     "squeaky"
+    ],
+    "LOW": [
+     "cosmetic",
+     "minor",
+     "paint",
+     "stain wear"
+    ]
+   }
+  },
+  "DRIVEWAY_SIDEWALK": {
+   "keywords": [
+    "driveway",
+    "sidewalk",
+    "concrete slab",
+    "asphalt driveway",
+    "pavers",
+    "expansion joint",
+    "control joint",
+    "trip hazard",
+    "heaved slab",
+    "sunken slab",
+    "cracked concrete"
+   ],
+   "severity_keywords": {
+    "CRITICAL": [
+     "major trip hazard > 2 inches",
+     "collapsed section",
+     "major undermining"
+    ],
+    "HIGH": [
+     "trip hazard",
+     "large cracks",
+     "heaving",
+     "severe spalling",
+     "major settlement"
+    ],
+    "MEDIUM": [
+     "minor cracking",
+     "minor spalling",
+     "minor settlement",
+     "staining"
+    ],
+    "LOW": [
+     "cosmetic",
+     "hairline crack",
+     "minor",
+     "staining",
+     "minor wear"
+    ]
+   }
+  },
+  "DRYER_VENT": {
+   "keywords": [
+    "dryer vent",
+    "dryer exhaust",
+    "dryer duct",
+    "lint trap",
+    "dryer hose",
+    "rigid duct dryer",
+    "transition duct"
+   ],
+   "severity_keywords": {
+    "CRITICAL": [
+     "vented into attic",
+     "vented into crawlspace",
+     "compressed duct",
+     "no vent",
+     "excessive lint buildup fire hazard"
+    ],
+    "HIGH": [
+     "flexible duct long run",
+     " crushed duct",
+     "excessive length",
+     "missing damper",
+     "lint buildup"
+    ],
+    "MEDIUM": [
+     "minor lint",
+     "damper weak",
+     "long run noted",
+     "minor kink"
+    ],
+    "LOW": [
+     "cosmetic",
+     "minor",
+     "clean recommended"
+    ]
+   }
+  },
+  "BATHROOM_EXHAUST": {
+   "keywords": [
+    "bathroom exhaust",
+    "bathroom fan",
+    "exhaust fan",
+    "vent fan",
+    "bathroom vent",
+    "humidity sensor fan",
+    "timer fan"
+   ],
+   "severity_keywords": {
+    "CRITICAL": [
+     "vented into attic",
+     "no exhaust fan",
+     "mold from moisture",
+     "no vent in bathroom"
+    ],
+    "HIGH": [
+     "not functioning",
+     "disconnected duct",
+     "vented into soffit",
+     "excessive noise"
+    ],
+    "MEDIUM": [
+     "weak airflow",
+     "noisy motor",
+     "timer needed",
+     "minor condensation"
+    ],
+    "LOW": [
+     "cosmetic",
+     "cover dirty",
+     "minor",
+     "recommend upgrade"
+    ]
+   }
+  },
+  "SUMP_PUMP": {
+   "keywords": [
+    "sump pump",
+    "sump basin",
+    "sump pit",
+    "check valve sump",
+    "battery backup sump",
+    "primary sump",
+    "discharge line"
+   ],
+   "severity_keywords": {
+    "CRITICAL": [
+     "no sump pump",
+     "failed sump pump",
+     "flooding",
+     "discharge frozen"
+    ],
+    "HIGH": [
+     "old pump",
+     "no backup",
+     "discharge issues",
+     "check valve missing",
+     "running constantly"
+    ],
+    "MEDIUM": [
+     "aging pump",
+     "minor noise",
+     "intermittent",
+     "discharge outside close to foundation"
+    ],
+    "LOW": [
+     "cosmetic",
+     "minor",
+     "test recommended",
+     "battery old"
+    ]
+   }
+  },
+  "WATER_SOFTENER": {
+   "keywords": [
+    "water softener",
+    "water treatment",
+    "water filter",
+    "water conditioner",
+    "whole house filter",
+    "sediment filter",
+    "water purification"
+   ],
+   "severity_keywords": {
+    "CRITICAL": [
+     "water contamination",
+     "bypass open leaking",
+     "no treatment hard water damage"
+    ],
+    "HIGH": [
+     "not functioning",
+     "leaking",
+     "old media",
+     "bypass valve leaking",
+     "out of salt"
+    ],
+    "MEDIUM": [
+     "aging unit",
+     "minor leak",
+     "needs salt",
+     "minor performance"
+    ],
+    "LOW": [
+     "cosmetic",
+     "minor",
+     "recommend service",
+     "cosmetic cover"
+    ]
+   }
+  },
+  "GARBAGE_DISPOSAL": {
+   "keywords": [
+    "garbage disposal",
+    "waste disposal",
+    "disposer",
+    "food waste disposal"
+   ],
+   "severity_keywords": {
+    "CRITICAL": [
+     "electrical hazard",
+     "leaking massively",
+     "jammed motor",
+     "leaking from body"
+    ],
+    "HIGH": [
+     "not working",
+     "leaking",
+     "jammed",
+     "humming not spinning",
+     "leaking at flange"
+    ],
+    "MEDIUM": [
+     "noisy",
+     "slow drain",
+     "minor leak",
+     "dull blades"
+    ],
+    "LOW": [
+     "cosmetic",
+     "minor",
+     "smell",
+     "maintenance recommended"
+    ]
+   }
+  },
+  "CEILING_FANS": {
+   "keywords": [
+    "ceiling fan",
+    "fan light",
+    "fan motor",
+    "fan blade",
+    "fan mount",
+    "fan remote",
+    "fan capacitor"
+   ],
+   "severity_keywords": {
+    "CRITICAL": [
+     "falling fan",
+     "exposed wiring",
+     "wobbling severely",
+     "electrical hazard"
+    ],
+    "HIGH": [
+     "wobbling",
+     "motor noise",
+     "light not working",
+     "remote not working",
+     "loose mount"
+    ],
+    "MEDIUM": [
+     "minor wobble",
+     "noisy",
+     "slow speed",
+     "light dimmer issue"
+    ],
+    "LOW": [
+     "cosmetic",
+     "dust",
+     "minor",
+     "blade balancing needed"
+    ]
+   }
+  },
+  "LIGHT_FIXTURES": {
+   "keywords": [
+    "light fixture",
+    "recessed light",
+    "can light",
+    "pendant light",
+    "chandelier",
+    "sconce",
+    "under cabinet light",
+    "landscape light",
+    "motion light",
+    "porch light",
+    "flood light"
+   ],
+   "severity_keywords": {
+    "CRITICAL": [
+     "electrical hazard",
+     "burning smell",
+     "exposed wiring",
+     "water in fixture"
+    ],
+    "HIGH": [
+     "not working",
+     "flickering",
+     "damaged",
+     "missing lens",
+     "loose mount"
+    ],
+    "MEDIUM": [
+     "minor flicker",
+     "dim",
+     "cosmetic damage",
+     "aging"
+    ],
+    "LOW": [
+     "cosmetic",
+     "bulb burned",
+     "minor",
+     "recommend upgrade LED"
+    ]
+   }
+  },
+  "SMOKE_CO_DETECTORS": {
+   "keywords": [
+    "smoke detector",
+    "smoke alarm",
+    "carbon monoxide detector",
+    "co alarm",
+    "combination detector",
+    "photoelectric smoke",
+    "ionization smoke",
+    "interconnected smoke",
+    "battery smoke"
+   ],
+   "severity_keywords": {
+    "CRITICAL": [
+     "no smoke detector",
+     "no co detector",
+     "expired detector",
+     "interconnected missing",
+     "non functioning both"
+    ],
+    "HIGH": [
+     "missing in bedroom",
+     "missing on floor",
+     "expired",
+     "not interconnect",
+     "not accessible"
+    ],
+    "MEDIUM": [
+     "aging unit",
+     "chirping",
+     "minor issue",
+     "battery low"
+    ],
+    "LOW": [
+     "cosmetic",
+     "recommend upgrade",
+     "age noted",
+     "test recommended"
+    ]
+   }
+  },
+  "GFCI_AFCI": {
+   "keywords": [
+    "gfci",
+    "gfci outlet",
+    "gfci breaker",
+    "arc fault",
+    "afci",
+    "afci breaker",
+    "ground fault",
+    "arc fault interrupter",
+    "dual function breaker",
+    "gfci protected"
+   ],
+   "severity_keywords": {
+    "CRITICAL": [
+     "no gfci in wet area",
+     "no afci required",
+     "gfci test fail",
+     "electrical hazard",
+     "missing required protection"
+    ],
+    "HIGH": [
+     "gfci won't reset",
+     "missing gfci kitchen",
+     "missing gfci bath",
+     "tripping",
+     "no afci bedroom"
+    ],
+    "MEDIUM": [
+     "gfci aging",
+     "gfci intermittent",
+     "minor issue",
+     "recommend upgrade"
+    ],
+    "LOW": [
+     "cosmetic",
+     "test recommend",
+     "minor",
+     "recommend dual function"
+    ]
+   }
+  },
+  "WHOLE_HOUSE_GENERATOR": {
+   "keywords": [
+    "whole house generator",
+    "standby generator",
+    "auto transfer switch",
+    "ats",
+    "generac guardian",
+    "natural gas generator",
+    "propane generator",
+    "generator panel"
+   ],
+   "severity_keywords": {
+    "CRITICAL": [
+     "co risk",
+     "failed transfer",
+     "no generator maintenance",
+     "gas line leak generator"
+    ],
+    "HIGH": [
+     "not starting",
+     "transfer switch failure",
+     "maintenance overdue",
+     "oil leak",
+     "expired warranty"
+    ],
+    "MEDIUM": [
+     "minor noise",
+     "self test fail",
+     "aging battery",
+     "minor maintenance"
+    ],
+    "LOW": [
+     "cosmetic",
+     "cover needed",
+     "maintenance recommend",
+     "cosmetic rust"
+    ]
+   }
+  }
+ }
+}

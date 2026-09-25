@@ -15,7 +15,6 @@ No data is fabricated here — missing inputs are reported honestly.
 
 import json
 import logging
-import os
 import re
 from datetime import datetime
 
@@ -28,37 +27,105 @@ ZIP_RE = re.compile(r"^\d{5}$")
 ZIP9_RE = re.compile(r"^\d{5}-?\d{4}$")
 APN_RE = re.compile(r"^\d{2,3}[-/]?\d{2}[-/]?\d{2,5}$")
 
-STATE_ABBREV = {s.upper() for s in [
-    "AL","AK","AZ","AR","CA","CO","CT","DE","FL","GA","HI","ID","IL","IN","IA",
-    "KS","KY","LA","ME","MD","MA","MI","MN","MS","MO","MT","NE","NV","NH","NJ",
-    "NM","NY","NC","ND","OH","OK","OR","PA","RI","SC","SD","TN","TX","UT","VT",
-    "VA","WA","WV","WI","WY","DC",
-]}
+STATE_ABBREV = {
+    s.upper()
+    for s in [
+        "AL",
+        "AK",
+        "AZ",
+        "AR",
+        "CA",
+        "CO",
+        "CT",
+        "DE",
+        "FL",
+        "GA",
+        "HI",
+        "ID",
+        "IL",
+        "IN",
+        "IA",
+        "KS",
+        "KY",
+        "LA",
+        "ME",
+        "MD",
+        "MA",
+        "MI",
+        "MN",
+        "MS",
+        "MO",
+        "MT",
+        "NE",
+        "NV",
+        "NH",
+        "NJ",
+        "NM",
+        "NY",
+        "NC",
+        "ND",
+        "OH",
+        "OK",
+        "OR",
+        "PA",
+        "RI",
+        "SC",
+        "SD",
+        "TN",
+        "TX",
+        "UT",
+        "VT",
+        "VA",
+        "WA",
+        "WV",
+        "WI",
+        "WY",
+        "DC",
+    ]
+}
 
 
 def validate_zip9(zip9: str) -> dict:
     """Validate and normalize a 9-digit ZIP. Returns {zip5, zip4, valid, note}."""
     if not zip9:
-        return {"zip5": "", "zip4": "", "valid": False,
-                "note": "9-digit ZIP required for verification-grade geocoding/flood lookup."}
+        return {
+            "zip5": "",
+            "zip4": "",
+            "valid": False,
+            "note": "9-digit ZIP required for verification-grade geocoding/flood lookup.",
+        }
     z = zip9.strip()
     if ZIP9_RE.match(z):
         z5, z4 = re.split(r"-", z.replace(" ", "")) if "-" in z else (z[:5], z[5:])
-        return {"zip5": z5, "zip4": z4, "valid": True,
-                "note": "USPS-deliverable format; used for Census/BLS/FEMA lookups."}
+        return {
+            "zip5": z5,
+            "zip4": z4,
+            "valid": True,
+            "note": "USPS-deliverable format; used for Census/BLS/FEMA lookups.",
+        }
     if ZIP_RE.match(z):
-        return {"zip5": z, "zip4": "", "valid": False,
-                "note": "5-digit ZIP only. Add the +4 for verification-grade accuracy."}
-    return {"zip5": "", "zip4": "", "valid": False,
-            "note": "ZIP must be 5 or 9 digits (e.g. 90210 or 90210-4801)."}
+        return {
+            "zip5": z,
+            "zip4": "",
+            "valid": False,
+            "note": "5-digit ZIP only. Add the +4 for verification-grade accuracy.",
+        }
+    return {
+        "zip5": "",
+        "zip4": "",
+        "valid": False,
+        "note": "ZIP must be 5 or 9 digits (e.g. 90210 or 90210-4801).",
+    }
 
 
 def validate_apn(apn: str) -> dict:
     """Validate Assessor Parcel Number (APN)."""
     if not apn:
         return {"valid": False, "note": "APN is used to fetch parcel-level county records."}
-    return {"valid": bool(APN_RE.match(apn.strip())),
-            "note": "Format: 2-3 / 2 / 2-5 digit components (county-dependent)."}
+    return {
+        "valid": bool(APN_RE.match(apn.strip())),
+        "note": "Format: 2-3 / 2 / 2-5 digit components (county-dependent).",
+    }
 
 
 def build_property_data(meta: dict) -> dict:
@@ -112,37 +179,102 @@ def ingest_inspection_report(pdf_files):
             logger.error("PDF parse failed: %s", e)
             sources.append({"file": getattr(pdf, "name", "?"), "status": "FAILED", "detail": str(e)[:200]})
             continue
-        src = {"file": getattr(pdf, "name", "?"), "status": "OK",
-               "findings": result.get("extraction_stats", {}).get("finding_count", 0)}
+        src = {
+            "file": getattr(pdf, "name", "?"),
+            "status": "OK",
+            "findings": result.get("extraction_stats", {}).get("finding_count", 0),
+        }
         sources.append(src)
         images.extend(result.get("images", []) or [])
         for f in result.get("findings", []) or []:
             f["source_type"] = "inspection_pdf"
             f["source_file"] = getattr(pdf, "name", "?")
             findings.append(f)
-    return {"findings": findings, "images": images, "sources": sources,
-            "total_findings": len(findings)}
+    return {"findings": findings, "images": images, "sources": sources, "total_findings": len(findings)}
 
 
 def ingest_audio_transcripts(audio_files):
-    """Whisper-transcribe real audio recordings -> real findings."""
+    """Voice -> structured: faster-whisper/Deepgram when configured, else honest stub.
+
+    openai-whisper (1GB torch) retired as default. Backend via WHISPER_BACKEND:
+    none (default) | faster-whisper (local, lazy) | deepgram (API).
+    Transcripts link to findings via engines.voice_nlp.
+    """
+    from engines.voice_nlp import transcription_backend
+
     findings = []
     sources = []
+    backend = transcription_backend()
     for af in audio_files or []:
+        name = getattr(af, "name", "?")
+        if backend in ("", "none"):
+            sources.append(
+                {
+                    "file": name,
+                    "status": "SKIPPED",
+                    "detail": "Transcription disabled by default (WHISPER_BACKEND=none). "
+                    "Set faster-whisper or deepgram to enable.",
+                }
+            )
+            continue
         try:
-            import whisper
-            model = whisper.load_model("base")
-            text = model.transcribe(af)["text"]
+            text = ""
+            if backend == "faster-whisper":
+                import tempfile
+
+                from faster_whisper import WhisperModel
+
+                model = WhisperModel("small", compute_type="int8")
+                suffix = "." + str(name).split(".")[-1] if "." in str(name) else ".wav"
+                with tempfile.NamedTemporaryFile(suffix=suffix, delete=True) as tf:
+                    tf.write(af.getvalue() if hasattr(af, "getvalue") else af.read())
+                    tf.flush()
+                    segments, _ = model.transcribe(tf.name)
+                    text = " ".join(s.text for s in segments)
+            elif backend == "deepgram":
+                import os as _os
+
+                import requests as _rq
+
+                key = _os.environ.get("DEEPGRAM_API_KEY", "")
+                if not key:
+                    sources.append(
+                        {"file": name, "status": "REQUIRES_KEY", "detail": "DEEPGRAM_API_KEY missing."}
+                    )
+                    continue
+                audio_bytes = af.getvalue() if hasattr(af, "getvalue") else af.read()
+                r = _rq.post(
+                    "https://api.deepgram.com/v1/listen?model=nova-2",
+                    headers={"Authorization": f"Token {key}", "Content-Type": "audio/wav"},
+                    data=audio_bytes,
+                    timeout=60,
+                )
+                r.raise_for_status()
+                text = (
+                    ((r.json().get("results") or {}).get("channels") or [{}])[0]
+                    .get("alternatives", [{}])[0]
+                    .get("transcript", "")
+                )
             from engines.voice_engine import extract_findings_from_text
-            for f in extract_findings_from_text(text):
+            from engines.voice_nlp import diarize_heuristic, link_transcript_to_findings
+
+            for f in extract_findings_from_text(text or ""):
                 f["source_type"] = "audio_recording"
-                f["source_file"] = getattr(af, "name", "?")
+                f["source_file"] = name
                 findings.append(f)
-            sources.append({"file": getattr(af, "name", "?"), "status": "OK"})
+            sources.append(
+                {
+                    "file": name,
+                    "status": "OK",
+                    "backend": backend,
+                    "turns": len(diarize_heuristic(text or "")),
+                    "linked": len(link_transcript_to_findings(text or "", findings)),
+                }
+            )
         except Exception as e:
-            logger.error("Whisper failed: %s", e)
-            sources.append({"file": getattr(af, "name", "?"), "status": "FAILED", "detail": str(e)[:200]})
-    return {"findings": findings, "sources": sources, "total_findings": len(findings)}
+            logger.error("Transcription failed: %s", e)
+            sources.append({"file": name, "status": "FAILED", "detail": str(e)[:200]})
+    return {"findings": findings, "sources": sources, "total_findings": len(findings), "backend": backend}
 
 
 def ingest_floorplan(floorplan_file, matterport_url=""):
@@ -151,10 +283,18 @@ def ingest_floorplan(floorplan_file, matterport_url=""):
     Supports JSON/CSV room exports, else returns empty for template fallback.
     """
     if matterport_url:
-        return {"provenance": "USER_MATTERPORT", "matterport_url": matterport_url,
-                "rooms": [], "note": "Matterport URL captured; export room layout JSON and upload it for mapping."}
+        return {
+            "provenance": "USER_PROVIDED",
+            "matterport_url": matterport_url,
+            "rooms": [],
+            "note": "Matterport URL captured; export room layout JSON and upload it for mapping.",
+        }
     if not floorplan_file:
-        return {"provenance": "TEMPLATE", "rooms": []}
+        return {
+            "provenance": "UNAVAILABLE",
+            "rooms": [],
+            "note": "No floorplan supplied — spatial mapping unavailable until JSON/CSV/Matterport export is uploaded.",
+        }
     name = getattr(floorplan_file, "name", "").lower()
     try:
         if name.endswith(".json"):
@@ -163,13 +303,17 @@ def ingest_floorplan(floorplan_file, matterport_url=""):
             return {"provenance": "USER_FLOORPLAN", "rooms": rooms}
         if name.endswith(".csv"):
             import csv
+
             reader = csv.DictReader(floorplan_file)
             rooms = [dict(r) for r in reader]
             return {"provenance": "USER_FLOORPLAN", "rooms": rooms}
     except Exception as e:
         logger.error("Floorplan parse failed: %s", e)
-    return {"provenance": "IMAGE", "rooms": [],
-            "note": "Floorplan image received; overlay requires geometry extraction from a Matterport/DXF/JSON export."}
+    return {
+        "provenance": "MODELED",
+        "rooms": [],
+        "note": "Floorplan image received; overlay requires geometry extraction from a Matterport/DXF/JSON export.",
+    }
 
 
 def parse_contractor_quotes(quote_rows):
@@ -179,15 +323,17 @@ def parse_contractor_quotes(quote_rows):
         if not row.get("finding_key"):
             continue
         try:
-            out.append({
-                "finding_key": row["finding_key"],
-                "contractor": row.get("contractor", ""),
-                "phone": row.get("phone", ""),
-                "license": row.get("license", ""),
-                "low": float(row.get("low", 0)),
-                "high": float(row.get("high", 0)),
-                "eta_days": int(row.get("eta_days", 0) or 0),
-            })
+            out.append(
+                {
+                    "finding_key": row["finding_key"],
+                    "contractor": row.get("contractor", ""),
+                    "phone": row.get("phone", ""),
+                    "license": row.get("license", ""),
+                    "low": float(row.get("low", 0)),
+                    "high": float(row.get("high", 0)),
+                    "eta_days": int(row.get("eta_days", 0) or 0),
+                }
+            )
         except (TypeError, ValueError):
             continue
     return out
@@ -199,20 +345,30 @@ def parse_permit_records(permit_rows):
     for row in permit_rows or []:
         if not row.get("permit_type"):
             continue
-        out.append({
-            "permit_type": row["permit_type"],
-            "permit_number": row.get("permit_number", ""),
-            "permit_date": row.get("permit_date", ""),
-            "status": row.get("status", "Closed"),
-            "description": row.get("description", ""),
-            "contractor": row.get("contractor", ""),
-        })
+        out.append(
+            {
+                "permit_type": row["permit_type"],
+                "permit_number": row.get("permit_number", ""),
+                "permit_date": row.get("permit_date", ""),
+                "status": row.get("status", "Closed"),
+                "description": row.get("description", ""),
+                "contractor": row.get("contractor", ""),
+            }
+        )
     return out
 
 
-def compile_session_input(meta, mls=None, underwriting=None, quotes=None,
-                          permits=None, pdf_files=None, audio_files=None,
-                          floorplan_file=None, matterport_url="") -> dict:
+def compile_session_input(
+    meta,
+    mls=None,
+    underwriting=None,
+    quotes=None,
+    permits=None,
+    pdf_files=None,
+    audio_files=None,
+    floorplan_file=None,
+    matterport_url="",
+) -> dict:
     """Assemble the full Page-1 input bundle for the analysis pipeline."""
     mls = mls or {}
     underwriting = underwriting or {}
@@ -268,6 +424,12 @@ def compile_session_input(meta, mls=None, underwriting=None, quotes=None,
         },
         "validation": validate_input_bundle(property_data),
         "created_at": datetime.now().isoformat(),
+        "pii": {
+            "policy": "Raw address/APN never logged; display redacted. Full values in TTL vault only.",
+            "redacted_display": __import__("engines.pii_vault", fromlist=["redact_dict"]).redact_dict(
+                {"address": property_data.get("address"), "apn": property_data.get("apn")}
+            ),
+        },
     }
 
 

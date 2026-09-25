@@ -1,0 +1,587 @@
+{
+ "version": "2026.09.25",
+ "dataset": "zip_cost_modifiers",
+ "data": {
+  "10001": {
+   "modifier": 1.46,
+   "city": "New York",
+   "state": "NY",
+   "avg_labor_rate": 98,
+   "avg_material_mult": 1.42
+  },
+  "90001": {
+   "modifier": 1.38,
+   "city": "Los Angeles",
+   "state": "CA",
+   "avg_labor_rate": 95,
+   "avg_material_mult": 1.35
+  },
+  "60601": {
+   "modifier": 1.06,
+   "city": "Chicago",
+   "state": "IL",
+   "avg_labor_rate": 72,
+   "avg_material_mult": 1.05
+  },
+  "77001": {
+   "modifier": 0.92,
+   "city": "Houston",
+   "state": "TX",
+   "avg_labor_rate": 60,
+   "avg_material_mult": 0.93
+  },
+  "85001": {
+   "modifier": 0.95,
+   "city": "Phoenix",
+   "state": "AZ",
+   "avg_labor_rate": 60,
+   "avg_material_mult": 0.95
+  },
+  "19101": {
+   "modifier": 1.1,
+   "city": "Philadelphia",
+   "state": "PA",
+   "avg_labor_rate": 68,
+   "avg_material_mult": 1.08
+  },
+  "78201": {
+   "modifier": 0.86,
+   "city": "San Antonio",
+   "state": "TX",
+   "avg_labor_rate": 52,
+   "avg_material_mult": 0.84
+  },
+  "92101": {
+   "modifier": 1.34,
+   "city": "San Diego",
+   "state": "CA",
+   "avg_labor_rate": 88,
+   "avg_material_mult": 1.32
+  },
+  "75201": {
+   "modifier": 0.93,
+   "city": "Dallas",
+   "state": "TX",
+   "avg_labor_rate": 62,
+   "avg_material_mult": 0.93
+  },
+  "95101": {
+   "modifier": 1.36,
+   "city": "San Jose",
+   "state": "CA",
+   "avg_labor_rate": 92,
+   "avg_material_mult": 1.34
+  },
+  "73301": {
+   "modifier": 0.84,
+   "city": "Austin",
+   "state": "TX",
+   "avg_labor_rate": 54,
+   "avg_material_mult": 0.85
+  },
+  "32099": {
+   "modifier": 0.88,
+   "city": "Jacksonville",
+   "state": "FL",
+   "avg_labor_rate": 56,
+   "avg_material_mult": 0.89
+  },
+  "76101": {
+   "modifier": 0.9,
+   "city": "Fort Worth",
+   "state": "TX",
+   "avg_labor_rate": 58,
+   "avg_material_mult": 0.9
+  },
+  "43085": {
+   "modifier": 0.86,
+   "city": "Columbus",
+   "state": "OH",
+   "avg_labor_rate": 52,
+   "avg_material_mult": 0.85
+  },
+  "28201": {
+   "modifier": 0.9,
+   "city": "Charlotte",
+   "state": "NC",
+   "avg_labor_rate": 54,
+   "avg_material_mult": 0.89
+  },
+  "46201": {
+   "modifier": 0.83,
+   "city": "Indianapolis",
+   "state": "IN",
+   "avg_labor_rate": 49,
+   "avg_material_mult": 0.83
+  },
+  "94102": {
+   "modifier": 1.55,
+   "city": "San Francisco",
+   "state": "CA",
+   "avg_labor_rate": 112,
+   "avg_material_mult": 1.5
+  },
+  "98101": {
+   "modifier": 1.3,
+   "city": "Seattle",
+   "state": "WA",
+   "avg_labor_rate": 82,
+   "avg_material_mult": 1.26
+  },
+  "80201": {
+   "modifier": 1.12,
+   "city": "Denver",
+   "state": "CO",
+   "avg_labor_rate": 74,
+   "avg_material_mult": 1.1
+  },
+  "20001": {
+   "modifier": 1.24,
+   "city": "Washington DC",
+   "state": "DC",
+   "avg_labor_rate": 84,
+   "avg_material_mult": 1.22
+  },
+  "37201": {
+   "modifier": 0.89,
+   "city": "Nashville",
+   "state": "TN",
+   "avg_labor_rate": 54,
+   "avg_material_mult": 0.89
+  },
+  "73101": {
+   "modifier": 0.83,
+   "city": "Oklahoma City",
+   "state": "OK",
+   "avg_labor_rate": 48,
+   "avg_material_mult": 0.82
+  },
+  "79901": {
+   "modifier": 0.86,
+   "city": "El Paso",
+   "state": "TX",
+   "avg_labor_rate": 50,
+   "avg_material_mult": 0.85
+  },
+  "02101": {
+   "modifier": 1.34,
+   "city": "Boston",
+   "state": "MA",
+   "avg_labor_rate": 88,
+   "avg_material_mult": 1.3
+  },
+  "97201": {
+   "modifier": 1.14,
+   "city": "Portland",
+   "state": "OR",
+   "avg_labor_rate": 76,
+   "avg_material_mult": 1.12
+  },
+  "89101": {
+   "modifier": 0.98,
+   "city": "Las Vegas",
+   "state": "NV",
+   "avg_labor_rate": 62,
+   "avg_material_mult": 0.96
+  },
+  "38101": {
+   "modifier": 0.82,
+   "city": "Memphis",
+   "state": "TN",
+   "avg_labor_rate": 47,
+   "avg_material_mult": 0.81
+  },
+  "40201": {
+   "modifier": 0.85,
+   "city": "Louisville",
+   "state": "KY",
+   "avg_labor_rate": 49,
+   "avg_material_mult": 0.84
+  },
+  "21201": {
+   "modifier": 1.1,
+   "city": "Baltimore",
+   "state": "MD",
+   "avg_labor_rate": 70,
+   "avg_material_mult": 1.08
+  },
+  "53201": {
+   "modifier": 0.95,
+   "city": "Milwaukee",
+   "state": "WI",
+   "avg_labor_rate": 60,
+   "avg_material_mult": 0.93
+  },
+  "87101": {
+   "modifier": 0.88,
+   "city": "Albuquerque",
+   "state": "NM",
+   "avg_labor_rate": 54,
+   "avg_material_mult": 0.87
+  },
+  "85701": {
+   "modifier": 0.9,
+   "city": "Tucson",
+   "state": "AZ",
+   "avg_labor_rate": 56,
+   "avg_material_mult": 0.89
+  },
+  "93701": {
+   "modifier": 0.92,
+   "city": "Fresno",
+   "state": "CA",
+   "avg_labor_rate": 58,
+   "avg_material_mult": 0.91
+  },
+  "95814": {
+   "modifier": 1.18,
+   "city": "Sacramento",
+   "state": "CA",
+   "avg_labor_rate": 78,
+   "avg_material_mult": 1.16
+  },
+  "85201": {
+   "modifier": 0.92,
+   "city": "Mesa",
+   "state": "AZ",
+   "avg_labor_rate": 58,
+   "avg_material_mult": 0.92
+  },
+  "64101": {
+   "modifier": 0.86,
+   "city": "Kansas City",
+   "state": "MO",
+   "avg_labor_rate": 52,
+   "avg_material_mult": 0.85
+  },
+  "30301": {
+   "modifier": 0.92,
+   "city": "Atlanta",
+   "state": "GA",
+   "avg_labor_rate": 57,
+   "avg_material_mult": 0.91
+  },
+  "68101": {
+   "modifier": 0.85,
+   "city": "Omaha",
+   "state": "NE",
+   "avg_labor_rate": 51,
+   "avg_material_mult": 0.84
+  },
+  "80901": {
+   "modifier": 1.04,
+   "city": "Colorado Springs",
+   "state": "CO",
+   "avg_labor_rate": 66,
+   "avg_material_mult": 1.02
+  },
+  "27601": {
+   "modifier": 0.92,
+   "city": "Raleigh",
+   "state": "NC",
+   "avg_labor_rate": 56,
+   "avg_material_mult": 0.91
+  },
+  "90801": {
+   "modifier": 1.32,
+   "city": "Long Beach",
+   "state": "CA",
+   "avg_labor_rate": 86,
+   "avg_material_mult": 1.3
+  },
+  "23451": {
+   "modifier": 0.94,
+   "city": "Virginia Beach",
+   "state": "VA",
+   "avg_labor_rate": 60,
+   "avg_material_mult": 0.93
+  },
+  "33101": {
+   "modifier": 1.14,
+   "city": "Miami",
+   "state": "FL",
+   "avg_labor_rate": 70,
+   "avg_material_mult": 1.1
+  },
+  "94601": {
+   "modifier": 1.46,
+   "city": "Oakland",
+   "state": "CA",
+   "avg_labor_rate": 98,
+   "avg_material_mult": 1.44
+  },
+  "55401": {
+   "modifier": 1.02,
+   "city": "Minneapolis",
+   "state": "MN",
+   "avg_labor_rate": 68,
+   "avg_material_mult": 1.0
+  },
+  "74101": {
+   "modifier": 0.83,
+   "city": "Tulsa",
+   "state": "OK",
+   "avg_labor_rate": 48,
+   "avg_material_mult": 0.82
+  },
+  "33601": {
+   "modifier": 0.94,
+   "city": "Tampa",
+   "state": "FL",
+   "avg_labor_rate": 59,
+   "avg_material_mult": 0.93
+  },
+  "76001": {
+   "modifier": 0.91,
+   "city": "Arlington",
+   "state": "TX",
+   "avg_labor_rate": 60,
+   "avg_material_mult": 0.91
+  },
+  "70112": {
+   "modifier": 0.88,
+   "city": "New Orleans",
+   "state": "LA",
+   "avg_labor_rate": 54,
+   "avg_material_mult": 0.87
+  },
+  "07001": {
+   "modifier": 1.22,
+   "city": "Newark",
+   "state": "NJ",
+   "avg_labor_rate": 82,
+   "avg_material_mult": 1.2
+  },
+  "48201": {
+   "modifier": 0.88,
+   "city": "Detroit",
+   "state": "MI",
+   "avg_labor_rate": 54,
+   "avg_material_mult": 0.87
+  },
+  "43201": {
+   "modifier": 0.85,
+   "city": "Columbus",
+   "state": "OH",
+   "avg_labor_rate": 51,
+   "avg_material_mult": 0.84
+  },
+  "23201": {
+   "modifier": 0.91,
+   "city": "Richmond",
+   "state": "VA",
+   "avg_labor_rate": 57,
+   "avg_material_mult": 0.9
+  },
+  "84101": {
+   "modifier": 0.9,
+   "city": "Salt Lake City",
+   "state": "UT",
+   "avg_labor_rate": 57,
+   "avg_material_mult": 0.89
+  },
+  "32801": {
+   "modifier": 0.93,
+   "city": "Orlando",
+   "state": "FL",
+   "avg_labor_rate": 59,
+   "avg_material_mult": 0.92
+  },
+  "29401": {
+   "modifier": 0.9,
+   "city": "Charleston",
+   "state": "SC",
+   "avg_labor_rate": 54,
+   "avg_material_mult": 0.89
+  },
+  "40202": {
+   "modifier": 0.85,
+   "city": "Louisville",
+   "state": "KY",
+   "avg_labor_rate": 49,
+   "avg_material_mult": 0.84
+  },
+  "58501": {
+   "modifier": 0.88,
+   "city": "Bismarck",
+   "state": "ND",
+   "avg_labor_rate": 56,
+   "avg_material_mult": 0.87
+  },
+  "57501": {
+   "modifier": 0.86,
+   "city": "Pierre",
+   "state": "SD",
+   "avg_labor_rate": 52,
+   "avg_material_mult": 0.85
+  },
+  "59601": {
+   "modifier": 0.91,
+   "city": "Helena",
+   "state": "MT",
+   "avg_labor_rate": 59,
+   "avg_material_mult": 0.9
+  },
+  "82001": {
+   "modifier": 0.89,
+   "city": "Cheyenne",
+   "state": "WY",
+   "avg_labor_rate": 56,
+   "avg_material_mult": 0.88
+  },
+  "05601": {
+   "modifier": 1.04,
+   "city": "Montpelier",
+   "state": "VT",
+   "avg_labor_rate": 64,
+   "avg_material_mult": 1.02
+  },
+  "03301": {
+   "modifier": 1.06,
+   "city": "Concord",
+   "state": "NH",
+   "avg_labor_rate": 66,
+   "avg_material_mult": 1.04
+  },
+  "02901": {
+   "modifier": 1.14,
+   "city": "Providence",
+   "state": "RI",
+   "avg_labor_rate": 70,
+   "avg_material_mult": 1.12
+  },
+  "19901": {
+   "modifier": 0.98,
+   "city": "Dover",
+   "state": "DE",
+   "avg_labor_rate": 60,
+   "avg_material_mult": 0.97
+  },
+  "21401": {
+   "modifier": 1.1,
+   "city": "Annapolis",
+   "state": "MD",
+   "avg_labor_rate": 70,
+   "avg_material_mult": 1.08
+  },
+  "35201": {
+   "modifier": 0.81,
+   "city": "Birmingham",
+   "state": "AL",
+   "avg_labor_rate": 45,
+   "avg_material_mult": 0.8
+  },
+  "72201": {
+   "modifier": 0.81,
+   "city": "Little Rock",
+   "state": "AR",
+   "avg_labor_rate": 45,
+   "avg_material_mult": 0.8
+  },
+  "25301": {
+   "modifier": 0.83,
+   "city": "Charleston",
+   "state": "WV",
+   "avg_labor_rate": 47,
+   "avg_material_mult": 0.81
+  },
+  "39201": {
+   "modifier": 0.79,
+   "city": "Jackson",
+   "state": "MS",
+   "avg_labor_rate": 43,
+   "avg_material_mult": 0.78
+  },
+  "68501": {
+   "modifier": 0.85,
+   "city": "Lincoln",
+   "state": "NE",
+   "avg_labor_rate": 52,
+   "avg_material_mult": 0.84
+  },
+  "63101": {
+   "modifier": 0.85,
+   "city": "St. Louis",
+   "state": "MO",
+   "avg_labor_rate": 51,
+   "avg_material_mult": 0.84
+  },
+  "06101": {
+   "modifier": 1.16,
+   "city": "Hartford",
+   "state": "CT",
+   "avg_labor_rate": 74,
+   "avg_material_mult": 1.14
+  },
+  "04101": {
+   "modifier": 1.06,
+   "city": "Portland",
+   "state": "ME",
+   "avg_labor_rate": 64,
+   "avg_material_mult": 1.04
+  },
+  "99501": {
+   "modifier": 1.3,
+   "city": "Anchorage",
+   "state": "AK",
+   "avg_labor_rate": 92,
+   "avg_material_mult": 1.34
+  },
+  "41001": {
+   "modifier": 0.88,
+   "city": "Cincinnati",
+   "state": "OH",
+   "avg_labor_rate": 54,
+   "avg_material_mult": 0.87
+  },
+  "15201": {
+   "modifier": 0.9,
+   "city": "Pittsburgh",
+   "state": "PA",
+   "avg_labor_rate": 56,
+   "avg_material_mult": 0.89
+  },
+  "44101": {
+   "modifier": 0.86,
+   "city": "Cleveland",
+   "state": "OH",
+   "avg_labor_rate": 52,
+   "avg_material_mult": 0.85
+  },
+  "46801": {
+   "modifier": 0.84,
+   "city": "Fort Wayne",
+   "state": "IN",
+   "avg_labor_rate": 48,
+   "avg_material_mult": 0.83
+  },
+  "52801": {
+   "modifier": 0.87,
+   "city": "Des Moines",
+   "state": "IA",
+   "avg_labor_rate": 53,
+   "avg_material_mult": 0.86
+  },
+  "33012": {
+   "modifier": 0.96,
+   "city": "Hollywood",
+   "state": "FL",
+   "avg_labor_rate": 62,
+   "avg_material_mult": 0.95
+  },
+  "85281": {
+   "modifier": 0.93,
+   "city": "Tempe",
+   "state": "AZ",
+   "avg_labor_rate": 58,
+   "avg_material_mult": 0.92
+  },
+  "75001": {
+   "modifier": 0.91,
+   "city": "Addison",
+   "state": "TX",
+   "avg_labor_rate": 60,
+   "avg_material_mult": 0.91
+  }
+ }
+}

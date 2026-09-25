@@ -1,0 +1,41 @@
+{
+ "version": "2026.09.25",
+ "dataset": "severity_levels",
+ "data": {
+  "CRITICAL": {
+   "color": "#DC2626",
+   "label": "Critical - Safety/Structural",
+   "priority": 1,
+   "icon": "\ud83d\udd34",
+   "bg": "rgba(220,38,38,0.12)"
+  },
+  "HIGH": {
+   "color": "#EA580C",
+   "label": "High - Active Damage",
+   "priority": 2,
+   "icon": "\ud83d\udfe0",
+   "bg": "rgba(234,88,12,0.12)"
+  },
+  "MEDIUM": {
+   "color": "#CA8A04",
+   "label": "Medium - Code/Compliance",
+   "priority": 3,
+   "icon": "\ud83d\udfe1",
+   "bg": "rgba(202,138,4,0.12)"
+  },
+  "LOW": {
+   "color": "#16A34A",
+   "label": "Low - Maintenance/Cosmetic",
+   "priority": 4,
+   "icon": "\ud83d\udfe2",
+   "bg": "rgba(22,163,74,0.12)"
+  },
+  "INFO": {
+   "color": "#2563EB",
+   "label": "Informational",
+   "priority": 5,
+   "icon": "\ud83d\udd35",
+   "bg": "rgba(37,99,235,0.12)"
+  }
+ }
+}

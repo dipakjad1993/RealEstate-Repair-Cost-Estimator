@@ -1,0 +1,30 @@
+---
+title: "{System} repair cost in {State} (2026) — Low / Mid / High"
+description: "40–60 word answer capsule + Low/Mid/High table + FAQ. Sources: Census ACS, BLS OEWS/PPI."
+dateModified: 2026-09-25
+---
+
+## Answer (40–60 words)
+
+{System} repair in {State} typically runs **$LOW–$HIGH** (mid ~$MID) for a
+{Home} home in 2026, based on BLS trade wages + PPI materials + state
+multipliers. Critical safety items trend high; cosmetic items trend low.
+On-site quotes win — this page is a deterministic baseline, not a bid.
+
+## Low / Mid / High
+
+| Tier | Range | When |
+|------|-------|------|
+| Low | $LOW | Minor, accessible, standard materials |
+| Mid | $MID | Typical scope, licensed trade, permit |
+| High | $HIGH | Emergency, structural, or full replacement |
+
+## FAQ
+
+**Is this a quote?** No — deterministic baseline. USER_QUOTE rows in the app are authoritative.
+**What data backs it?** Census ACS, BLS OEWS wages, BLS PPI materials, FEMA/USGS/CPSC risk.
+**How fresh?** BLS/FRED monthly refresh, cached 24h (`@st.cache_data(ttl=86400)`).
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[]}
+</script>

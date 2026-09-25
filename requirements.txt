@@ -1,8 +1,30 @@
-streamlit>=1.32.0
-pandas>=2.1.0
-numpy>=1.26.0
-plotly>=5.18.0
-pdfplumber>=0.10.0
-PyMuPDF>=1.23.0
-requests>=2.31.0
-openai-whisper>=20231117
+# Pinned runtime — reproducible enterprise deploys (Streamlit Cloud / Docker / Linux).
+# Last verified: 2026-09. Python 3.10–3.13.
+streamlit==1.37.*
+pandas==2.2.*
+numpy==1.26.*
+plotly==5.22.*
+PyMuPDF==1.24.*
+pymupdf4llm==0.0.*
+requests==2.32.*
+urllib3==2.2.*
+openpyxl==3.1.*
+XlsxWriter==3.2.*
+fpdf2==2.7.*
+python-dateutil==2.9.*
+pydantic==2.8.*
+# --- API / MCP / agent layer (optional but installed: lightweight, no torch) ---
+fastapi==0.115.*
+uvicorn[standard]==0.30.*
+python-multipart==0.0.*
+# --- Transcription: faster-whisper (CTranslate2, ~10x lighter than openai-whisper+torch).
+# Local transcription is OPTIONAL. Default path needs no model download:
+# set WHISPER_BACKEND=faster-whisper only when you want local STT,
+# or WHISPER_BACKEND=deepgram with DEEPGRAM_API_KEY for API STT.
+faster-whisper==1.0.*
+# --- Supabase / Postgres (optional; sqlite fallback is automatic) ---
+supabase==2.7.*
+psycopg2-binary==2.9.*
+# --- Quality ---
+pytest==8.3.*
+ruff==0.6.*

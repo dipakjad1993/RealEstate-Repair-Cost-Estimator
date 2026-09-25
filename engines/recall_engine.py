@@ -12,6 +12,7 @@ All recall data comes directly from the official CPSC database.
 """
 
 import logging
+
 from engines.real_data_fetcher import (
     search_cpsc_recalls,
 )
@@ -56,20 +57,20 @@ FINDING_TO_RECALL_MAP = {
 def check_recalls_for_findings(findings):
     """
     Check inspection findings against REAL CPSC recall database.
-    
+
     Queries the official CPSC SaferProducts.gov API to find active recalls
     matching the inspection findings.
-    
+
     Source: U.S. Consumer Product Safety Commission (CPSC) - LIVE DATA
     """
     results = []
     already_checked = set()
-    
+
     for finding in findings:
         desc = finding.get("description", "").lower()
         subsystem = finding.get("subsystem", "").lower()
         combined_text = f"{desc} {subsystem}"
-        
+
         # Find matching recall search terms
         matched_searches = []
         for keyword, recall_info in FINDING_TO_RECALL_MAP.items():
@@ -78,49 +79,51 @@ def check_recalls_for_findings(findings):
                 if search_key not in already_checked:
                     matched_searches.append(recall_info)
                     already_checked.add(search_key)
-        
+
         # Query CPSC API for each matched recall type
         for search in matched_searches:
             try:
                 keyword = search["keyword"]
                 product = search["product"]
-                
+
                 recall_data = search_cpsc_recalls(
                     keyword=keyword,
                     product=product,
                     max_results=5,
                 )
-                
+
                 recall_value = recall_data.value if recall_data else None
-                
+
                 if recall_value:
                     for recall in recall_value:
-                        results.append({
-                            "finding_id": finding.get("id"),
-                            "finding_description": finding.get("description", "")[:100],
-                            "system": finding.get("system_category", "OTHER"),
-                            "recall_number": recall.get("recall_number", ""),
-                            "recall_title": recall.get("title", ""),
-                            "recall_date": recall.get("recall_date", ""),
-                            "recall_url": recall.get("url", ""),
-                            "hazard_types": recall.get("hazard_types", []),
-                            "product_names": recall.get("product_names", []),
-                            "manufacturers": recall.get("manufacturers", []),
-                            "remedy": recall.get("remedy", ""),
-                            "remedy_type": recall.get("remedy_type", ""),
-                            "injury_reports": recall.get("injury_descriptions", []),
-                            "description": recall.get("description", "")[:500],
-                            "source": "CPSC SaferProducts.gov - U.S. Consumer Product Safety Commission (LIVE DATA)",
-                            "action_required": _get_recall_action(recall),
-                            "cost_savings": _estimate_recall_savings(finding, recall),
-                        })
-                        
+                        results.append(
+                            {
+                                "finding_id": finding.get("id"),
+                                "finding_description": finding.get("description", "")[:100],
+                                "system": finding.get("system_category", "OTHER"),
+                                "recall_number": recall.get("recall_number", ""),
+                                "recall_title": recall.get("title", ""),
+                                "recall_date": recall.get("recall_date", ""),
+                                "recall_url": recall.get("url", ""),
+                                "hazard_types": recall.get("hazard_types", []),
+                                "product_names": recall.get("product_names", []),
+                                "manufacturers": recall.get("manufacturers", []),
+                                "remedy": recall.get("remedy", ""),
+                                "remedy_type": recall.get("remedy_type", ""),
+                                "injury_reports": recall.get("injury_descriptions", []),
+                                "description": recall.get("description", "")[:500],
+                                "source": "CPSC SaferProducts.gov - U.S. Consumer Product Safety Commission (LIVE DATA)",
+                                "action_required": _get_recall_action(recall),
+                                "cost_savings": _estimate_recall_savings(finding, recall),
+                            }
+                        )
+
             except Exception as e:
                 logger.error(f"CPSC API error for keyword '{search['keyword']}': {e}")
                 continue
-    
+
     total_savings = sum(r["cost_savings"] for r in results)
-    
+
     return {
         "recall_results": results,
         "summary": {
@@ -139,8 +142,7 @@ def check_specific_product(product_name: str, manufacturer: str = ""):
     Useful for checking a specific model/brand found during inspection.
     """
     res = search_cpsc_recalls(keyword=product_name or manufacturer, max_results=10)
-    return {"status": res.provenance.status, "source": res.provenance.source,
-            "recalls": res.value or []}
+    return {"status": res.provenance.status, "source": res.provenance.source, "recalls": res.value or []}
 
 
 def _get_recall_action(recall):

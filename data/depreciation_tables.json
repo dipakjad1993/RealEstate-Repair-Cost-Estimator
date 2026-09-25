@@ -1,0 +1,276 @@
+{
+ "version": "2026.09.25",
+ "dataset": "depreciation_tables",
+ "data": {
+  "hvac": {
+   "useful_life": 17,
+   "salvage_pct": 0.08,
+   "replacement_avg": 11000,
+   "replacement_range": [
+    5500,
+    18000
+   ]
+  },
+  "furnace": {
+   "useful_life": 18,
+   "salvage_pct": 0.05,
+   "replacement_avg": 5200,
+   "replacement_range": [
+    2800,
+    9500
+   ]
+  },
+  "ac_unit": {
+   "useful_life": 15,
+   "salvage_pct": 0.05,
+   "replacement_avg": 8000,
+   "replacement_range": [
+    3500,
+    14500
+   ]
+  },
+  "heat_pump": {
+   "useful_life": 14,
+   "salvage_pct": 0.06,
+   "replacement_avg": 9500,
+   "replacement_range": [
+    4500,
+    16000
+   ]
+  },
+  "water_heater": {
+   "useful_life": 13,
+   "salvage_pct": 0.03,
+   "replacement_avg": 2200,
+   "replacement_range": [
+    900,
+    4500
+   ]
+  },
+  "tankless_water_heater": {
+   "useful_life": 22,
+   "salvage_pct": 0.05,
+   "replacement_avg": 4500,
+   "replacement_range": [
+    2200,
+    7500
+   ]
+  },
+  "roof_asphalt": {
+   "useful_life": 25,
+   "salvage_pct": 0.0,
+   "replacement_avg": 15000,
+   "replacement_range": [
+    5500,
+    32000
+   ]
+  },
+  "roof_metal": {
+   "useful_life": 55,
+   "salvage_pct": 0.0,
+   "replacement_avg": 28000,
+   "replacement_range": [
+    10000,
+    52000
+   ]
+  },
+  "roof_tile": {
+   "useful_life": 60,
+   "salvage_pct": 0.0,
+   "replacement_avg": 32000,
+   "replacement_range": [
+    15000,
+    55000
+   ]
+  },
+  "electrical_panel": {
+   "useful_life": 32,
+   "salvage_pct": 0.0,
+   "replacement_avg": 3200,
+   "replacement_range": [
+    1200,
+    6000
+   ]
+  },
+  "electrical_panel_fpe": {
+   "useful_life": 0,
+   "salvage_pct": 0.0,
+   "replacement_avg": 3800,
+   "replacement_range": [
+    1800,
+    6500
+   ]
+  },
+  "wiring": {
+   "useful_life": 40,
+   "salvage_pct": 0.0,
+   "replacement_avg": 18000,
+   "replacement_range": [
+    5000,
+    42000
+   ]
+  },
+  "plumbing_pipes": {
+   "useful_life": 55,
+   "salvage_pct": 0.0,
+   "replacement_avg": 10000,
+   "replacement_range": [
+    2500,
+    22000
+   ]
+  },
+  "plumbing_drain": {
+   "useful_life": 65,
+   "salvage_pct": 0.0,
+   "replacement_avg": 5000,
+   "replacement_range": [
+    1200,
+    12000
+   ]
+  },
+  "foundation": {
+   "useful_life": 120,
+   "salvage_pct": 0.0,
+   "replacement_avg": 15000,
+   "replacement_range": [
+    3000,
+    35000
+   ]
+  },
+  "deck": {
+   "useful_life": 20,
+   "salvage_pct": 0.0,
+   "replacement_avg": 9000,
+   "replacement_range": [
+    2500,
+    22000
+   ]
+  },
+  "siding": {
+   "useful_life": 35,
+   "salvage_pct": 0.0,
+   "replacement_avg": 12000,
+   "replacement_range": [
+    3500,
+    25000
+   ]
+  },
+  "windows": {
+   "useful_life": 22,
+   "salvage_pct": 0.0,
+   "replacement_avg": 850,
+   "replacement_range": [
+    350,
+    1800
+   ]
+  },
+  "insulation": {
+   "useful_life": 55,
+   "salvage_pct": 0.0,
+   "replacement_avg": 3200,
+   "replacement_range": [
+    1000,
+    7500
+   ]
+  },
+  "kitchen_appliances": {
+   "useful_life": 14,
+   "salvage_pct": 0.05,
+   "replacement_avg": 6500,
+   "replacement_range": [
+    2000,
+    18000
+   ]
+  },
+  "flooring_hardwood": {
+   "useful_life": 35,
+   "salvage_pct": 0.0,
+   "replacement_avg": 9000,
+   "replacement_range": [
+    4000,
+    15000
+   ]
+  },
+  "flooring_tile": {
+   "useful_life": 60,
+   "salvage_pct": 0.0,
+   "replacement_avg": 11500,
+   "replacement_range": [
+    5000,
+    18000
+   ]
+  },
+  "flooring_carpet": {
+   "useful_life": 10,
+   "salvage_pct": 0.0,
+   "replacement_avg": 3500,
+   "replacement_range": [
+    1500,
+    6000
+   ]
+  },
+  "garage_door": {
+   "useful_life": 22,
+   "salvage_pct": 0.08,
+   "replacement_avg": 2400,
+   "replacement_range": [
+    800,
+    5500
+   ]
+  },
+  "fence": {
+   "useful_life": 20,
+   "salvage_pct": 0.0,
+   "replacement_avg": 5500,
+   "replacement_range": [
+    1500,
+    14000
+   ]
+  },
+  "driveway": {
+   "useful_life": 30,
+   "salvage_pct": 0.0,
+   "replacement_avg": 6500,
+   "replacement_range": [
+    2000,
+    15000
+   ]
+  },
+  "chimney": {
+   "useful_life": 55,
+   "salvage_pct": 0.0,
+   "replacement_avg": 4500,
+   "replacement_range": [
+    1000,
+    12000
+   ]
+  },
+  "sprinkler_system": {
+   "useful_life": 20,
+   "salvage_pct": 0.0,
+   "replacement_avg": 3500,
+   "replacement_range": [
+    1500,
+    7000
+   ]
+  },
+  "septic_system": {
+   "useful_life": 25,
+   "salvage_pct": 0.0,
+   "replacement_avg": 20000,
+   "replacement_range": [
+    8000,
+    40000
+   ]
+  },
+  "well_system": {
+   "useful_life": 25,
+   "salvage_pct": 0.0,
+   "replacement_avg": 10000,
+   "replacement_range": [
+    3000,
+    20000
+   ]
+  }
+ }
+}

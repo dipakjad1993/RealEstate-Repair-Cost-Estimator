@@ -12,8 +12,12 @@ Every estimate is labeled with its data provenance. NO hash/random values.
 
 import logging
 from datetime import datetime
+
 from engines.real_data_fetcher import (
-    get_bls_wages, get_bls_ppi_materials, state_to_fips, DataResult, Provenance,
+    DataResult,
+    get_bls_ppi_materials,
+    get_bls_wages,
+    state_to_fips,
 )
 
 logger = logging.getLogger(__name__)
@@ -21,53 +25,111 @@ logger = logging.getLogger(__name__)
 # Published benchmark repair cost ranges per system (low, high) - 2026 national
 # baseline in dollars, indexed against real BLS PPI data for currency.
 BENCHMARK_RANGES = {
-    "HVAC": {"heat exchanger": (1200, 3500), "inducer motor": (450, 850),
-             "blower motor": (400, 800), "compressor": (1500, 3000),
-             "evaporator coil": (800, 2200), "capacitor": (120, 350),
-             "thermostat": (150, 400), "duct": (500, 2000),
-             "refrigerant": (200, 600), "filter": (50, 150), "default": (300, 1500)},
-    "ROOF": {"flashing": (800, 2500), "step flashing": (1200, 2500),
-             "shingle": (500, 3000), "gutter": (300, 1200), "decking": (500, 2000),
-             "skylight": (800, 3000), "default": (800, 4000)},
-    "ELECTRICAL": {"gfci": (200, 450), "panel": (1800, 4000), "subpanel": (1500, 3500),
-                   "outlet": (100, 300), "wiring": (500, 5000), "breaker": (150, 400),
-                   "grounding": (300, 1000), "default": (250, 1500)},
-    "PLUMBING": {"pipe": (200, 2000), "drain": (100, 500), "faucet": (150, 500),
-                 "toilet": (200, 600), "water heater": (800, 3000),
-                 "sewer": (2000, 8000), "valve": (150, 500), "trap": (100, 350),
-                 "default": (200, 1500)},
-    "STRUCTURAL": {"foundation": (2000, 15000), "crack": (500, 5000),
-                   "beam": (1000, 5000), "joist": (500, 3000), "sill": (800, 3000),
-                   "retaining": (2000, 8000), "default": (1000, 8000)},
-    "EXTERIOR": {"siding": (500, 5000), "paint": (200, 3000), "deck": (500, 5000),
-                 "railing": (300, 1500), "driveway": (500, 5000), "grading": (500, 3000),
-                 "garage": (200, 2000), "window": (400, 1500), "door": (300, 2000),
-                 "default": (300, 3000)},
+    "HVAC": {
+        "heat exchanger": (1200, 3500),
+        "inducer motor": (450, 850),
+        "blower motor": (400, 800),
+        "compressor": (1500, 3000),
+        "evaporator coil": (800, 2200),
+        "capacitor": (120, 350),
+        "thermostat": (150, 400),
+        "duct": (500, 2000),
+        "refrigerant": (200, 600),
+        "filter": (50, 150),
+        "default": (300, 1500),
+    },
+    "ROOF": {
+        "flashing": (800, 2500),
+        "step flashing": (1200, 2500),
+        "shingle": (500, 3000),
+        "gutter": (300, 1200),
+        "decking": (500, 2000),
+        "skylight": (800, 3000),
+        "default": (800, 4000),
+    },
+    "ELECTRICAL": {
+        "gfci": (200, 450),
+        "panel": (1800, 4000),
+        "subpanel": (1500, 3500),
+        "outlet": (100, 300),
+        "wiring": (500, 5000),
+        "breaker": (150, 400),
+        "grounding": (300, 1000),
+        "default": (250, 1500),
+    },
+    "PLUMBING": {
+        "pipe": (200, 2000),
+        "drain": (100, 500),
+        "faucet": (150, 500),
+        "toilet": (200, 600),
+        "water heater": (800, 3000),
+        "sewer": (2000, 8000),
+        "valve": (150, 500),
+        "trap": (100, 350),
+        "default": (200, 1500),
+    },
+    "STRUCTURAL": {
+        "foundation": (2000, 15000),
+        "crack": (500, 5000),
+        "beam": (1000, 5000),
+        "joist": (500, 3000),
+        "sill": (800, 3000),
+        "retaining": (2000, 8000),
+        "default": (1000, 8000),
+    },
+    "EXTERIOR": {
+        "siding": (500, 5000),
+        "paint": (200, 3000),
+        "deck": (500, 5000),
+        "railing": (300, 1500),
+        "driveway": (500, 5000),
+        "grading": (500, 3000),
+        "garage": (200, 2000),
+        "window": (400, 1500),
+        "door": (300, 2000),
+        "default": (300, 3000),
+    },
     "INSULATION": {"default": (500, 4000)},
-    "APPLIANCES": {"stove": (400, 2000), "refrigerator": (500, 3000),
-                   "dishwasher": (300, 1200), "washer": (400, 1500),
-                   "dryer": (300, 1200), "default": (200, 2000)},
-    "WINDOWS_DOORS": {"window": (400, 1500), "door": (300, 2500), "seal": (150, 500),
-                      "default": (250, 1500)},
-    "FIRE_SAFETY": {"smoke detector": (50, 200), "carbon monoxide": (50, 200),
-                    "fireplace": (300, 2000), "chimney": (500, 3000), "default": (200, 1500)},
-    "MOISTURE": {"mold": (1000, 8000), "water": (300, 3000), "vapor": (200, 1500),
-                 "default": (300, 3000)},
+    "APPLIANCES": {
+        "stove": (400, 2000),
+        "refrigerator": (500, 3000),
+        "dishwasher": (300, 1200),
+        "washer": (400, 1500),
+        "dryer": (300, 1200),
+        "default": (200, 2000),
+    },
+    "WINDOWS_DOORS": {"window": (400, 1500), "door": (300, 2500), "seal": (150, 500), "default": (250, 1500)},
+    "FIRE_SAFETY": {
+        "smoke detector": (50, 200),
+        "carbon monoxide": (50, 200),
+        "fireplace": (300, 2000),
+        "chimney": (500, 3000),
+        "default": (200, 1500),
+    },
+    "MOISTURE": {"mold": (1000, 8000), "water": (300, 3000), "vapor": (200, 1500), "default": (300, 3000)},
 }
 
 SEVERITY_MULT = {"CRITICAL": 1.30, "HIGH": 1.15, "MEDIUM": 1.0, "LOW": 0.85, "INFO": 0.70}
 
 # Trade -> SOC code mapping for BLS wage lookup
 SYSTEM_TO_SOC = {
-    "HVAC": "499021", "ROOF": "472181", "ELECTRICAL": "472111",
-    "PLUMBING": "472152", "STRUCTURAL": "472221", "EXTERIOR": "472141",
-    "INSULATION": "472031", "APPLIANCES": "499021", "WINDOWS_DOORS": "472031",
-    "FIRE_SAFETY": "472031", "MOISTURE": "472061",
+    "HVAC": "499021",
+    "ROOF": "472181",
+    "ELECTRICAL": "472111",
+    "PLUMBING": "472152",
+    "STRUCTURAL": "472221",
+    "EXTERIOR": "472141",
+    "INSULATION": "472031",
+    "APPLIANCES": "499021",
+    "WINDOWS_DOORS": "472031",
+    "FIRE_SAFETY": "472031",
+    "MOISTURE": "472061",
 }
 
 
 class RealRates:
     """Real localized rates: BLS OEWS wages + BLS PPI material index."""
+
     def __init__(self, state: str, zip_code: str = ""):
         self.state = state
         self.zip_code = zip_code
@@ -86,22 +148,25 @@ class RealRates:
 
     def hourly_rate(self, system: str) -> tuple:
         """(low, high, source_label) real BLS hourly median for the trade."""
-        soc = SYSTEM_TO_SOC.get(system)
-        for title, data in self._wage_cache.items():
-            # match by SOC via series map is stored already; approximate by title contains
-            pass
-        # direct lookup using SOC-derived key not stored; use annual median / 2080
-        for title, data in self._wage_cache.items():
+        # Wage cache is keyed by occupation title (SOC-mapped at fetch time);
+        # use annual median / 2080 for an hourly baseline.
+        for _title, data in self._wage_cache.items():
             hourly = data.get("hourly_median_wage")
             if not hourly:
                 annual = data.get("annual_median_wage") or data.get("annual_mean_wage")
                 hourly = annual / 2080 if annual else None
             if hourly:
-                return (hourly * 0.90, hourly * 1.30,
-                        f"BLS OEWS {data.get('year', '')} (state median)")
+                return (hourly * 0.90, hourly * 1.30, f"BLS OEWS {data.get('year', '')} (state median)")
         # fall back to honest benchmark if BLS unavailable
-        base = {"HVAC": 60, "ROOF": 42, "ELECTRICAL": 55, "PLUMBING": 58,
-                "STRUCTURAL": 50, "EXTERIOR": 40, "default": 45}.get(system, 45)
+        base = {
+            "HVAC": 60,
+            "ROOF": 42,
+            "ELECTRICAL": 55,
+            "PLUMBING": 58,
+            "STRUCTURAL": 50,
+            "EXTERIOR": 40,
+            "default": 45,
+        }.get(system, 45)
         return (base * 0.9, base * 1.3, "National benchmark (BLS OEWS unavailable)")
 
     def material_index_factor(self) -> float:
@@ -124,8 +189,9 @@ def get_real_benchmark(system: str, subsystem: str, description: str):
     return table["default"]
 
 
-def calculate_cost_bounds(finding, state: str, zip_code: str = "",
-                          user_quotes: list = None, rates: RealRates = None) -> dict:
+def calculate_cost_bounds(
+    finding, state: str, zip_code: str = "", user_quotes: list = None, rates: RealRates = None
+) -> dict:
     """
     Calculate a real, provenance-labeled cost estimate for one finding.
     user_quotes: list of {finding_key, low, high, contractor} user-supplied quotes
@@ -185,18 +251,21 @@ def calculate_cost_bounds(finding, state: str, zip_code: str = "",
 
 
 def _estimate_hours(system: str, severity: str) -> float:
-    base = {"HVAC": {"CRITICAL": 8, "HIGH": 5, "MEDIUM": 3, "LOW": 1.5},
-            "ROOF": {"CRITICAL": 12, "HIGH": 6, "MEDIUM": 3, "LOW": 1.5},
-            "ELECTRICAL": {"CRITICAL": 6, "HIGH": 4, "MEDIUM": 2, "LOW": 1},
-            "PLUMBING": {"CRITICAL": 6, "HIGH": 4, "MEDIUM": 2, "LOW": 1},
-            "STRUCTURAL": {"CRITICAL": 16, "HIGH": 10, "MEDIUM": 5, "LOW": 2},
-            "EXTERIOR": {"CRITICAL": 10, "HIGH": 6, "MEDIUM": 3, "LOW": 1.5},
-            "DEFAULT": {"CRITICAL": 6, "HIGH": 4, "MEDIUM": 2, "LOW": 1}}
+    base = {
+        "HVAC": {"CRITICAL": 8, "HIGH": 5, "MEDIUM": 3, "LOW": 1.5},
+        "ROOF": {"CRITICAL": 12, "HIGH": 6, "MEDIUM": 3, "LOW": 1.5},
+        "ELECTRICAL": {"CRITICAL": 6, "HIGH": 4, "MEDIUM": 2, "LOW": 1},
+        "PLUMBING": {"CRITICAL": 6, "HIGH": 4, "MEDIUM": 2, "LOW": 1},
+        "STRUCTURAL": {"CRITICAL": 16, "HIGH": 10, "MEDIUM": 5, "LOW": 2},
+        "EXTERIOR": {"CRITICAL": 10, "HIGH": 6, "MEDIUM": 3, "LOW": 1.5},
+        "DEFAULT": {"CRITICAL": 6, "HIGH": 4, "MEDIUM": 2, "LOW": 1},
+    }
     return base.get(system, base["DEFAULT"]).get(severity, 3)
 
 
-def generate_cost_matrix(findings, state: str, zip_code: str = "",
-                         user_quotes: list = None, rates: RealRates = None) -> dict:
+def generate_cost_matrix(
+    findings, state: str, zip_code: str = "", user_quotes: list = None, rates: RealRates = None
+) -> dict:
     rates = rates or RealRates(state, zip_code)
     lines = [calculate_cost_bounds(f, state, zip_code, user_quotes, rates) for f in findings]
     total_low = sum(x["total_low"] for x in lines)
@@ -208,9 +277,13 @@ def generate_cost_matrix(findings, state: str, zip_code: str = "",
     return {
         "line_items": lines,
         "summary": {
-            "total_items": len(lines), "total_low": round(total_low, 0),
-            "total_high": round(total_high, 0), "total_avg": round(total_avg, 0),
-            "by_severity": by_sev, "state": state, "zip_code": zip_code,
+            "total_items": len(lines),
+            "total_low": round(total_low, 0),
+            "total_high": round(total_high, 0),
+            "total_avg": round(total_avg, 0),
+            "by_severity": by_sev,
+            "state": state,
+            "zip_code": zip_code,
             "generated_at": datetime.now().isoformat(),
             "wage_provenance": rates.wage_status,
             "ppi_provenance": rates.ppi_status,

@@ -1,3 +1,5 @@
+# Native Streamlit theme (CSP-safe). Dark/light toggle is app state + ?theme=
+# query param + CSS vars — no JS injection, no iframe hacks.
 [theme]
 base = "light"
 primaryColor = "#0071E3"
@@ -9,6 +11,9 @@ font = "sans serif"
 [server]
 headless = true
 enableStaticServing = true
+# Allow same-origin agent/MCP traffic; tighten behind reverse proxy in prod.
+enableXsrfProtection = true
+enableCORS = false
 
 [browser]
 gatherUsageStats = false

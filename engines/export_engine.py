@@ -1,13 +1,13 @@
-import json
 import csv
 import io
 from datetime import datetime
-from config import SeverityLevels
 
+from config import SeverityLevels
 
 # ---------------------------------------------------------------------------
 # Shared helpers
 # ---------------------------------------------------------------------------
+
 
 def format_currency(amount):
     if amount >= 1000000:
@@ -56,10 +56,21 @@ def _severity_sort_key(x):
 # Comprehensive JSON report builder
 # ---------------------------------------------------------------------------
 
-def generate_comprehensive_report(property_data, findings, cost_matrix, depreciation_data,
-                                  market_profile, capex_analysis, negotiation_strategies,
-                                  insurance_analysis=None, environmental_data=None,
-                                  escrow_data=None, permit_data=None, recall_data=None):
+
+def generate_comprehensive_report(
+    property_data,
+    findings,
+    cost_matrix,
+    depreciation_data,
+    market_profile,
+    capex_analysis,
+    negotiation_strategies,
+    insurance_analysis=None,
+    environmental_data=None,
+    escrow_data=None,
+    permit_data=None,
+    recall_data=None,
+):
     return {
         "report_metadata": {
             "generated_at": datetime.now().isoformat(),
@@ -120,10 +131,16 @@ def _build_executive_summary(findings, cost_matrix, market_profile, capex_analys
     total_avg = summary.get("total_avg", 0)
     market_type = market_profile.get("market_type", "Unknown")
     leverage = market_profile.get("leverage_score", 50)
-    weighted_risk = capex_analysis.get("summary", {}).get("weighted_24mo_risk", 0) if isinstance(capex_analysis, dict) else 0
+    weighted_risk = (
+        capex_analysis.get("summary", {}).get("weighted_24mo_risk", 0)
+        if isinstance(capex_analysis, dict)
+        else 0
+    )
     if critical > 0:
         urgency = "IMMEDIATE ACTION REQUIRED"
-        urgency_detail = f"{critical} critical safety/structural issues demand immediate attention before closing."
+        urgency_detail = (
+            f"{critical} critical safety/structural issues demand immediate attention before closing."
+        )
     elif high > 2:
         urgency = "HIGH PRIORITY"
         urgency_detail = f"{high} high-priority items require negotiation before or at closing."
@@ -149,29 +166,36 @@ def _build_findings_matrix(findings, cost_matrix):
     line_items = cost_matrix.get("line_items", [])
     matrix = []
     for finding in findings:
-        fid = finding.get("id", finding.get("description", "")[:20])
         matching_cost = None
         for item in line_items:
-            if finding.get("description", "")[:50] in item.get("finding", "") or item.get("system", "") == finding.get("system_category", ""):
+            if finding.get("description", "")[:50] in item.get("finding", "") or item.get(
+                "system", ""
+            ) == finding.get("system_category", ""):
                 matching_cost = item
                 break
         if not matching_cost and line_items:
             idx = findings.index(finding)
             if idx < len(line_items):
                 matching_cost = line_items[idx]
-        matrix.append({
-            "system": finding.get("system_category", "N/A"),
-            "sub_component": finding.get("subsystem", "N/A"),
-            "severity": finding.get("severity", "MEDIUM"),
-            "severity_label": SeverityLevels.get(finding.get("severity", "MEDIUM"), {}).get("label", "Medium"),
-            "severity_color": SeverityLevels.get(finding.get("severity", "MEDIUM"), {}).get("color", "#CA8A04"),
-            "location": finding.get("location", "N/A"),
-            "description": finding.get("description", ""),
-            "estimated_cost_low": matching_cost.get("total_low", 0) if matching_cost else 0,
-            "estimated_cost_high": matching_cost.get("total_high", 0) if matching_cost else 0,
-            "estimated_cost_avg": matching_cost.get("total_avg", 0) if matching_cost else 0,
-            "confidence": finding.get("confidence_score", 0.85),
-        })
+        matrix.append(
+            {
+                "system": finding.get("system_category", "N/A"),
+                "sub_component": finding.get("subsystem", "N/A"),
+                "severity": finding.get("severity", "MEDIUM"),
+                "severity_label": SeverityLevels.get(finding.get("severity", "MEDIUM"), {}).get(
+                    "label", "Medium"
+                ),
+                "severity_color": SeverityLevels.get(finding.get("severity", "MEDIUM"), {}).get(
+                    "color", "#CA8A04"
+                ),
+                "location": finding.get("location", "N/A"),
+                "description": finding.get("description", ""),
+                "estimated_cost_low": matching_cost.get("total_low", 0) if matching_cost else 0,
+                "estimated_cost_high": matching_cost.get("total_high", 0) if matching_cost else 0,
+                "estimated_cost_avg": matching_cost.get("total_avg", 0) if matching_cost else 0,
+                "confidence": finding.get("confidence_score", 0.85),
+            }
+        )
     return matrix
 
 
@@ -179,13 +203,24 @@ def _build_findings_matrix(findings, cost_matrix):
 # Summary text (enhanced)
 # ---------------------------------------------------------------------------
 
-def generate_summary_text(property_data, findings, cost_matrix, market_profile,
-                          insurance_analysis=None, environmental_data=None,
-                          permit_data=None, recall_data=None,
-                          negotiation_strategies=None, capex_analysis=None,
-                          depreciation_data=None, escrow_data=None,
-                          contractor_bids=None, spatial_data=None,
-                          investor_analysis=None):
+
+def generate_summary_text(
+    property_data,
+    findings,
+    cost_matrix,
+    market_profile,
+    insurance_analysis=None,
+    environmental_data=None,
+    permit_data=None,
+    recall_data=None,
+    negotiation_strategies=None,
+    capex_analysis=None,
+    depreciation_data=None,
+    escrow_data=None,
+    contractor_bids=None,
+    spatial_data=None,
+    investor_analysis=None,
+):
     summary = cost_matrix.get("summary", {})
     line_items = cost_matrix.get("line_items", [])
     address = f"{property_data.get('address', 'N/A')}, {property_data.get('city', 'N/A')}, {property_data.get('state', 'N/A')} {property_data.get('zip_code', 'N/A')}"
@@ -205,7 +240,9 @@ def generate_summary_text(property_data, findings, cost_matrix, market_profile,
 
     if critical > 0:
         urgency = "IMMEDIATE ACTION REQUIRED"
-        urgency_detail = f"{critical} critical safety/structural issues demand immediate attention before closing."
+        urgency_detail = (
+            f"{critical} critical safety/structural issues demand immediate attention before closing."
+        )
     elif high > 2:
         urgency = "HIGH PRIORITY"
         urgency_detail = f"{high} high-priority items require negotiation before or at closing."
@@ -218,27 +255,27 @@ def generate_summary_text(property_data, findings, cost_matrix, market_profile,
     for idx, item in enumerate(sorted_items, 1):
         sev = item.get("severity", "MEDIUM")
         findings_text += f"""
-  [{idx}] [{sev}] {item.get('system', 'N/A')} - {item.get('finding', 'N/A')}
-      Location:     {item.get('location', 'N/A')}
-      Cost Range:   ${item.get('total_low', 0):,.0f} - ${item.get('total_high', 0):,.0f}
-      Avg Estimate: ${item.get('total_avg', 0):,.0f}
-      DIY Option:   ${item.get('diy_low', 0):,.0f} - ${item.get('diy_high', 0):,.0f}
-      Emergency:    ${item.get('emergency_low', 0):,.0f} - ${item.get('emergency_high', 0):,.0f}
-      Material:     ${item.get('material_cost_low', 0):,.0f} - ${item.get('material_cost_high', 0):,.0f}
-      Labor:        ${item.get('labor_cost_low', 0):,.0f} - ${item.get('labor_cost_high', 0):,.0f}
-      Permit:       ${item.get('permit_cost', 0):,.0f}
+  [{idx}] [{sev}] {item.get("system", "N/A")} - {item.get("finding", "N/A")}
+      Location:     {item.get("location", "N/A")}
+      Cost Range:   ${item.get("total_low", 0):,.0f} - ${item.get("total_high", 0):,.0f}
+      Avg Estimate: ${item.get("total_avg", 0):,.0f}
+      DIY Option:   ${item.get("diy_low", 0):,.0f} - ${item.get("diy_high", 0):,.0f}
+      Emergency:    ${item.get("emergency_low", 0):,.0f} - ${item.get("emergency_high", 0):,.0f}
+      Material:     ${item.get("material_cost_low", 0):,.0f} - ${item.get("material_cost_high", 0):,.0f}
+      Labor:        ${item.get("labor_cost_low", 0):,.0f} - ${item.get("labor_cost_high", 0):,.0f}
+      Permit:       ${item.get("permit_cost", 0):,.0f}
 """
 
     rates = summary.get("rates_applied", {})
     rates_text = ""
     if rates:
         rates_text = f"""
-  ZIP Code:       {summary.get('zip_code', 'N/A')}
-  City:           {rates.get('city', 'N/A')}
-  Cost Modifier:  {rates.get('cost_modifier', 1.0)}x
-  Avg Labor Rate: ${rates.get('avg_labor_rate', 60)}/hr
-  Material Mult:  {rates.get('avg_material_mult', 1.0)}x
-  Permit Fee Est: ${rates.get('permit_fee_estimate', 275)}
+  ZIP Code:       {summary.get("zip_code", "N/A")}
+  City:           {rates.get("city", "N/A")}
+  Cost Modifier:  {rates.get("cost_modifier", 1.0)}x
+  Avg Labor Rate: ${rates.get("avg_labor_rate", 60)}/hr
+  Material Mult:  {rates.get("avg_material_mult", 1.0)}x
+  Permit Fee Est: ${rates.get("permit_fee_estimate", 275)}
 """
 
     insurance_text = ""
@@ -246,9 +283,9 @@ def generate_summary_text(property_data, findings, cost_matrix, market_profile,
     if ins_list:
         for ins in ins_list:
             insurance_text += f"""
-  - {ins.get('type', ins.get('category', 'N/A'))} [{ins.get('risk_level', ins.get('risk', 'N/A'))}]
-    {ins.get('description', ins.get('details', 'N/A'))}
-    Estimated Cost: {ins.get('estimated_cost', ins.get('additional_cost', ins.get('cost', 'N/A')))}
+  - {ins.get("type", ins.get("category", "N/A"))} [{ins.get("risk_level", ins.get("risk", "N/A"))}]
+    {ins.get("description", ins.get("details", "N/A"))}
+    Estimated Cost: {ins.get("estimated_cost", ins.get("additional_cost", ins.get("cost", "N/A")))}
 """
     else:
         insurance_text = "\n  No insurance risk data available.\n"
@@ -258,17 +295,17 @@ def generate_summary_text(property_data, findings, cost_matrix, market_profile,
     if env_list:
         for env in env_list:
             env_text += f"""
-  - {env.get('risk_type', env.get('type', 'N/A'))} [{env.get('severity', env.get('risk_level', 'N/A'))}]
-    {env.get('description', env.get('details', 'N/A'))}
-    Zone: {env.get('zone', env.get('flood_zone', 'N/A'))}
+  - {env.get("risk_type", env.get("type", "N/A"))} [{env.get("severity", env.get("risk_level", "N/A"))}]
+    {env.get("description", env.get("details", "N/A"))}
+    Zone: {env.get("zone", env.get("flood_zone", "N/A"))}
 """
     elif isinstance(environmental_data, dict):
         ed = environmental_data
         env_text = f"""
-  Climate Zone:     {ed.get('climate_zone', 'N/A')}
-  Flood Zone:       {ed.get('flood_zone', 'N/A')}
-  Wildfire Risk:    {ed.get('wildfire_risk', 'N/A')}
-  Earthquake Risk:  {ed.get('earthquake_risk', 'N/A')}
+  Climate Zone:     {ed.get("climate_zone", "N/A")}
+  Flood Zone:       {ed.get("flood_zone", "N/A")}
+  Wildfire Risk:    {ed.get("wildfire_risk", "N/A")}
+  Earthquake Risk:  {ed.get("earthquake_risk", "N/A")}
 """
     else:
         env_text = "\n  No environmental risk data available.\n"
@@ -277,19 +314,19 @@ def generate_summary_text(property_data, findings, cost_matrix, market_profile,
     permit_list = _safe_list(permit_data)
     if permit_list:
         for p in permit_list:
-            status = p.get('status', 'Unknown')
+            status = p.get("status", "Unknown")
             permit_text += f"""
-  - {p.get('permit_type', p.get('type', 'N/A'))} [{status}]
-    {p.get('description', p.get('details', 'N/A'))}
-    Permit #: {p.get('permit_number', p.get('number', 'N/A'))}
+  - {p.get("permit_type", p.get("type", "N/A"))} [{status}]
+    {p.get("description", p.get("details", "N/A"))}
+    Permit #: {p.get("permit_number", p.get("number", "N/A"))}
 """
     elif isinstance(permit_data, dict):
         pd_dict = permit_data
         permit_text = f"""
-  Total Permits:      {pd_dict.get('total_permits', 'N/A')}
-  Compliant:          {pd_dict.get('compliant', 'N/A')}
-  Non-Compliant:      {pd_dict.get('non_compliant', pd_dict.get('unpermitted_flags', 'N/A'))}
-  Pending:            {pd_dict.get('pending', 'N/A')}
+  Total Permits:      {pd_dict.get("total_permits", "N/A")}
+  Compliant:          {pd_dict.get("compliant", "N/A")}
+  Non-Compliant:      {pd_dict.get("non_compliant", pd_dict.get("unpermitted_flags", "N/A"))}
+  Pending:            {pd_dict.get("pending", "N/A")}
 """
     else:
         permit_text = "\n  No permit data available.\n"
@@ -299,22 +336,26 @@ def generate_summary_text(property_data, findings, cost_matrix, market_profile,
     if recall_list:
         for r in recall_list:
             recall_text += f"""
-  - {r.get('product', r.get('item', 'N/A'))} [{r.get('status', 'Unknown')}]
-    {r.get('description', r.get('recall_description', 'N/A'))}
-    Potential Savings: {r.get('potential_savings', r.get('estimated_savings', 'N/A'))}
+  - {r.get("product", r.get("item", "N/A"))} [{r.get("status", "Unknown")}]
+    {r.get("description", r.get("recall_description", "N/A"))}
+    Potential Savings: {r.get("potential_savings", r.get("estimated_savings", "N/A"))}
 """
     else:
         recall_text = "\n  No manufacturer recall matches found.\n"
 
     negotiation_text = ""
-    neg_strategies = _safe_dict(negotiation_strategies).get("strategies", []) if isinstance(negotiation_strategies, dict) else []
+    neg_strategies = (
+        _safe_dict(negotiation_strategies).get("strategies", [])
+        if isinstance(negotiation_strategies, dict)
+        else []
+    )
     if neg_strategies:
         for s in neg_strategies:
             negotiation_text += f"""
-  - [{s.get('severity', 'N/A')}] {s.get('system', 'N/A')}
-    Strategy: {s.get('strategy', 'N/A')}
-    Action:   {s.get('action', 'N/A')}
-    Savings:  {s.get('estimated_savings', s.get('potential_savings', 'N/A'))}
+  - [{s.get("severity", "N/A")}] {s.get("system", "N/A")}
+    Strategy: {s.get("strategy", "N/A")}
+    Action:   {s.get("action", "N/A")}
+    Savings:  {s.get("estimated_savings", s.get("potential_savings", "N/A"))}
 """
     else:
         negotiation_text = "\n  No negotiation strategies available.\n"
@@ -325,8 +366,8 @@ def generate_summary_text(property_data, findings, cost_matrix, market_profile,
         capex_summary = capex.get("summary", {})
         systems = capex.get("systems", capex.get("items", []))
         capex_text = f"""
-  Weighted 24-Mo Risk:    ${capex_summary.get('weighted_24mo_risk', 0):,.0f}
-  Total Replacement Est:  ${capex_summary.get('total_replacement', 0):,.0f}
+  Weighted 24-Mo Risk:    ${capex_summary.get("weighted_24mo_risk", 0):,.0f}
+  Total Replacement Est:  ${capex_summary.get("total_replacement", 0):,.0f}
 """
         if systems:
             capex_text += "  System Breakdown:\n"
@@ -347,8 +388,8 @@ def generate_summary_text(property_data, findings, cost_matrix, market_profile,
     escrow_list = _safe_list(escrow_data)
     if escrow:
         escrow_text = f"""
-  Total Holdback:   ${escrow.get('total_holdback', 0):,.0f}
-  Recommended:      {escrow.get('recommended', escrow.get('recommended_amount', 'N/A'))}
+  Total Holdback:   ${escrow.get("total_holdback", 0):,.0f}
+  Recommended:      {escrow.get("recommended", escrow.get("recommended_amount", "N/A"))}
 """
         conditions = escrow.get("conditions", [])
         if conditions:
@@ -373,47 +414,59 @@ def generate_summary_text(property_data, findings, cost_matrix, market_profile,
     inv = _safe_dict(investor_analysis)
     if inv:
         investor_text = f"""
-  After Repair Value (ARV):   ${inv.get('arv', inv.get('after_repair_value', 0)):,.0f}
-  Max Allowable Offer (MAO):  ${inv.get('mao', inv.get('max_allowable_offer', 0)):,.0f}
-  Cap Rate:                   {inv.get('cap_rate', inv.get('capitalization_rate', 'N/A'))}%
-  Deal Grade:                 {inv.get('deal_grade', inv.get('grade', 'N/A'))}
+  After Repair Value (ARV):   ${inv.get("arv", inv.get("after_repair_value", 0)):,.0f}
+  Max Allowable Offer (MAO):  ${inv.get("mao", inv.get("max_allowable_offer", 0)):,.0f}
+  Cap Rate:                   {inv.get("cap_rate", inv.get("capitalization_rate", "N/A"))}%
+  Deal Grade:                 {inv.get("deal_grade", inv.get("grade", "N/A"))}
 """
 
     recommendations = []
     if critical > 0:
-        recommendations.append(f"  * PRIORITY 1: Address {critical} critical finding(s) immediately. These represent safety or structural hazards.")
+        recommendations.append(
+            f"  * PRIORITY 1: Address {critical} critical finding(s) immediately. These represent safety or structural hazards."
+        )
     if high > 0:
-        recommendations.append(f"  * PRIORITY 2: Negotiate ${summary.get('high_cost', total_avg * 0.5):,.0f} in credits or price reduction for {high} high-severity items.")
+        recommendations.append(
+            f"  * PRIORITY 2: Negotiate ${summary.get('high_cost', total_avg * 0.5):,.0f} in credits or price reduction for {high} high-severity items."
+        )
     if medium > 0:
-        recommendations.append(f"  * PRIORITY 3: Request seller remediation or escrow holdback for {medium} medium-severity code/compliance items.")
-    recommendations.append(f"  * Plan ${total_avg:,.0f} in expected repair costs within the first 12 months of ownership.")
+        recommendations.append(
+            f"  * PRIORITY 3: Request seller remediation or escrow holdback for {medium} medium-severity code/compliance items."
+        )
+    recommendations.append(
+        f"  * Plan ${total_avg:,.0f} in expected repair costs within the first 12 months of ownership."
+    )
     if isinstance(market_profile, dict) and market_profile.get("leverage_score", 50) > 60:
-        recommendations.append("  * Market conditions favor buyers - leverage inspection findings in negotiations.")
-    recs_text = "\n".join(recommendations) if recommendations else "  No specific recommendations at this time."
+        recommendations.append(
+            "  * Market conditions favor buyers - leverage inspection findings in negotiations."
+        )
+    recs_text = (
+        "\n".join(recommendations) if recommendations else "  No specific recommendations at this time."
+    )
 
     text = f"""
-{'='*80}
+{"=" * 80}
 PROPERTY REPAIR COST ESTIMATE REPORT
 Comprehensive 21-Module Enterprise Analysis
-{'='*80}
+{"=" * 80}
 
 PROPERTY INFORMATION
-{'-'*40}
+{"-" * 40}
   Address:        {address}
   Year Built:     {year_built}
   Property Age:   {property_age} years
-  Type:           {property_data.get('property_type', 'N/A')}
-  Sq Footage:     {property_data.get('square_footage', 'N/A')}
-  Beds / Baths:   {property_data.get('bedrooms', 'N/A')} / {property_data.get('bathrooms', 'N/A')}
-  Roof:           {property_data.get('roof_type', 'N/A')}
-  HVAC:           {property_data.get('hvac_type', 'N/A')}
-  Plumbing:       {property_data.get('plumbing_type', 'N/A')}
-  Electrical:     {property_data.get('electrical_type', 'N/A')}
-  Foundation:     {property_data.get('foundation_type', 'N/A')}
+  Type:           {property_data.get("property_type", "N/A")}
+  Sq Footage:     {property_data.get("square_footage", "N/A")}
+  Beds / Baths:   {property_data.get("bedrooms", "N/A")} / {property_data.get("bathrooms", "N/A")}
+  Roof:           {property_data.get("roof_type", "N/A")}
+  HVAC:           {property_data.get("hvac_type", "N/A")}
+  Plumbing:       {property_data.get("plumbing_type", "N/A")}
+  Electrical:     {property_data.get("electrical_type", "N/A")}
+  Foundation:     {property_data.get("foundation_type", "N/A")}
 
-{'='*80}
+{"=" * 80}
 EXECUTIVE SUMMARY
-{'='*80}
+{"=" * 80}
 
   Urgency:        {urgency}
   Detail:         {urgency_detail}
@@ -423,72 +476,72 @@ EXECUTIVE SUMMARY
   Market Type:    {market_type}
   Buyer Leverage: {leverage}/100
 
-{'='*80}
+{"=" * 80}
 DETAILED FINDINGS (Sorted by Severity)
-{'='*80}
+{"=" * 80}
 {findings_text}
-{'='*80}
+{"=" * 80}
 COST BREAKDOWN
-{'='*80}
+{"=" * 80}
 
   Total Low:      ${total_low:,.0f}
   Total High:     ${total_high:,.0f}
   Total Average:  ${total_avg:,.0f}
 {rates_text}
-{'='*80}
+{"=" * 80}
 DEPRECIATION & CAPEX ANALYSIS
-{'='*80}
-{dep_text if dep_text else '  No depreciation data available.'}
-{capex_text if capex_text else '  No CapEx analysis available.'}
+{"=" * 80}
+{dep_text if dep_text else "  No depreciation data available."}
+{capex_text if capex_text else "  No CapEx analysis available."}
 
-{'='*80}
+{"=" * 80}
 MARKET ANALYSIS & NEGOTIATION
-{'='*80}
+{"=" * 80}
 
   Market Type:         {market_type}
   Buyer Leverage:      {leverage}/100
-  Avg Days on Market:  {market_profile.get('avg_days_on_market', 'N/A')}
-  Months of Supply:    {market_profile.get('months_of_supply', 'N/A')}
-  Assessment:          {market_profile.get('leverage_description', 'N/A')}
+  Avg Days on Market:  {market_profile.get("avg_days_on_market", "N/A")}
+  Months of Supply:    {market_profile.get("months_of_supply", "N/A")}
+  Assessment:          {market_profile.get("leverage_description", "N/A")}
 {negotiation_text}
-{'='*80}
+{"=" * 80}
 CONTRACTOR BIDS
-{'='*80}
-{contractor_text if contractor_text else '  No contractor bid data available.'}
+{"=" * 80}
+{contractor_text if contractor_text else "  No contractor bid data available."}
 
-{'='*80}
+{"=" * 80}
 INSURANCE RISK SUMMARY
-{'='*80}
+{"=" * 80}
 {insurance_text}
-{'='*80}
+{"=" * 80}
 ENVIRONMENTAL RISK
-{'='*80}
+{"=" * 80}
 {env_text}
-{'='*80}
+{"=" * 80}
 PERMITS & COMPLIANCE
-{'='*80}
+{"=" * 80}
 {permit_text}
-{'='*80}
+{"=" * 80}
 MANUFACTURER RECALLS
-{'='*80}
+{"=" * 80}
 {recall_text}
-{'='*80}
+{"=" * 80}
 ESCROW HOLDBACK ANALYSIS
-{'='*80}
+{"=" * 80}
 {escrow_text}
-{'='*80}
+{"=" * 80}
 INVESTOR ANALYSIS
-{'='*80}
-{investor_text if investor_text else '  No investor analysis data available.'}
+{"=" * 80}
+{investor_text if investor_text else "  No investor analysis data available."}
 
-{'='*80}
+{"=" * 80}
 RECOMMENDATIONS
-{'='*80}
+{"=" * 80}
 {recs_text}
 
-{'='*80}
+{"=" * 80}
 DISCLAIMER
-{'='*80}
+{"=" * 80}
 This report is generated by automated analysis tools and is intended for informational
 purposes only. Cost estimates are based on regional averages and embedded cost databases.
 Actual contractor bids may vary. Always obtain licensed contractor estimates before
@@ -496,7 +549,7 @@ making repair decisions. This report does not constitute engineering, legal, or
 financial advice. Consult licensed professionals for all structural, electrical,
 plumbing, and environmental assessments.
 
-Generated: {datetime.now().strftime('%B %d, %Y at %I:%M %p')}
+Generated: {datetime.now().strftime("%B %d, %Y at %I:%M %p")}
 """
     return text
 
@@ -505,13 +558,24 @@ Generated: {datetime.now().strftime('%B %d, %Y at %I:%M %p')}
 # PDF-ready HTML report (all 21 modules)
 # ---------------------------------------------------------------------------
 
-def generate_pdf_report(property_data, findings, cost_matrix, market_profile,
-                        insurance_analysis=None, environmental_data=None,
-                        permit_data=None, recall_data=None,
-                        negotiation_strategies=None, capex_analysis=None,
-                        depreciation_data=None, escrow_data=None,
-                        contractor_bids=None, spatial_data=None,
-                        investor_analysis=None):
+
+def generate_pdf_report(
+    property_data,
+    findings,
+    cost_matrix,
+    market_profile,
+    insurance_analysis=None,
+    environmental_data=None,
+    permit_data=None,
+    recall_data=None,
+    negotiation_strategies=None,
+    capex_analysis=None,
+    depreciation_data=None,
+    escrow_data=None,
+    contractor_bids=None,
+    spatial_data=None,
+    investor_analysis=None,
+):
     summary = cost_matrix.get("summary", {})
     line_items = cost_matrix.get("line_items", [])
     address = f"{property_data.get('address', 'N/A')}, {property_data.get('city', 'N/A')}, {property_data.get('state', 'N/A')} {property_data.get('zip_code', 'N/A')}"
@@ -529,8 +593,12 @@ def generate_pdf_report(property_data, findings, cost_matrix, market_profile,
     market_type = market_profile.get("market_type", "N/A") if isinstance(market_profile, dict) else "N/A"
     leverage = market_profile.get("leverage_score", "N/A") if isinstance(market_profile, dict) else "N/A"
     avg_dom = market_profile.get("avg_days_on_market", "N/A") if isinstance(market_profile, dict) else "N/A"
-    months_supply = market_profile.get("months_of_supply", "N/A") if isinstance(market_profile, dict) else "N/A"
-    leverage_desc = market_profile.get("leverage_description", "N/A") if isinstance(market_profile, dict) else "N/A"
+    months_supply = (
+        market_profile.get("months_of_supply", "N/A") if isinstance(market_profile, dict) else "N/A"
+    )
+    leverage_desc = (
+        market_profile.get("leverage_description", "N/A") if isinstance(market_profile, dict) else "N/A"
+    )
 
     if critical > 0:
         urgency_text = "IMMEDIATE ACTION REQUIRED"
@@ -553,17 +621,27 @@ def generate_pdf_report(property_data, findings, cost_matrix, market_profile,
     insurability_score = "N/A"
     ins_analysis = _safe_dict(insurance_analysis) if isinstance(insurance_analysis, dict) else {}
     if ins_analysis:
-        insurability_score = ins_analysis.get("summary", {}).get("insurability_score", ins_analysis.get("insurability_score", "N/A"))
+        insurability_score = ins_analysis.get("summary", {}).get(
+            "insurability_score", ins_analysis.get("insurability_score", "N/A")
+        )
     elif isinstance(insurance_analysis, list) and insurance_analysis:
-        high_risk = sum(1 for i in insurance_analysis if str(i.get("risk_level", i.get("risk", ""))).upper() in ("HIGH", "CRITICAL"))
+        high_risk = sum(
+            1
+            for i in insurance_analysis
+            if str(i.get("risk_level", i.get("risk", ""))).upper() in ("HIGH", "CRITICAL")
+        )
         total_ins = len(insurance_analysis)
-        insurability_score = f"{max(0, round(100 - (high_risk / max(total_ins, 1) * 100)))}/100" if total_ins else "N/A"
+        insurability_score = (
+            f"{max(0, round(100 - (high_risk / max(total_ins, 1) * 100)))}/100" if total_ins else "N/A"
+        )
 
     severity_bar_html = ""
     max_count = max(critical, high, medium, low, 1)
     for sev_name, sev_count, sev_color in [
-        ("CRITICAL", critical, "#FF453A"), ("HIGH", high, "#FF9F0A"),
-        ("MEDIUM", medium, "#FFD60A"), ("LOW", low, "#30D158"),
+        ("CRITICAL", critical, "#FF453A"),
+        ("HIGH", high, "#FF9F0A"),
+        ("MEDIUM", medium, "#FFD60A"),
+        ("LOW", low, "#30D158"),
     ]:
         pct = (sev_count / max_count * 100) if max_count > 0 else 0
         severity_bar_html += f"""
@@ -582,13 +660,13 @@ def generate_pdf_report(property_data, findings, cost_matrix, market_profile,
         findings_rows += f"""
         <tr>
           <td><span style="color:{sc};font-weight:600">{sev}</span></td>
-          <td>{item.get('system', 'N/A')}</td>
-          <td>{item.get('finding', 'N/A')}</td>
-          <td>{item.get('location', 'N/A')}</td>
-          <td style="text-align:right">{format_currency(item.get('diy_low', 0))}</td>
-          <td style="text-align:right">{format_currency(item.get('total_low', 0))}</td>
-          <td style="text-align:right">{format_currency(item.get('total_high', 0))}</td>
-          <td style="text-align:right;font-weight:600">{format_currency(item.get('total_avg', 0))}</td>
+          <td>{item.get("system", "N/A")}</td>
+          <td>{item.get("finding", "N/A")}</td>
+          <td>{item.get("location", "N/A")}</td>
+          <td style="text-align:right">{format_currency(item.get("diy_low", 0))}</td>
+          <td style="text-align:right">{format_currency(item.get("total_low", 0))}</td>
+          <td style="text-align:right">{format_currency(item.get("total_high", 0))}</td>
+          <td style="text-align:right;font-weight:600">{format_currency(item.get("total_avg", 0))}</td>
         </tr>"""
 
     dep_rows = ""
@@ -602,7 +680,7 @@ def generate_pdf_report(property_data, findings, cost_matrix, market_profile,
             prob = d.get("failure_probability", d.get("probability", "N/A"))
             dep_rows += f"""
         <tr>
-          <td>{d.get('system', d.get('name', 'N/A'))}</td>
+          <td>{d.get("system", d.get("name", "N/A"))}</td>
           <td style="text-align:center">{age}</td>
           <td style="text-align:center">{life}</td>
           <td style="text-align:center">{cond}</td>
@@ -615,23 +693,27 @@ def generate_pdf_report(property_data, findings, cost_matrix, market_profile,
     for cs in capex_systems:
         capex_rows += f"""
         <tr>
-          <td>{cs.get('system', cs.get('name', 'N/A'))}</td>
-          <td style="text-align:center">{cs.get('failure_probability', cs.get('probability', 'N/A'))}</td>
-          <td style="text-align:right">{format_currency(cs.get('replacement_cost', cs.get('cost', 0)))}</td>
-          <td>{cs.get('timeline', cs.get('expected_timeline', 'N/A'))}</td>
-          <td><span style="color:{_severity_color(cs.get('risk_level', cs.get('severity', 'MEDIUM')))};font-weight:600">{cs.get('risk_level', cs.get('severity', 'N/A'))}</span></td>
+          <td>{cs.get("system", cs.get("name", "N/A"))}</td>
+          <td style="text-align:center">{cs.get("failure_probability", cs.get("probability", "N/A"))}</td>
+          <td style="text-align:right">{format_currency(cs.get("replacement_cost", cs.get("cost", 0)))}</td>
+          <td>{cs.get("timeline", cs.get("expected_timeline", "N/A"))}</td>
+          <td><span style="color:{_severity_color(cs.get("risk_level", cs.get("severity", "MEDIUM")))};font-weight:600">{cs.get("risk_level", cs.get("severity", "N/A"))}</span></td>
         </tr>"""
 
     neg_rows = ""
-    neg_strategies = _safe_dict(negotiation_strategies).get("strategies", []) if isinstance(negotiation_strategies, dict) else []
+    neg_strategies = (
+        _safe_dict(negotiation_strategies).get("strategies", [])
+        if isinstance(negotiation_strategies, dict)
+        else []
+    )
     for s in neg_strategies:
         neg_rows += f"""
         <tr>
-          <td>{s.get('system', 'N/A')}</td>
-          <td><span style="color:{_severity_color(s.get('severity', 'MEDIUM'))};font-weight:600">{s.get('severity', 'N/A')}</span></td>
-          <td>{s.get('strategy', 'N/A')}</td>
-          <td style="font-size:12px">{s.get('action', 'N/A')}</td>
-          <td style="text-align:right">{s.get('estimated_savings', s.get('potential_savings', 'N/A'))}</td>
+          <td>{s.get("system", "N/A")}</td>
+          <td><span style="color:{_severity_color(s.get("severity", "MEDIUM"))};font-weight:600">{s.get("severity", "N/A")}</span></td>
+          <td>{s.get("strategy", "N/A")}</td>
+          <td style="font-size:12px">{s.get("action", "N/A")}</td>
+          <td style="text-align:right">{s.get("estimated_savings", s.get("potential_savings", "N/A"))}</td>
         </tr>"""
 
     bid_rows = ""
@@ -643,12 +725,12 @@ def generate_pdf_report(property_data, findings, cost_matrix, market_profile,
         star = " &#9733;" if rec else ""
         bid_rows += f"""
         <tr style="background:{highlight}">
-          <td>{b.get('contractor', b.get('name', 'N/A'))}{star}</td>
-          <td>{b.get('specialty', b.get('trade', 'N/A'))}</td>
-          <td style="text-align:right">{format_currency(b.get('bid_amount', b.get('amount', 0)))}</td>
-          <td style="text-align:center">{b.get('timeline', b.get('estimated_timeline', 'N/A'))}</td>
-          <td style="text-align:center">{b.get('rating', 'N/A')}</td>
-          <td>{b.get('status', 'Pending')}</td>
+          <td>{b.get("contractor", b.get("name", "N/A"))}{star}</td>
+          <td>{b.get("specialty", b.get("trade", "N/A"))}</td>
+          <td style="text-align:right">{format_currency(b.get("bid_amount", b.get("amount", 0)))}</td>
+          <td style="text-align:center">{b.get("timeline", b.get("estimated_timeline", "N/A"))}</td>
+          <td style="text-align:center">{b.get("rating", "N/A")}</td>
+          <td>{b.get("status", "Pending")}</td>
         </tr>"""
 
     ins_rows = ""
@@ -658,10 +740,10 @@ def generate_pdf_report(property_data, findings, cost_matrix, market_profile,
         rc = _severity_color(str(risk_level).upper())
         ins_rows += f"""
         <tr>
-          <td>{ins.get('type', ins.get('category', 'N/A'))}</td>
+          <td>{ins.get("type", ins.get("category", "N/A"))}</td>
           <td><span style="color:{rc};font-weight:600">{risk_level}</span></td>
-          <td>{ins.get('description', ins.get('details', 'N/A'))}</td>
-          <td style="text-align:right">{ins.get('estimated_cost', ins.get('additional_cost', ins.get('cost', 'N/A')))}</td>
+          <td>{ins.get("description", ins.get("details", "N/A"))}</td>
+          <td style="text-align:right">{ins.get("estimated_cost", ins.get("additional_cost", ins.get("cost", "N/A")))}</td>
         </tr>"""
 
     env_items = _safe_list(environmental_data) if isinstance(environmental_data, list) else []
@@ -674,10 +756,10 @@ def generate_pdf_report(property_data, findings, cost_matrix, market_profile,
     for e in env_items:
         env_rows += f"""
         <tr>
-          <td>{e.get('risk_type', e.get('type', 'N/A'))}</td>
-          <td><span style="color:{_severity_color(e.get('severity', e.get('risk_level', 'MEDIUM')))};font-weight:600">{e.get('severity', e.get('risk_level', 'N/A'))}</span></td>
-          <td>{e.get('description', e.get('details', 'N/A'))}</td>
-          <td>{e.get('zone', e.get('flood_zone', 'N/A'))}</td>
+          <td>{e.get("risk_type", e.get("type", "N/A"))}</td>
+          <td><span style="color:{_severity_color(e.get("severity", e.get("risk_level", "MEDIUM")))};font-weight:600">{e.get("severity", e.get("risk_level", "N/A"))}</span></td>
+          <td>{e.get("description", e.get("details", "N/A"))}</td>
+          <td>{e.get("zone", e.get("flood_zone", "N/A"))}</td>
         </tr>"""
 
     permit_items = _safe_list(permit_data) if isinstance(permit_data, list) else []
@@ -689,14 +771,22 @@ def generate_pdf_report(property_data, findings, cost_matrix, market_profile,
     pending_permits = permit_dict.get("pending", "N/A")
     for p in permit_items:
         pstatus = p.get("status", "Unknown")
-        psc = "#30D158" if str(pstatus).upper() in ("APPROVED", "COMPLIANT", "CLOSED") else ("#FF453A" if str(pstatus).upper() in ("VIOLATION", "EXPIRED", "NON-COMPLIANT", "UNPERMITTED") else "#FFD60A")
+        psc = (
+            "#30D158"
+            if str(pstatus).upper() in ("APPROVED", "COMPLIANT", "CLOSED")
+            else (
+                "#FF453A"
+                if str(pstatus).upper() in ("VIOLATION", "EXPIRED", "NON-COMPLIANT", "UNPERMITTED")
+                else "#FFD60A"
+            )
+        )
         permit_rows += f"""
         <tr>
-          <td>{p.get('permit_type', p.get('type', 'N/A'))}</td>
-          <td>{p.get('permit_number', p.get('number', 'N/A'))}</td>
+          <td>{p.get("permit_type", p.get("type", "N/A"))}</td>
+          <td>{p.get("permit_number", p.get("number", "N/A"))}</td>
           <td><span style="color:{psc};font-weight:600">{pstatus}</span></td>
-          <td>{p.get('description', p.get('details', 'N/A'))}</td>
-          <td>{p.get('date', p.get('issue_date', 'N/A'))}</td>
+          <td>{p.get("description", p.get("details", "N/A"))}</td>
+          <td>{p.get("date", p.get("issue_date", "N/A"))}</td>
         </tr>"""
 
     recall_items = _safe_list(recall_data)
@@ -708,11 +798,11 @@ def generate_pdf_report(property_data, findings, cost_matrix, market_profile,
             total_savings += sav
         recall_rows += f"""
         <tr>
-          <td>{r.get('product', r.get('item', 'N/A'))}</td>
-          <td>{r.get('manufacturer', 'N/A')}</td>
-          <td>{r.get('recall_date', r.get('date', 'N/A'))}</td>
-          <td><span style="color:{_severity_color(r.get('severity', 'HIGH'))};font-weight:600">{r.get('status', 'RECALL')}</span></td>
-          <td style="font-size:12px">{r.get('description', r.get('recall_description', 'N/A'))}</td>
+          <td>{r.get("product", r.get("item", "N/A"))}</td>
+          <td>{r.get("manufacturer", "N/A")}</td>
+          <td>{r.get("recall_date", r.get("date", "N/A"))}</td>
+          <td><span style="color:{_severity_color(r.get("severity", "HIGH"))};font-weight:600">{r.get("status", "RECALL")}</span></td>
+          <td style="font-size:12px">{r.get("description", r.get("recall_description", "N/A"))}</td>
           <td style="text-align:right">{format_currency(sav) if isinstance(sav, (int, float)) else sav}</td>
         </tr>"""
 
@@ -724,18 +814,18 @@ def generate_pdf_report(property_data, findings, cost_matrix, market_profile,
     for ec in escrow_conditions:
         escrow_rows += f"""
         <tr>
-          <td>{ec.get('item', ec.get('description', 'N/A'))}</td>
-          <td style="text-align:right">{format_currency(ec.get('amount', 0))}</td>
-          <td><span style="color:{_severity_color(ec.get('severity', 'MEDIUM'))}">{ec.get('condition', ec.get('release_condition', 'N/A'))}</span></td>
-          <td>{ec.get('status', 'Pending')}</td>
+          <td>{ec.get("item", ec.get("description", "N/A"))}</td>
+          <td style="text-align:right">{format_currency(ec.get("amount", 0))}</td>
+          <td><span style="color:{_severity_color(ec.get("severity", "MEDIUM"))}">{ec.get("condition", ec.get("release_condition", "N/A"))}</span></td>
+          <td>{ec.get("status", "Pending")}</td>
         </tr>"""
     for ei in escrow_items:
         escrow_rows += f"""
         <tr>
-          <td>{ei.get('item', ei.get('description', 'N/A'))}</td>
-          <td style="text-align:right">{format_currency(ei.get('amount', 0))}</td>
-          <td>{ei.get('condition', ei.get('release_condition', 'N/A'))}</td>
-          <td>{ei.get('status', 'Pending')}</td>
+          <td>{ei.get("item", ei.get("description", "N/A"))}</td>
+          <td style="text-align:right">{format_currency(ei.get("amount", 0))}</td>
+          <td>{ei.get("condition", ei.get("release_condition", "N/A"))}</td>
+          <td>{ei.get("status", "Pending")}</td>
         </tr>"""
 
     inv = _safe_dict(investor_analysis)
@@ -745,15 +835,14 @@ def generate_pdf_report(property_data, findings, cost_matrix, market_profile,
     inv_grade = inv.get("deal_grade", inv.get("grade", "N/A"))
     inv_monthly_rent = inv.get("monthly_rent", inv.get("estimated_rent", 0))
     inv_cash_on_cash = inv.get("cash_on_cash_return", inv.get("cash_on_cash", "N/A"))
-    inv_noi = inv.get("noi", inv.get("net_operating_income", 0))
 
     inv_rows = ""
     inv_metrics = inv.get("metrics", inv.get("key_metrics", []))
     for m in inv_metrics:
         inv_rows += f"""
         <tr>
-          <td>{m.get('metric', m.get('name', 'N/A'))}</td>
-          <td style="text-align:right">{m.get('value', 'N/A')}</td>
+          <td>{m.get("metric", m.get("name", "N/A"))}</td>
+          <td style="text-align:right">{m.get("value", "N/A")}</td>
         </tr>"""
 
     spatial = _safe_dict(spatial_data)
@@ -761,7 +850,9 @@ def generate_pdf_report(property_data, findings, cost_matrix, market_profile,
     if spatial:
         dist_items = spatial.get("distances", spatial.get("nearby_places", []))
         if dist_items:
-            spatial_insights = "<table><thead><tr><th>Location</th><th>Distance</th><th>Impact</th></tr></thead><tbody>"
+            spatial_insights = (
+                "<table><thead><tr><th>Location</th><th>Distance</th><th>Impact</th></tr></thead><tbody>"
+            )
             for di in dist_items:
                 spatial_insights += f"<tr><td>{di.get('name', di.get('location', 'N/A'))}</td><td>{di.get('distance', 'N/A')}</td><td>{di.get('impact', di.get('price_impact', 'N/A'))}</td></tr>"
             spatial_insights += "</tbody></table>"
@@ -773,7 +864,7 @@ def generate_pdf_report(property_data, findings, cost_matrix, market_profile,
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Property Repair Cost Estimate - {property_data.get('address', 'N/A')}</title>
+<title>Property Repair Cost Estimate - {property_data.get("address", "N/A")}</title>
 <style>
   @page {{
     size: A4;
@@ -969,7 +1060,7 @@ def generate_pdf_report(property_data, findings, cost_matrix, market_profile,
     <h1>Property Repair<br>Cost Estimate</h1>
     <div class="cover-subtitle">Comprehensive 21-Module Inspection Analysis</div>
     <div class="cover-address">{address}</div>
-    <div class="cover-date">{datetime.now().strftime('%B %d, %Y')}</div>
+    <div class="cover-date">{datetime.now().strftime("%B %d, %Y")}</div>
     <div class="cover-badge">ENTERPRISE REPORT v3.0</div>
   </div>
 
@@ -1033,14 +1124,14 @@ def generate_pdf_report(property_data, findings, cost_matrix, market_profile,
         <div>
           <div class="info-row"><span class="k">Year Built</span><span class="v">{year_built}</span></div>
           <div class="info-row"><span class="k">Property Age</span><span class="v">{property_age} years</span></div>
-          <div class="info-row"><span class="k">Type</span><span class="v">{property_data.get('property_type', 'N/A')}</span></div>
-          <div class="info-row"><span class="k">Sq Footage</span><span class="v">{property_data.get('square_footage', 'N/A')}</span></div>
+          <div class="info-row"><span class="k">Type</span><span class="v">{property_data.get("property_type", "N/A")}</span></div>
+          <div class="info-row"><span class="k">Sq Footage</span><span class="v">{property_data.get("square_footage", "N/A")}</span></div>
         </div>
         <div>
-          <div class="info-row"><span class="k">Bed / Bath</span><span class="v">{property_data.get('bedrooms', 'N/A')} / {property_data.get('bathrooms', 'N/A')}</span></div>
-          <div class="info-row"><span class="k">Roof</span><span class="v">{property_data.get('roof_type', 'N/A')}</span></div>
-          <div class="info-row"><span class="k">HVAC</span><span class="v">{property_data.get('hvac_type', 'N/A')}</span></div>
-          <div class="info-row"><span class="k">Foundation</span><span class="v">{property_data.get('foundation_type', 'N/A')}</span></div>
+          <div class="info-row"><span class="k">Bed / Bath</span><span class="v">{property_data.get("bedrooms", "N/A")} / {property_data.get("bathrooms", "N/A")}</span></div>
+          <div class="info-row"><span class="k">Roof</span><span class="v">{property_data.get("roof_type", "N/A")}</span></div>
+          <div class="info-row"><span class="k">HVAC</span><span class="v">{property_data.get("hvac_type", "N/A")}</span></div>
+          <div class="info-row"><span class="k">Foundation</span><span class="v">{property_data.get("foundation_type", "N/A")}</span></div>
         </div>
       </div>
     </div>
@@ -1086,9 +1177,9 @@ def generate_pdf_report(property_data, findings, cost_matrix, market_profile,
             <div class="info-row"><span class="k">Total Average</span><span class="v" style="color:#0A84FF">{format_currency(total_avg)}</span></div>
           </div>
           <div>
-            <div class="info-row"><span class="k">Material Range</span><span class="v">{format_currency(summary.get('material_cost_low', total_low * 0.4))} - {format_currency(summary.get('material_cost_high', total_high * 0.4))}</span></div>
-            <div class="info-row"><span class="k">Labor Range</span><span class="v">{format_currency(summary.get('labor_cost_low', total_low * 0.45))} - {format_currency(summary.get('labor_cost_high', total_high * 0.45))}</span></div>
-            <div class="info-row"><span class="k">Permits</span><span class="v">{format_currency(summary.get('permit_cost', total_avg * 0.05))}</span></div>
+            <div class="info-row"><span class="k">Material Range</span><span class="v">{format_currency(summary.get("material_cost_low", total_low * 0.4))} - {format_currency(summary.get("material_cost_high", total_high * 0.4))}</span></div>
+            <div class="info-row"><span class="k">Labor Range</span><span class="v">{format_currency(summary.get("labor_cost_low", total_low * 0.45))} - {format_currency(summary.get("labor_cost_high", total_high * 0.45))}</span></div>
+            <div class="info-row"><span class="k">Permits</span><span class="v">{format_currency(summary.get("permit_cost", total_avg * 0.05))}</span></div>
           </div>
         </div>
       </div>
@@ -1214,7 +1305,7 @@ def generate_pdf_report(property_data, findings, cost_matrix, market_profile,
     plumbing, and environmental assessments.<br><br>
     <strong>Data Sources:</strong> Regional cost databases, CPSC recall database, FEMA flood maps, local permit records,
     real-time market data, and embedded cost estimation models.<br><br>
-    Generated on {datetime.now().strftime('%B %d, %Y at %I:%M %p')} &middot; Enterprise Report v3.0
+    Generated on {datetime.now().strftime("%B %d, %Y at %I:%M %p")} &middot; Enterprise Report v3.0
   </div>
 
 </div>
@@ -1227,13 +1318,24 @@ def generate_pdf_report(property_data, findings, cost_matrix, market_profile,
 # Comprehensive CSV export (all modules)
 # ---------------------------------------------------------------------------
 
-def generate_csv_export(findings, cost_matrix, market_profile=None,
-                        insurance_analysis=None, environmental_data=None,
-                        permit_data=None, recall_data=None,
-                        negotiation_strategies=None, capex_analysis=None,
-                        depreciation_data=None, escrow_data=None,
-                        contractor_bids=None, spatial_data=None,
-                        investor_analysis=None, property_data=None):
+
+def generate_csv_export(
+    findings,
+    cost_matrix,
+    market_profile=None,
+    insurance_analysis=None,
+    environmental_data=None,
+    permit_data=None,
+    recall_data=None,
+    negotiation_strategies=None,
+    capex_analysis=None,
+    depreciation_data=None,
+    escrow_data=None,
+    contractor_bids=None,
+    spatial_data=None,
+    investor_analysis=None,
+    property_data=None,
+):
     line_items = cost_matrix.get("line_items", [])
     summary = cost_matrix.get("summary", {})
     output = io.StringIO()
@@ -1246,22 +1348,37 @@ def generate_csv_export(findings, cost_matrix, market_profile=None,
 
     # --- SECTION: FINDINGS ---
     writer.writerow(["=== FINDINGS ==="])
-    writer.writerow([
-        "System", "Severity", "Description", "Location", "Confidence",
-        "DIY Low", "DIY High",
-        "Contractor Low", "Contractor High",
-        "Emergency Low", "Emergency High",
-        "Material Low", "Material High",
-        "Labor Low", "Labor High",
-        "Permit Cost",
-        "Total Low", "Total High", "Total Avg",
-    ])
+    writer.writerow(
+        [
+            "System",
+            "Severity",
+            "Description",
+            "Location",
+            "Confidence",
+            "DIY Low",
+            "DIY High",
+            "Contractor Low",
+            "Contractor High",
+            "Emergency Low",
+            "Emergency High",
+            "Material Low",
+            "Material High",
+            "Labor Low",
+            "Labor High",
+            "Permit Cost",
+            "Total Low",
+            "Total High",
+            "Total Avg",
+        ]
+    )
     severity_order = {"CRITICAL": 0, "HIGH": 1, "MEDIUM": 2, "LOW": 3, "INFO": 4}
     items_with_idx = []
     for idx, finding in enumerate(findings):
         matching_cost = None
         for item in line_items:
-            if finding.get("description", "")[:50] in item.get("finding", "") or item.get("system", "") == finding.get("system_category", ""):
+            if finding.get("description", "")[:50] in item.get("finding", "") or item.get(
+                "system", ""
+            ) == finding.get("system_category", ""):
                 matching_cost = item
                 break
         if not matching_cost and idx < len(line_items):
@@ -1270,27 +1387,29 @@ def generate_csv_export(findings, cost_matrix, market_profile=None,
     items_with_idx.sort(key=lambda pair: severity_order.get(pair[0].get("severity", "MEDIUM"), 5))
     for finding, cost in items_with_idx:
         c = cost or {}
-        writer.writerow([
-            finding.get("system_category", "N/A"),
-            finding.get("severity", "MEDIUM"),
-            finding.get("description", "N/A"),
-            finding.get("location", "N/A"),
-            finding.get("confidence_score", ""),
-            c.get("diy_low", ""),
-            c.get("diy_high", ""),
-            c.get("total_low", c.get("contractor_low", "")),
-            c.get("total_high", c.get("contractor_high", "")),
-            c.get("emergency_low", ""),
-            c.get("emergency_high", ""),
-            c.get("material_cost_low", ""),
-            c.get("material_cost_high", ""),
-            c.get("labor_cost_low", ""),
-            c.get("labor_cost_high", ""),
-            c.get("permit_cost", ""),
-            c.get("total_low", ""),
-            c.get("total_high", ""),
-            c.get("total_avg", ""),
-        ])
+        writer.writerow(
+            [
+                finding.get("system_category", "N/A"),
+                finding.get("severity", "MEDIUM"),
+                finding.get("description", "N/A"),
+                finding.get("location", "N/A"),
+                finding.get("confidence_score", ""),
+                c.get("diy_low", ""),
+                c.get("diy_high", ""),
+                c.get("total_low", c.get("contractor_low", "")),
+                c.get("total_high", c.get("contractor_high", "")),
+                c.get("emergency_low", ""),
+                c.get("emergency_high", ""),
+                c.get("material_cost_low", ""),
+                c.get("material_cost_high", ""),
+                c.get("labor_cost_low", ""),
+                c.get("labor_cost_high", ""),
+                c.get("permit_cost", ""),
+                c.get("total_low", ""),
+                c.get("total_high", ""),
+                c.get("total_avg", ""),
+            ]
+        )
     writer.writerow([])
 
     # --- SECTION: COST SUMMARY ---
@@ -1321,18 +1440,24 @@ def generate_csv_export(findings, cost_matrix, market_profile=None,
         writer.writerow([])
 
     # --- SECTION: NEGOTIATION STRATEGIES ---
-    neg_strategies = _safe_dict(negotiation_strategies).get("strategies", []) if isinstance(negotiation_strategies, dict) else []
+    neg_strategies = (
+        _safe_dict(negotiation_strategies).get("strategies", [])
+        if isinstance(negotiation_strategies, dict)
+        else []
+    )
     if neg_strategies:
         writer.writerow(["=== NEGOTIATION STRATEGIES ==="])
         writer.writerow(["System", "Severity", "Strategy", "Action", "Estimated Savings"])
         for s in neg_strategies:
-            writer.writerow([
-                s.get("system", "N/A"),
-                s.get("severity", "N/A"),
-                s.get("strategy", "N/A"),
-                s.get("action", "N/A"),
-                s.get("estimated_savings", s.get("potential_savings", "N/A")),
-            ])
+            writer.writerow(
+                [
+                    s.get("system", "N/A"),
+                    s.get("severity", "N/A"),
+                    s.get("strategy", "N/A"),
+                    s.get("action", "N/A"),
+                    s.get("estimated_savings", s.get("potential_savings", "N/A")),
+                ]
+            )
         writer.writerow([])
 
     # --- SECTION: INSURANCE RISK ---
@@ -1341,12 +1466,14 @@ def generate_csv_export(findings, cost_matrix, market_profile=None,
         writer.writerow(["=== INSURANCE RISK ==="])
         writer.writerow(["Type", "Risk Level", "Description", "Estimated Cost"])
         for ins in ins_list:
-            writer.writerow([
-                ins.get("type", ins.get("category", "N/A")),
-                ins.get("risk_level", ins.get("risk", "N/A")),
-                ins.get("description", ins.get("details", "N/A")),
-                ins.get("estimated_cost", ins.get("additional_cost", ins.get("cost", "N/A"))),
-            ])
+            writer.writerow(
+                [
+                    ins.get("type", ins.get("category", "N/A")),
+                    ins.get("risk_level", ins.get("risk", "N/A")),
+                    ins.get("description", ins.get("details", "N/A")),
+                    ins.get("estimated_cost", ins.get("additional_cost", ins.get("cost", "N/A"))),
+                ]
+            )
         writer.writerow([])
 
     # --- SECTION: ENVIRONMENTAL RISK ---
@@ -1362,12 +1489,14 @@ def generate_csv_export(findings, cost_matrix, market_profile=None,
         if env_list:
             writer.writerow(["Risk Type", "Severity", "Description", "Zone"])
             for e in env_list:
-                writer.writerow([
-                    e.get("risk_type", e.get("type", "N/A")),
-                    e.get("severity", e.get("risk_level", "N/A")),
-                    e.get("description", e.get("details", "N/A")),
-                    e.get("zone", e.get("flood_zone", "N/A")),
-                ])
+                writer.writerow(
+                    [
+                        e.get("risk_type", e.get("type", "N/A")),
+                        e.get("severity", e.get("risk_level", "N/A")),
+                        e.get("description", e.get("details", "N/A")),
+                        e.get("zone", e.get("flood_zone", "N/A")),
+                    ]
+                )
         writer.writerow([])
 
     # --- SECTION: PERMITS ---
@@ -1378,34 +1507,42 @@ def generate_csv_export(findings, cost_matrix, market_profile=None,
         if permit_dict:
             writer.writerow(["Total Permits", permit_dict.get("total_permits", "N/A")])
             writer.writerow(["Compliant", permit_dict.get("compliant", "N/A")])
-            writer.writerow(["Unpermitted", permit_dict.get("unpermitted_flags", permit_dict.get("non_compliant", 0))])
+            writer.writerow(
+                ["Unpermitted", permit_dict.get("unpermitted_flags", permit_dict.get("non_compliant", 0))]
+            )
             writer.writerow(["Pending", permit_dict.get("pending", "N/A")])
         if permit_list:
             writer.writerow(["Permit Type", "Permit Number", "Status", "Description", "Date"])
             for p in permit_list:
-                writer.writerow([
-                    p.get("permit_type", p.get("type", "N/A")),
-                    p.get("permit_number", p.get("number", "N/A")),
-                    p.get("status", "Unknown"),
-                    p.get("description", p.get("details", "N/A")),
-                    p.get("date", p.get("issue_date", "N/A")),
-                ])
+                writer.writerow(
+                    [
+                        p.get("permit_type", p.get("type", "N/A")),
+                        p.get("permit_number", p.get("number", "N/A")),
+                        p.get("status", "Unknown"),
+                        p.get("description", p.get("details", "N/A")),
+                        p.get("date", p.get("issue_date", "N/A")),
+                    ]
+                )
         writer.writerow([])
 
     # --- SECTION: RECALLS ---
     recall_list = _safe_list(recall_data)
     if recall_list:
         writer.writerow(["=== MANUFACTURER RECALLS ==="])
-        writer.writerow(["Product", "Manufacturer", "Recall Date", "Status", "Description", "Potential Savings"])
+        writer.writerow(
+            ["Product", "Manufacturer", "Recall Date", "Status", "Description", "Potential Savings"]
+        )
         for r in recall_list:
-            writer.writerow([
-                r.get("product", r.get("item", "N/A")),
-                r.get("manufacturer", "N/A"),
-                r.get("recall_date", r.get("date", "N/A")),
-                r.get("status", "RECALL"),
-                r.get("description", r.get("recall_description", "N/A")),
-                r.get("potential_savings", r.get("estimated_savings", "N/A")),
-            ])
+            writer.writerow(
+                [
+                    r.get("product", r.get("item", "N/A")),
+                    r.get("manufacturer", "N/A"),
+                    r.get("recall_date", r.get("date", "N/A")),
+                    r.get("status", "RECALL"),
+                    r.get("description", r.get("recall_description", "N/A")),
+                    r.get("potential_savings", r.get("estimated_savings", "N/A")),
+                ]
+            )
         writer.writerow([])
 
     # --- SECTION: ESCROW ---
@@ -1421,12 +1558,14 @@ def generate_csv_export(findings, cost_matrix, market_profile=None,
         if all_escrow:
             writer.writerow(["Item", "Amount", "Release Condition", "Status"])
             for e in all_escrow:
-                writer.writerow([
-                    e.get("item", e.get("description", "N/A")),
-                    e.get("amount", 0),
-                    e.get("condition", e.get("release_condition", "N/A")),
-                    e.get("status", "Pending"),
-                ])
+                writer.writerow(
+                    [
+                        e.get("item", e.get("description", "N/A")),
+                        e.get("amount", 0),
+                        e.get("condition", e.get("release_condition", "N/A")),
+                        e.get("status", "Pending"),
+                    ]
+                )
         writer.writerow([])
 
     # --- SECTION: CONTRACTOR BIDS ---
@@ -1434,17 +1573,21 @@ def generate_csv_export(findings, cost_matrix, market_profile=None,
     bid_list = bids.get("bids", bids.get("contractors", [])) if bids else []
     if bid_list:
         writer.writerow(["=== CONTRACTOR BIDS ==="])
-        writer.writerow(["Contractor", "Specialty", "Bid Amount", "Timeline", "Rating", "Recommended", "Status"])
+        writer.writerow(
+            ["Contractor", "Specialty", "Bid Amount", "Timeline", "Rating", "Recommended", "Status"]
+        )
         for b in bid_list:
-            writer.writerow([
-                b.get("contractor", b.get("name", "N/A")),
-                b.get("specialty", b.get("trade", "N/A")),
-                b.get("bid_amount", b.get("amount", 0)),
-                b.get("timeline", b.get("estimated_timeline", "N/A")),
-                b.get("rating", "N/A"),
-                b.get("recommended", b.get("is_recommended", False)),
-                b.get("status", "Pending"),
-            ])
+            writer.writerow(
+                [
+                    b.get("contractor", b.get("name", "N/A")),
+                    b.get("specialty", b.get("trade", "N/A")),
+                    b.get("bid_amount", b.get("amount", 0)),
+                    b.get("timeline", b.get("estimated_timeline", "N/A")),
+                    b.get("rating", "N/A"),
+                    b.get("recommended", b.get("is_recommended", False)),
+                    b.get("status", "Pending"),
+                ]
+            )
         writer.writerow([])
 
     # --- SECTION: CAPEX ---
@@ -1458,13 +1601,15 @@ def generate_csv_export(findings, cost_matrix, market_profile=None,
         if capex_systems:
             writer.writerow(["System", "Failure Probability", "Replacement Cost", "Timeline", "Risk Level"])
             for cs in capex_systems:
-                writer.writerow([
-                    cs.get("system", cs.get("name", "N/A")),
-                    cs.get("failure_probability", cs.get("probability", "N/A")),
-                    cs.get("replacement_cost", cs.get("cost", 0)),
-                    cs.get("timeline", cs.get("expected_timeline", "N/A")),
-                    cs.get("risk_level", cs.get("severity", "N/A")),
-                ])
+                writer.writerow(
+                    [
+                        cs.get("system", cs.get("name", "N/A")),
+                        cs.get("failure_probability", cs.get("probability", "N/A")),
+                        cs.get("replacement_cost", cs.get("cost", 0)),
+                        cs.get("timeline", cs.get("expected_timeline", "N/A")),
+                        cs.get("risk_level", cs.get("severity", "N/A")),
+                    ]
+                )
         writer.writerow([])
 
     # --- SECTION: DEPRECIATION ---
@@ -1472,16 +1617,20 @@ def generate_csv_export(findings, cost_matrix, market_profile=None,
     systems_dep = dep.get("systems", dep.get("items", dep.get("depreciation_items", []))) if dep else []
     if systems_dep:
         writer.writerow(["=== DEPRECIATION ==="])
-        writer.writerow(["System", "Age", "Useful Life", "Condition", "Failure Probability", "Replacement Cost"])
+        writer.writerow(
+            ["System", "Age", "Useful Life", "Condition", "Failure Probability", "Replacement Cost"]
+        )
         for d in systems_dep:
-            writer.writerow([
-                d.get("system", d.get("name", "N/A")),
-                d.get("age", "N/A"),
-                d.get("useful_life", "N/A"),
-                d.get("condition", d.get("condition_rating", "N/A")),
-                d.get("failure_probability", d.get("probability", "N/A")),
-                d.get("replacement_cost", d.get("cost", 0)),
-            ])
+            writer.writerow(
+                [
+                    d.get("system", d.get("name", "N/A")),
+                    d.get("age", "N/A"),
+                    d.get("useful_life", "N/A"),
+                    d.get("condition", d.get("condition_rating", "N/A")),
+                    d.get("failure_probability", d.get("probability", "N/A")),
+                    d.get("replacement_cost", d.get("cost", 0)),
+                ]
+            )
         writer.writerow([])
 
     # --- SECTION: INVESTOR ---
@@ -1508,11 +1657,13 @@ def generate_csv_export(findings, cost_matrix, market_profile=None,
         if dist_items:
             writer.writerow(["Nearby Location", "Distance", "Impact"])
             for di in dist_items:
-                writer.writerow([
-                    di.get("name", di.get("location", "N/A")),
-                    di.get("distance", "N/A"),
-                    di.get("impact", di.get("price_impact", "N/A")),
-                ])
+                writer.writerow(
+                    [
+                        di.get("name", di.get("location", "N/A")),
+                        di.get("distance", "N/A"),
+                        di.get("impact", di.get("price_impact", "N/A")),
+                    ]
+                )
         writer.writerow([])
 
     return output.getvalue()
@@ -1522,13 +1673,24 @@ def generate_csv_export(findings, cost_matrix, market_profile=None,
 # Comprehensive text report (all 21 modules)
 # ---------------------------------------------------------------------------
 
-def generate_text_report(property_data, findings, cost_matrix, market_profile,
-                         insurance_analysis=None, environmental_data=None,
-                         permit_data=None, recall_data=None,
-                         negotiation_strategies=None, capex_analysis=None,
-                         depreciation_data=None, escrow_data=None,
-                         contractor_bids=None, spatial_data=None,
-                         investor_analysis=None):
+
+def generate_text_report(
+    property_data,
+    findings,
+    cost_matrix,
+    market_profile,
+    insurance_analysis=None,
+    environmental_data=None,
+    permit_data=None,
+    recall_data=None,
+    negotiation_strategies=None,
+    capex_analysis=None,
+    depreciation_data=None,
+    escrow_data=None,
+    contractor_bids=None,
+    spatial_data=None,
+    investor_analysis=None,
+):
     summary = cost_matrix.get("summary", {})
     line_items = cost_matrix.get("line_items", [])
     address = f"{property_data.get('address', 'N/A')}, {property_data.get('city', 'N/A')}, {property_data.get('state', 'N/A')} {property_data.get('zip_code', 'N/A')}"
@@ -1548,7 +1710,9 @@ def generate_text_report(property_data, findings, cost_matrix, market_profile,
 
     if critical > 0:
         urgency = "IMMEDIATE ACTION REQUIRED"
-        urgency_detail = f"{critical} critical safety/structural issues demand immediate attention before closing."
+        urgency_detail = (
+            f"{critical} critical safety/structural issues demand immediate attention before closing."
+        )
     elif high > 2:
         urgency = "HIGH PRIORITY"
         urgency_detail = f"{high} high-priority items require negotiation before or at closing."
@@ -1561,27 +1725,27 @@ def generate_text_report(property_data, findings, cost_matrix, market_profile,
     for idx, item in enumerate(sorted_items, 1):
         sev = item.get("severity", "MEDIUM")
         findings_text += f"""
-  [{idx}] [{sev}] {item.get('system', 'N/A')} - {item.get('finding', 'N/A')}
-      Location:     {item.get('location', 'N/A')}
-      Cost Range:   ${item.get('total_low', 0):,.0f} - ${item.get('total_high', 0):,.0f}
-      Avg Estimate: ${item.get('total_avg', 0):,.0f}
-      DIY Option:   ${item.get('diy_low', 0):,.0f} - ${item.get('diy_high', 0):,.0f}
-      Emergency:    ${item.get('emergency_low', 0):,.0f} - ${item.get('emergency_high', 0):,.0f}
-      Material:     ${item.get('material_cost_low', 0):,.0f} - ${item.get('material_cost_high', 0):,.0f}
-      Labor:        ${item.get('labor_cost_low', 0):,.0f} - ${item.get('labor_cost_high', 0):,.0f}
-      Permit:       ${item.get('permit_cost', 0):,.0f}
+  [{idx}] [{sev}] {item.get("system", "N/A")} - {item.get("finding", "N/A")}
+      Location:     {item.get("location", "N/A")}
+      Cost Range:   ${item.get("total_low", 0):,.0f} - ${item.get("total_high", 0):,.0f}
+      Avg Estimate: ${item.get("total_avg", 0):,.0f}
+      DIY Option:   ${item.get("diy_low", 0):,.0f} - ${item.get("diy_high", 0):,.0f}
+      Emergency:    ${item.get("emergency_low", 0):,.0f} - ${item.get("emergency_high", 0):,.0f}
+      Material:     ${item.get("material_cost_low", 0):,.0f} - ${item.get("material_cost_high", 0):,.0f}
+      Labor:        ${item.get("labor_cost_low", 0):,.0f} - ${item.get("labor_cost_high", 0):,.0f}
+      Permit:       ${item.get("permit_cost", 0):,.0f}
 """
 
     rates = summary.get("rates_applied", {})
     rates_text = ""
     if rates:
         rates_text = f"""
-  ZIP Code:       {summary.get('zip_code', 'N/A')}
-  City:           {rates.get('city', 'N/A')}
-  Cost Modifier:  {rates.get('cost_modifier', 1.0)}x
-  Avg Labor Rate: ${rates.get('avg_labor_rate', 60)}/hr
-  Material Mult:  {rates.get('avg_material_mult', 1.0)}x
-  Permit Fee Est: ${rates.get('permit_fee_estimate', 275)}
+  ZIP Code:       {summary.get("zip_code", "N/A")}
+  City:           {rates.get("city", "N/A")}
+  Cost Modifier:  {rates.get("cost_modifier", 1.0)}x
+  Avg Labor Rate: ${rates.get("avg_labor_rate", 60)}/hr
+  Material Mult:  {rates.get("avg_material_mult", 1.0)}x
+  Permit Fee Est: ${rates.get("permit_fee_estimate", 275)}
 """
 
     ins_list = _safe_list(insurance_analysis)
@@ -1589,9 +1753,9 @@ def generate_text_report(property_data, findings, cost_matrix, market_profile,
     if ins_list:
         for ins in ins_list:
             insurance_text += f"""
-  - {ins.get('type', ins.get('category', 'N/A'))} [{ins.get('risk_level', ins.get('risk', 'N/A'))}]
-    {ins.get('description', ins.get('details', 'N/A'))}
-    Estimated Cost: {ins.get('estimated_cost', ins.get('additional_cost', ins.get('cost', 'N/A')))}
+  - {ins.get("type", ins.get("category", "N/A"))} [{ins.get("risk_level", ins.get("risk", "N/A"))}]
+    {ins.get("description", ins.get("details", "N/A"))}
+    Estimated Cost: {ins.get("estimated_cost", ins.get("additional_cost", ins.get("cost", "N/A")))}
 """
     else:
         insurance_text = "\n  No insurance risk data available.\n"
@@ -1602,16 +1766,16 @@ def generate_text_report(property_data, findings, cost_matrix, market_profile,
     if env_list:
         for e in env_list:
             env_text += f"""
-  - {e.get('risk_type', e.get('type', 'N/A'))} [{e.get('severity', e.get('risk_level', 'N/A'))}]
-    {e.get('description', e.get('details', 'N/A'))}
-    Zone: {e.get('zone', e.get('flood_zone', 'N/A'))}
+  - {e.get("risk_type", e.get("type", "N/A"))} [{e.get("severity", e.get("risk_level", "N/A"))}]
+    {e.get("description", e.get("details", "N/A"))}
+    Zone: {e.get("zone", e.get("flood_zone", "N/A"))}
 """
     elif env_dict:
         env_text = f"""
-  Climate Zone:     {env_dict.get('climate_zone', 'N/A')}
-  Flood Zone:       {env_dict.get('flood_zone', 'N/A')}
-  Wildfire Risk:    {env_dict.get('wildfire_risk', 'N/A')}
-  Earthquake Risk:  {env_dict.get('earthquake_risk', 'N/A')}
+  Climate Zone:     {env_dict.get("climate_zone", "N/A")}
+  Flood Zone:       {env_dict.get("flood_zone", "N/A")}
+  Wildfire Risk:    {env_dict.get("wildfire_risk", "N/A")}
+  Earthquake Risk:  {env_dict.get("earthquake_risk", "N/A")}
 """
     else:
         env_text = "\n  No environmental risk data available.\n"
@@ -1622,16 +1786,16 @@ def generate_text_report(property_data, findings, cost_matrix, market_profile,
     if permit_list:
         for p in permit_list:
             permit_text += f"""
-  - {p.get('permit_type', p.get('type', 'N/A'))} [{p.get('status', 'Unknown')}]
-    {p.get('description', p.get('details', 'N/A'))}
-    Permit #: {p.get('permit_number', p.get('number', 'N/A'))}
+  - {p.get("permit_type", p.get("type", "N/A"))} [{p.get("status", "Unknown")}]
+    {p.get("description", p.get("details", "N/A"))}
+    Permit #: {p.get("permit_number", p.get("number", "N/A"))}
 """
     elif permit_dict:
         permit_text = f"""
-  Total Permits:      {permit_dict.get('total_permits', 'N/A')}
-  Compliant:          {permit_dict.get('compliant', 'N/A')}
-  Non-Compliant:      {permit_dict.get('unpermitted_flags', permit_dict.get('non_compliant', 'N/A'))}
-  Pending:            {permit_dict.get('pending', 'N/A')}
+  Total Permits:      {permit_dict.get("total_permits", "N/A")}
+  Compliant:          {permit_dict.get("compliant", "N/A")}
+  Non-Compliant:      {permit_dict.get("unpermitted_flags", permit_dict.get("non_compliant", "N/A"))}
+  Pending:            {permit_dict.get("pending", "N/A")}
 """
     else:
         permit_text = "\n  No permit data available.\n"
@@ -1641,22 +1805,26 @@ def generate_text_report(property_data, findings, cost_matrix, market_profile,
     if recall_list:
         for r in recall_list:
             recall_text += f"""
-  - {r.get('product', r.get('item', 'N/A'))} [{r.get('status', 'Unknown')}]
-    {r.get('description', r.get('recall_description', 'N/A'))}
-    Potential Savings: {r.get('potential_savings', r.get('estimated_savings', 'N/A'))}
+  - {r.get("product", r.get("item", "N/A"))} [{r.get("status", "Unknown")}]
+    {r.get("description", r.get("recall_description", "N/A"))}
+    Potential Savings: {r.get("potential_savings", r.get("estimated_savings", "N/A"))}
 """
     else:
         recall_text = "\n  No manufacturer recall matches found.\n"
 
-    neg_strategies = _safe_dict(negotiation_strategies).get("strategies", []) if isinstance(negotiation_strategies, dict) else []
+    neg_strategies = (
+        _safe_dict(negotiation_strategies).get("strategies", [])
+        if isinstance(negotiation_strategies, dict)
+        else []
+    )
     negotiation_text = ""
     if neg_strategies:
         for s in neg_strategies:
             negotiation_text += f"""
-  - [{s.get('severity', 'N/A')}] {s.get('system', 'N/A')}
-    Strategy: {s.get('strategy', 'N/A')}
-    Action:   {s.get('action', 'N/A')}
-    Savings:  {s.get('estimated_savings', s.get('potential_savings', 'N/A'))}
+  - [{s.get("severity", "N/A")}] {s.get("system", "N/A")}
+    Strategy: {s.get("strategy", "N/A")}
+    Action:   {s.get("action", "N/A")}
+    Savings:  {s.get("estimated_savings", s.get("potential_savings", "N/A"))}
 """
     else:
         negotiation_text = "\n  No negotiation strategies available.\n"
@@ -1667,8 +1835,8 @@ def generate_text_report(property_data, findings, cost_matrix, market_profile,
         capex_summary = capex.get("summary", {})
         capex_systems = capex.get("systems", capex.get("items", []))
         capex_text = f"""
-  Weighted 24-Mo Risk:    ${capex_summary.get('weighted_24mo_risk', 0):,.0f}
-  Total Replacement Est:  ${capex_summary.get('total_replacement', 0):,.0f}
+  Weighted 24-Mo Risk:    ${capex_summary.get("weighted_24mo_risk", 0):,.0f}
+  Total Replacement Est:  ${capex_summary.get("total_replacement", 0):,.0f}
 """
         if capex_systems:
             capex_text += "  System Breakdown:\n"
@@ -1689,8 +1857,8 @@ def generate_text_report(property_data, findings, cost_matrix, market_profile,
     escrow_text = ""
     if escrow_dict:
         escrow_text = f"""
-  Total Holdback:   ${escrow_dict.get('total_holdback', 0):,.0f}
-  Recommended:      {escrow_dict.get('recommended', 'N/A')}
+  Total Holdback:   ${escrow_dict.get("total_holdback", 0):,.0f}
+  Recommended:      {escrow_dict.get("recommended", "N/A")}
 """
         conditions = escrow_dict.get("conditions", [])
         if conditions:
@@ -1716,22 +1884,22 @@ def generate_text_report(property_data, findings, cost_matrix, market_profile,
     investor_text = ""
     if inv:
         investor_text = f"""
-  After Repair Value (ARV):   ${inv.get('arv', inv.get('after_repair_value', 0)):,.0f}
-  Max Allowable Offer (MAO):  ${inv.get('mao', inv.get('max_allowable_offer', 0)):,.0f}
-  Cap Rate:                   {inv.get('cap_rate', inv.get('capitalization_rate', 'N/A'))}%
-  Deal Grade:                 {inv.get('deal_grade', inv.get('grade', 'N/A'))}
-  Monthly Rent:               ${inv.get('monthly_rent', inv.get('estimated_rent', 0)):,.0f}
-  Cash-on-Cash Return:        {inv.get('cash_on_cash_return', inv.get('cash_on_cash', 'N/A'))}%
-  NOI:                        ${inv.get('noi', inv.get('net_operating_income', 0)):,.0f}
+  After Repair Value (ARV):   ${inv.get("arv", inv.get("after_repair_value", 0)):,.0f}
+  Max Allowable Offer (MAO):  ${inv.get("mao", inv.get("max_allowable_offer", 0)):,.0f}
+  Cap Rate:                   {inv.get("cap_rate", inv.get("capitalization_rate", "N/A"))}%
+  Deal Grade:                 {inv.get("deal_grade", inv.get("grade", "N/A"))}
+  Monthly Rent:               ${inv.get("monthly_rent", inv.get("estimated_rent", 0)):,.0f}
+  Cash-on-Cash Return:        {inv.get("cash_on_cash_return", inv.get("cash_on_cash", "N/A"))}%
+  NOI:                        ${inv.get("noi", inv.get("net_operating_income", 0)):,.0f}
 """
 
     spatial = _safe_dict(spatial_data)
     spatial_text = ""
     if spatial:
         spatial_text = f"""
-  Walk Score:      {spatial.get('walk_score', 'N/A')}
-  Transit Score:   {spatial.get('transit_score', 'N/A')}
-  Location Rating: {spatial.get('location_rating', 'N/A')}
+  Walk Score:      {spatial.get("walk_score", "N/A")}
+  Transit Score:   {spatial.get("transit_score", "N/A")}
+  Location Rating: {spatial.get("location_rating", "N/A")}
 """
         dist_items = spatial.get("distances", spatial.get("nearby_places", []))
         if dist_items:
@@ -1741,39 +1909,51 @@ def generate_text_report(property_data, findings, cost_matrix, market_profile,
 
     recommendations = []
     if critical > 0:
-        recommendations.append(f"  * PRIORITY 1: Address {critical} critical finding(s) immediately. These represent safety or structural hazards.")
+        recommendations.append(
+            f"  * PRIORITY 1: Address {critical} critical finding(s) immediately. These represent safety or structural hazards."
+        )
     if high > 0:
-        recommendations.append(f"  * PRIORITY 2: Negotiate ${summary.get('high_cost', total_avg * 0.5):,.0f} in credits or price reduction for {high} high-severity items.")
+        recommendations.append(
+            f"  * PRIORITY 2: Negotiate ${summary.get('high_cost', total_avg * 0.5):,.0f} in credits or price reduction for {high} high-severity items."
+        )
     if medium > 0:
-        recommendations.append(f"  * PRIORITY 3: Request seller remediation or escrow holdback for {medium} medium-severity code/compliance items.")
-    recommendations.append(f"  * Plan ${total_avg:,.0f} in expected repair costs within the first 12 months of ownership.")
+        recommendations.append(
+            f"  * PRIORITY 3: Request seller remediation or escrow holdback for {medium} medium-severity code/compliance items."
+        )
+    recommendations.append(
+        f"  * Plan ${total_avg:,.0f} in expected repair costs within the first 12 months of ownership."
+    )
     if isinstance(market_profile, dict) and market_profile.get("leverage_score", 50) > 60:
-        recommendations.append("  * Market conditions favor buyers - leverage inspection findings in negotiations.")
-    recs_text = "\n".join(recommendations) if recommendations else "  No specific recommendations at this time."
+        recommendations.append(
+            "  * Market conditions favor buyers - leverage inspection findings in negotiations."
+        )
+    recs_text = (
+        "\n".join(recommendations) if recommendations else "  No specific recommendations at this time."
+    )
 
     text = f"""
-{'='*80}
+{"=" * 80}
 PROPERTY REPAIR COST ESTIMATE REPORT
 Comprehensive 21-Module Enterprise Analysis
-{'='*80}
+{"=" * 80}
 
 PROPERTY INFORMATION
-{'-'*40}
+{"-" * 40}
   Address:        {address}
   Year Built:     {year_built}
   Property Age:   {property_age} years
-  Type:           {property_data.get('property_type', 'N/A')}
-  Sq Footage:     {property_data.get('square_footage', 'N/A')}
-  Beds / Baths:   {property_data.get('bedrooms', 'N/A')} / {property_data.get('bathrooms', 'N/A')}
-  Roof:           {property_data.get('roof_type', 'N/A')}
-  HVAC:           {property_data.get('hvac_type', 'N/A')}
-  Plumbing:       {property_data.get('plumbing_type', 'N/A')}
-  Electrical:     {property_data.get('electrical_type', 'N/A')}
-  Foundation:     {property_data.get('foundation_type', 'N/A')}
+  Type:           {property_data.get("property_type", "N/A")}
+  Sq Footage:     {property_data.get("square_footage", "N/A")}
+  Beds / Baths:   {property_data.get("bedrooms", "N/A")} / {property_data.get("bathrooms", "N/A")}
+  Roof:           {property_data.get("roof_type", "N/A")}
+  HVAC:           {property_data.get("hvac_type", "N/A")}
+  Plumbing:       {property_data.get("plumbing_type", "N/A")}
+  Electrical:     {property_data.get("electrical_type", "N/A")}
+  Foundation:     {property_data.get("foundation_type", "N/A")}
 
-{'='*80}
+{"=" * 80}
 EXECUTIVE SUMMARY
-{'='*80}
+{"=" * 80}
 
   Urgency:        {urgency}
   Detail:         {urgency_detail}
@@ -1783,77 +1963,77 @@ EXECUTIVE SUMMARY
   Market Type:    {market_type}
   Buyer Leverage: {leverage}/100
 
-{'='*80}
+{"=" * 80}
 DETAILED FINDINGS (Sorted by Severity)
-{'='*80}
+{"=" * 80}
 {findings_text}
-{'='*80}
+{"=" * 80}
 COST BREAKDOWN
-{'='*80}
+{"=" * 80}
 
   Total Low:      ${total_low:,.0f}
   Total High:     ${total_high:,.0f}
   Total Average:  ${total_avg:,.0f}
 {rates_text}
-{'='*80}
+{"=" * 80}
 DEPRECIATION & CAPEX ANALYSIS
-{'='*80}
-{dep_text if dep_text else '  No depreciation data available.'}
-{capex_text if capex_text else '  No CapEx analysis available.'}
+{"=" * 80}
+{dep_text if dep_text else "  No depreciation data available."}
+{capex_text if capex_text else "  No CapEx analysis available."}
 
-{'='*80}
+{"=" * 80}
 MARKET ANALYSIS & NEGOTIATION
-{'='*80}
+{"=" * 80}
 
   Market Type:         {market_type}
   Buyer Leverage:      {leverage}/100
-  Avg Days on Market:  {market_profile.get('avg_days_on_market', 'N/A') if isinstance(market_profile, dict) else 'N/A'}
-  Months of Supply:    {market_profile.get('months_of_supply', 'N/A') if isinstance(market_profile, dict) else 'N/A'}
-  Assessment:          {market_profile.get('leverage_description', 'N/A') if isinstance(market_profile, dict) else 'N/A'}
+  Avg Days on Market:  {market_profile.get("avg_days_on_market", "N/A") if isinstance(market_profile, dict) else "N/A"}
+  Months of Supply:    {market_profile.get("months_of_supply", "N/A") if isinstance(market_profile, dict) else "N/A"}
+  Assessment:          {market_profile.get("leverage_description", "N/A") if isinstance(market_profile, dict) else "N/A"}
 {negotiation_text}
-{'='*80}
+{"=" * 80}
 CONTRACTOR BIDS
-{'='*80}
-{contractor_text if contractor_text else '  No contractor bid data available.'}
+{"=" * 80}
+{contractor_text if contractor_text else "  No contractor bid data available."}
 
-{'='*80}
+{"=" * 80}
 INSURANCE RISK SUMMARY
-{'='*80}
+{"=" * 80}
 {insurance_text}
-{'='*80}
+{"=" * 80}
 ENVIRONMENTAL RISK
-{'='*80}
+{"=" * 80}
 {env_text}
-{'='*80}
+{"=" * 80}
 PERMITS & COMPLIANCE
-{'='*80}
+{"=" * 80}
 {permit_text}
-{'='*80}
+{"=" * 80}
 MANUFACTURER RECALLS
-{'='*80}
+{"=" * 80}
 {recall_text}
-{'='*80}
+{"=" * 80}
 ESCROW HOLDBACK ANALYSIS
-{'='*80}
+{"=" * 80}
 {escrow_text}
-{'='*80}
+{"=" * 80}
 INVESTOR ANALYSIS
-{'='*80}
-{investor_text if investor_text else '  No investor analysis data available.'}
+{"=" * 80}
+{investor_text if investor_text else "  No investor analysis data available."}
 
-{'='*80}
+{"=" * 80}
 LOCATION & SPATIAL ANALYSIS
-{'='*80}
-{spatial_text if spatial_text else '  No spatial data available.'}
+{"=" * 80}
+{spatial_text if spatial_text else "  No spatial data available."}
 
-{'='*80}
+{"=" * 80}
 RECOMMENDATIONS
-{'='*80}
+{"=" * 80}
 {recs_text}
 
-{'='*80}
+{"=" * 80}
 DISCLAIMER
-{'='*80}
+{"=" * 80}
 This report is generated by automated analysis tools and is intended for informational
 purposes only. Cost estimates are based on regional averages and embedded cost databases.
 Actual contractor bids may vary. Always obtain licensed contractor estimates before
@@ -1861,6 +2041,6 @@ making repair decisions. This report does not constitute engineering, legal, or
 financial advice. Consult licensed professionals for all structural, electrical,
 plumbing, and environmental assessments.
 
-Generated: {datetime.now().strftime('%B %d, %Y at %I:%M %p')}
+Generated: {datetime.now().strftime("%B %d, %Y at %I:%M %p")}
 """
     return text

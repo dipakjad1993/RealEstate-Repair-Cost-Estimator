@@ -20,7 +20,7 @@ def generate_brokerage_roi_data(broker_id="", user_transactions=None):
         return {
             "status": "UNAVAILABLE",
             "note": "Import real closed-deal records (CSV) to compute brokerage ROI. "
-                    "This tool does not fabricate transaction history.",
+            "This tool does not fabricate transaction history.",
             "broker_id": broker_id or "UNSET",
         }
 
@@ -38,8 +38,10 @@ def generate_brokerage_roi_data(broker_id="", user_transactions=None):
         total_requested += req
         total_granted += grt
         total_value += float(t.get("deal_value", 0) or 0)
-        a = agent_map.setdefault(agent, {"name": agent, "transactions": 0, "credits": 0.0,
-                                         "requested": 0, "granted": 0, "value": 0.0})
+        a = agent_map.setdefault(
+            agent,
+            {"name": agent, "transactions": 0, "credits": 0.0, "requested": 0, "granted": 0, "value": 0.0},
+        )
         a["transactions"] += 1
         a["credits"] += credits
         a["requested"] += req
@@ -57,9 +59,13 @@ def generate_brokerage_roi_data(broker_id="", user_transactions=None):
     overall = round(total_granted / max(total_requested, 1) * 100, 1)
     insights = []
     if agents:
-        insights.append(f"Top agent: {agents[0]['name']} negotiated ${agents[0]['credits']:,.0f} across {agents[0]['transactions']} deals.")
+        insights.append(
+            f"Top agent: {agents[0]['name']} negotiated ${agents[0]['credits']:,.0f} across {agents[0]['transactions']} deals."
+        )
     if len(agents) > 1:
-        insights.append(f"Coaching opportunity: {agents[-1]['name']} averages ${agents[-1]['avg_credit_per_deal']:,.0f}/deal.")
+        insights.append(
+            f"Coaching opportunity: {agents[-1]['name']} averages ${agents[-1]['avg_credit_per_deal']:,.0f}/deal."
+        )
     insights.append(f"Team item acceptance rate: {overall}% (industry benchmark 65-75%).")
 
     return {

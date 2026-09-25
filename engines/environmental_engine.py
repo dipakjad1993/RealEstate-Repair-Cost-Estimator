@@ -12,9 +12,14 @@ No fabricated flood zones or seismic values.
 
 import logging
 from datetime import datetime
+
 from engines.real_data_fetcher import (
-    geocode_address, geocode_zip, get_flood_zone_by_coords,
-    get_seismic_hazard_by_coords, get_recent_earthquakes, get_weather,
+    geocode_address,
+    geocode_zip,
+    get_flood_zone_by_coords,
+    get_recent_earthquakes,
+    get_seismic_hazard_by_coords,
+    get_weather,
 )
 
 logger = logging.getLogger(__name__)
@@ -34,7 +39,6 @@ def assess_environmental_risks(property_data, findings):
         geo = geocode_zip(zip_code)
 
     location = geo
-    geo_prov = "VERIFIED" if geo else "UNAVAILABLE"
 
     coords = None
     if location:
@@ -52,7 +56,11 @@ def assess_environmental_risks(property_data, findings):
 
     findings_risk = _categorize_finding_risks(findings)
 
-    geo_src = "US Census Geocoder (matched address)" if geo and geo.get("matched_address") else "No geocoding source configured"
+    geo_src = (
+        "US Census Geocoder (matched address)"
+        if geo and geo.get("matched_address")
+        else "No geocoding source configured"
+    )
     return {
         "address_resolved": location is not None,
         "geocoding": {
@@ -102,7 +110,6 @@ def _categorize_finding_risks(findings):
     for f in findings:
         sys = (f.get("system_category") or "").upper()
         desc = (f.get("description") or "").lower()
-        sev = f.get("severity", "LOW")
         if "mold" in desc or sys in ("MOISTURE",):
             risks["mold_moisture"] += 1
         elif sys in ("STRUCTURAL",):

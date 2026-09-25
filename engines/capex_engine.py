@@ -1,6 +1,7 @@
 from datetime import datetime
+
 from engines.depreciation_engine import calculate_depreciation_curve
-from engines.cost_engine import calculate_cost_bounds
+
 
 def generate_capex_horizon(findings, property_data):
     current_year = datetime.now().year
@@ -20,28 +21,29 @@ def generate_capex_horizon(findings, property_data):
         failure_month_abs = current_month + failure_months
         failure_year = current_year + (failure_months // 12)
         failure_month_in_year = ((failure_month_abs - 1) % 12) + 1
-        timeline_items.append({
-            "finding": finding.get("description", "")[:100],
-            "system": system,
-            "severity": severity,
-            "asset_type": asset_type,
-            "current_age": age,
-            "useful_life": dep["useful_life"],
-            "remaining_life_years": dep["remaining_life"],
-            "replacement_cost": dep["replacement_cost_avg"],
-            "replacement_low": dep["replacement_cost_low"],
-            "replacement_high": dep["replacement_cost_high"],
-            "failure_probability_24mo": dep["failure_probability_24mo"],
-            "failure_horizon_months": failure_months,
-            "projected_failure_date": f"{failure_year}-{failure_month_in_year:02d}",
-            "replacement_urgency": dep["replacement_urgency"],
-            "urgency_category": _categorize_urgency(failure_months),
-            "timeline_position": _timeline_position(failure_months),
-        })
+        timeline_items.append(
+            {
+                "finding": finding.get("description", "")[:100],
+                "system": system,
+                "severity": severity,
+                "asset_type": asset_type,
+                "current_age": age,
+                "useful_life": dep["useful_life"],
+                "remaining_life_years": dep["remaining_life"],
+                "replacement_cost": dep["replacement_cost_avg"],
+                "replacement_low": dep["replacement_cost_low"],
+                "replacement_high": dep["replacement_cost_high"],
+                "failure_probability_24mo": dep["failure_probability_24mo"],
+                "failure_horizon_months": failure_months,
+                "projected_failure_date": f"{failure_year}-{failure_month_in_year:02d}",
+                "replacement_urgency": dep["replacement_urgency"],
+                "urgency_category": _categorize_urgency(failure_months),
+                "timeline_position": _timeline_position(failure_months),
+            }
+        )
     timeline_items.sort(key=lambda x: x["failure_horizon_months"])
     total_risk = sum(
-        item["replacement_cost"] * item["failure_probability_24mo"] / 100
-        for item in timeline_items
+        item["replacement_cost"] * item["failure_probability_24mo"] / 100 for item in timeline_items
     )
     immediate_items = [i for i in timeline_items if i["urgency_category"] == "IMMEDIATE"]
     within_12mo = [i for i in timeline_items if i["urgency_category"] == "WITHIN_12_MONTHS"]
@@ -64,6 +66,7 @@ def generate_capex_horizon(findings, property_data):
         "visual_timeline": _build_visual_timeline(timeline_items),
     }
 
+
 def _system_to_asset_type(system):
     mapping = {
         "HVAC": "hvac",
@@ -79,8 +82,10 @@ def _system_to_asset_type(system):
     }
     return mapping.get(system)
 
+
 def _estimate_age(finding, prop_age):
     import re
+
     desc = finding.get("description", "").lower()
     year_match = re.search(r"(20[0-2]\d|19[89]\d)", desc)
     if year_match:
@@ -99,6 +104,7 @@ def _estimate_age(finding, prop_age):
     }
     return avg_ages.get(system, min(15, prop_age))
 
+
 def _categorize_urgency(failure_months):
     if failure_months <= 0:
         return "IMMEDIATE"
@@ -110,6 +116,7 @@ def _categorize_urgency(failure_months):
         return "WITHIN_24_MONTHS"
     else:
         return "BEYOND_24_MONTHS"
+
 
 def _timeline_position(failure_months):
     if failure_months <= 0:
@@ -125,6 +132,7 @@ def _timeline_position(failure_months):
     else:
         return f"24M+ ({failure_months}mo)"
 
+
 def _build_visual_timeline(items):
     months = list(range(0, 25))
     timeline = {}
@@ -133,18 +141,22 @@ def _build_visual_timeline(items):
     for item in items:
         failure_mo = min(24, max(0, item["failure_horizon_months"]))
         if failure_mo in timeline:
-            timeline[failure_mo].append({
-                "system": item["system"],
-                "cost": item["replacement_cost"],
-                "severity": item["severity"],
-            })
+            timeline[failure_mo].append(
+                {
+                    "system": item["system"],
+                    "cost": item["replacement_cost"],
+                    "severity": item["severity"],
+                }
+            )
     visual = []
     for m in months:
         entries = timeline.get(m, [])
         if entries:
-            visual.append({
-                "month": m,
-                "events": entries,
-                "total_cost": sum(e["cost"] for e in entries),
-            })
+            visual.append(
+                {
+                    "month": m,
+                    "events": entries,
+                    "total_cost": sum(e["cost"] for e in entries),
+                }
+            )
     return visual

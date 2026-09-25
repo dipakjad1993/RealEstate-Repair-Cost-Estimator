@@ -1,0 +1,25 @@
+{
+ "version": "2026.09.25",
+ "dataset": "municipal_permit_types",
+ "data": [
+  "Building Permit",
+  "Electrical Permit",
+  "Plumbing Permit",
+  "Mechanical Permit",
+  "Roofing Permit",
+  "Demolition Permit",
+  "Deck/Porch Permit",
+  "Addition Permit",
+  "Electrical Subpanel Permit",
+  "Water Heater Permit",
+  "HVAC Permit",
+  "Siding Permit",
+  "Window/Door Permit",
+  "Fence Permit",
+  "Grading Permit",
+  "Septic Permit",
+  "Well Permit",
+  "Solar Permit",
+  "Pool/Spa Permit"
+ ]
+}

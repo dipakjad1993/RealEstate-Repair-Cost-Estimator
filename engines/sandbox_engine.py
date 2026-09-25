@@ -1,5 +1,6 @@
 from datetime import datetime
 
+
 def create_sandbox_session(property_data, findings, cost_matrix):
     items = []
     for finding in findings:
@@ -10,24 +11,27 @@ def create_sandbox_session(property_data, findings, cost_matrix):
                 break
         if not matching_cost:
             matching_cost = cost_matrix.get("line_items", [{}])[0] if cost_matrix.get("line_items") else {}
-        items.append({
-            "finding_id": finding.get("id"),
-            "description": finding.get("description", "")[:120],
-            "system": finding.get("system_category", "OTHER"),
-            "severity": finding.get("severity", "MEDIUM"),
-            "selected": finding.get("severity", "MEDIUM") in ["CRITICAL", "HIGH"],
-            "repair_type": "seller_credit",
-            "estimated_cost": matching_cost.get("total_avg", 0),
-            "estimated_low": matching_cost.get("total_low", 0),
-            "estimated_high": matching_cost.get("total_high", 0),
-            "notes": "",
-            "override_amount": None,
-        })
+        items.append(
+            {
+                "finding_id": finding.get("id"),
+                "description": finding.get("description", "")[:120],
+                "system": finding.get("system_category", "OTHER"),
+                "severity": finding.get("severity", "MEDIUM"),
+                "selected": finding.get("severity", "MEDIUM") in ["CRITICAL", "HIGH"],
+                "repair_type": "seller_credit",
+                "estimated_cost": matching_cost.get("total_avg", 0),
+                "estimated_low": matching_cost.get("total_low", 0),
+                "estimated_high": matching_cost.get("total_high", 0),
+                "notes": "",
+                "override_amount": None,
+            }
+        )
     return {
         "property": property_data,
         "items": items,
         "created_at": datetime.now().isoformat(),
     }
+
 
 def calculate_sandbox_totals(items, market_profile=None):
     selected_items = [i for i in items if i.get("selected", False)]
@@ -66,6 +70,7 @@ def calculate_sandbox_totals(items, market_profile=None):
         "market_leverage": leverage,
     }
 
+
 def update_item_selection(items, item_index, selected, repair_type=None, override_amount=None, notes=None):
     if 0 <= item_index < len(items):
         items[item_index]["selected"] = selected
@@ -76,6 +81,7 @@ def update_item_selection(items, item_index, selected, repair_type=None, overrid
         if notes is not None:
             items[item_index]["notes"] = notes
     return items
+
 
 def generate_scenario_comparison(items, scenarios, market_profile=None):
     results = []
@@ -93,9 +99,11 @@ def generate_scenario_comparison(items, scenarios, market_profile=None):
                         mod_item["override_amount"] = change["override_amount"]
             modified_items.append(mod_item)
         totals = calculate_sandbox_totals(modified_items, market_profile)
-        results.append({
-            "scenario_name": scenario.get("name", "Unnamed"),
-            "scenario_description": scenario.get("description", ""),
-            "totals": totals,
-        })
+        results.append(
+            {
+                "scenario_name": scenario.get("name", "Unnamed"),
+                "scenario_description": scenario.get("description", ""),
+                "totals": totals,
+            }
+        )
     return results

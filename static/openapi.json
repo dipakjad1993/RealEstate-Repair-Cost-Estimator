@@ -1,0 +1,261 @@
+{
+ "openapi": "3.1.0",
+ "info": {
+  "title": "Repair Estimator API",
+  "description": "Provenance-tracked repair estimates. Every figure carries VERIFIED/USER_PROVIDED/MODELED/REQUIRES_KEY/UNAVAILABLE.",
+  "version": "3.1.0"
+ },
+ "paths": {
+  "/api/openapi.json": {
+   "get": {
+    "summary": "Openapi Json",
+    "operationId": "openapi_json_api_openapi_json_get",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     }
+    }
+   }
+  },
+  "/llms.txt": {
+   "get": {
+    "summary": "Llms Txt",
+    "operationId": "llms_txt_llms_txt_get",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/health": {
+   "get": {
+    "summary": "Health",
+    "operationId": "health_api_health_get",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/estimate_repair": {
+   "post": {
+    "summary": "Estimate Repair",
+    "operationId": "estimate_repair_api_estimate_repair_post",
+    "parameters": [
+     {
+      "name": "authorization",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "type": "string",
+       "default": "",
+       "title": "Authorization"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/EstimateRequest"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/s/{token}": {
+   "get": {
+    "summary": "Share Portal",
+    "operationId": "share_portal_s__token__get",
+    "parameters": [
+     {
+      "name": "token",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Token"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "text/html": {
+        "schema": {
+         "type": "string"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  }
+ },
+ "components": {
+  "schemas": {
+   "EstimateRequest": {
+    "properties": {
+     "address": {
+      "type": "string",
+      "title": "Address",
+      "default": ""
+     },
+     "city": {
+      "type": "string",
+      "title": "City",
+      "default": ""
+     },
+     "state": {
+      "type": "string",
+      "maxLength": 2,
+      "title": "State",
+      "default": ""
+     },
+     "zip_code": {
+      "type": "string",
+      "title": "Zip Code",
+      "default": ""
+     },
+     "sqft": {
+      "type": "number",
+      "title": "Sqft",
+      "default": 1500
+     },
+     "year_built": {
+      "type": "integer",
+      "title": "Year Built",
+      "default": 1995
+     },
+     "findings": {
+      "items": {
+       "additionalProperties": true,
+       "type": "object"
+      },
+      "type": "array",
+      "title": "Findings",
+      "default": []
+     },
+     "list_price": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "List Price"
+     },
+     "comps": {
+      "items": {
+       "additionalProperties": true,
+       "type": "object"
+      },
+      "type": "array",
+      "title": "Comps",
+      "default": []
+     }
+    },
+    "type": "object",
+    "title": "EstimateRequest"
+   },
+   "HTTPValidationError": {
+    "properties": {
+     "detail": {
+      "items": {
+       "$ref": "#/components/schemas/ValidationError"
+      },
+      "type": "array",
+      "title": "Detail"
+     }
+    },
+    "type": "object",
+    "title": "HTTPValidationError"
+   },
+   "ValidationError": {
+    "properties": {
+     "loc": {
+      "items": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "integer"
+        }
+       ]
+      },
+      "type": "array",
+      "title": "Location"
+     },
+     "msg": {
+      "type": "string",
+      "title": "Message"
+     },
+     "type": {
+      "type": "string",
+      "title": "Error Type"
+     }
+    },
+    "type": "object",
+    "required": [
+     "loc",
+     "msg",
+     "type"
+    ],
+    "title": "ValidationError"
+   }
+  }
+ }
+}

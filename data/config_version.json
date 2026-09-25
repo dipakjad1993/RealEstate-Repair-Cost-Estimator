@@ -1,0 +1,16 @@
+{
+  "version": "2026.09.25",
+  "datasets": {
+    "regions": "data/regions.json",
+    "state_tax_multipliers": "data/state_tax_multipliers.json",
+    "severity_levels": "data/severity_levels.json",
+    "depreciation_tables": "data/depreciation_tables.json",
+    "climate_zones": "data/climate_zones.json",
+    "insurance_red_flags": "data/insurance_red_flags.json",
+    "zip_cost_modifiers": "data/zip_cost_modifiers.json",
+    "inspection_system_patterns": "data/inspection_system_patterns.json",
+    "material_costs_2026": "data/material_costs_2026.json",
+    "municipal_permit_types": "data/municipal_permit_types.json"
+  },
+  "notes": "Versioned config datasets. config.py is a compat loader."
+}

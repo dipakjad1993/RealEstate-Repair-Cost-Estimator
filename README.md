@@ -1,205 +1,121 @@
-# Real Estate Repair Cost Estimator
+# Real Estate Repair Cost Estimator — v3.1 Enterprise
 
-> **A provenance-tracked property analysis platform.** Turns inspection reports, photos, audio, and floorplans into transparent repair cost estimates across **21 analysis modules** — using real, verifiable government data and fully deterministic calculations. **Nothing is fabricated.**
+[![CI](https://github.com/dipakjad1993/RealEstate-Repair-Cost-Estimator/actions/workflows/ci.yml/badge.svg)](https://github.com/dipakjad1993/RealEstate-Repair-Cost-Estimator/actions/workflows/ci.yml)
+[![Python](https://img.shields.io/badge/python-3.10%E2%80%933.13-blue)](https://www.python.org/)
+[![Streamlit](https://img.shields.io/badge/streamlit-1.37-red)](https://streamlit.io/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green)](LICENSE)
 
-Built with Streamlit, styled like an Apple product: a disciplined design system with Inter typography, frosted-glass navigation, dark/light themes, and a focus on readability.
+> **Provenance-tracked property intelligence.** Inspection PDFs, photos, voice walkthroughs, and floorplans become transparent, deterministic repair estimates across **21+ analysis modules** — powered by live government data, with every figure badged. **Nothing is fabricated.**
 
----
+## The provenance contract
 
-## Why it's different
+Every number in this tool carries exactly one badge:
 
-| | Typical estimator | This platform |
-|---|---|---|
-| **Numbers** | Random, generic averages | Deterministic + real data |
-| **Sources** | Opaque | Every figure carries a **provenance badge** |
-| **Scope** | Basic cost list | 21 cross-referenced modules |
-| **Output** | One number | Verified, auditable, exportable |
+| Badge | Meaning |
+|---|---|
+| 🟢 **VERIFIED** | Live government data (Census · BLS · FEMA · USGS · CPSC) or evidence-backed user MLS |
+| 🟡 **USER_PROVIDED** | Your quotes, MLS rows, uploads — authoritative, always wins |
+| 🔵 **MODELED** | Deterministic estimate from verified baselines — **not a quote** |
+| 🟠 **REQUIRES_KEY** | Live enrichment available once an API key is configured |
+| ⚪ **UNAVAILABLE** | Source unreachable — reported honestly, never guessed |
 
-### Provenance badges
-Every value in the tool is labeled — there are no silent guesses:
+Deterministic means reproducible: same inputs → same outputs, no randomness, no invented firms, licenses, permits, or comps.
 
-- 🟢 **VERIFIED** — live government data (Census · BLS · FEMA · USGS · CPSC)
-- 🟡 **USER-PROVIDED** — your quotes, MLS data, uploaded documents
-- 🟠 **REQUIRES KEY** — needs an API key for live enrichment
-- 🔵 **MODELED** — deterministic estimate, clearly not a quote
-- ⚪ **UNAVAILABLE** — honestly reported when a source can't be reached
+## 60-second path vs deep dive
 
----
+**Progressive intake** — no 7-section homework up front:
 
-## Features
+1. **Step 0 · Instant ballpark** — address + ZIP + sqft → live Census/BLS market anchor + climate v2 (wildfire / hurricane / NFIP premium impact / non-renewal risk).
+2. **Deep dive** — upload the inspection PDF (parsed with PyMuPDF + `pymupdf4llm`, chunk-perfect for RAG), damage photos (Vision 2.0 → condition/system/confidence + honest *NOT-visible* list), voice notes (faster-whisper/Deepgram, optional), floorplan JSON/CSV/Matterport, contractor quotes, permit rows, sold comps.
+3. **Analysis** — 21-module dossier: cost matrix, CapEx, rooms, ARV, market baseline, permits, insurance, climate, recalls, vision, voice, copilot letter.
+4. **Results** — lender share link (expiring HMAC URL, redacted PII), full PDF package, Excel workbook, auditable JSON.
+5. **Health** — live status + per-host latency for every data source.
 
-### Verified data pipeline
-- **Live fetchers** for Census, BLS wages, FEMA flood zones, USGS seismic hazards, and CPSC product recalls — with graceful degradation and honest health reporting when a source is unreachable.
-- **BLS-wage baselines** for labor costs and **state-specific** permit fees, taxes, and market anchors.
-- **Audio transcription** (Whisper) so voice notes from inspections become structured findings.
+## Quickstart
 
-### 21 analysis modules
-1. **Parse** — extraction from PDF reports (pdfplumber / PyMuPDF)
-2. **Cost** — itemized material / labor / overhead / profit with confidence intervals
-3. **Depreciation** — component-by-component schedules and remaining life
-4. **Market** — price-per-sqft anchors, comparables, trend analysis
-5. **Export** — PDF / Excel / JSON deliverables
-6. **Vision** — evidence summary and photo-to-finding matching
-7. **Permits** — 50-state fee database, unpermitted-work detection, retroactive guidance
-8. **CapEx (24-mo)** — replacement timeline with failure probabilities
-9. **Sandbox** — sellers-credit negotiation scenarios with a live data editor
-10. **Dispatch** — prioritization and urgency ordering
-11. **Legal** — repair addenda and escrow holdback agreements
-12. **Environmental** — flood, seismic, wildfire, and soil risk with mitigation
-13. **Brokerage** — agent performance and brokerage ROI
-14. **Lead magnet** — listing-ready summaries
-15. **Insurance** — insurability score and premium impact
-16. **Investor** — ARV, NOI, cap rate, cash-on-cash, risk scores
-17. **Escrow** — milestone-based holdback structures
-18. **SEO** — listing optimization and analytics
-19. **Audio** — Whisper transcription workflow
-20. **Recalls** — CPSC cross-referenced recall checks
-21. **Spatial** — floor-plan flaw mapping (JSON/CSV/Matterport)
-
-### Premium UI / UX
-- **Apple-inspired design system** — strict type/spacing/radius/shadow scale, self-hosted **Inter** variable font, hairline borders, single accent color.
-- **Frosted-glass floating navigation** with live status indicator.
-- **Dark / Light themes** that persist in the URL (`?theme=dark`) and recolor every component, table, and chart.
-- **Page hero headers**, segmented-control tabs, metric cards, framed tables and charts.
-
----
-
-## Getting started
-
-### Prerequisites
-- Python 3.10+ (tested on 3.13)
-- pip
-
-### Install & run
 ```bash
 git clone https://github.com/dipakjad1993/RealEstate-Repair-Cost-Estimator.git
 cd RealEstate-Repair-Cost-Estimator
-python -m venv venv
-# Windows:  venv\Scripts\activate
-# macOS/Linux: source venv/bin/activate
+python -m venv .venv
+# Windows: .venv\Scripts\activate  |  macOS/Linux: source .venv/bin/activate
 pip install -r requirements.txt
-streamlit run app.py
-```
-Open **http://localhost:8501**.
-
-### Workflow
-1. **Inputs** — enter the address + property profile, paste contractor quotes and permits, upload inspection PDFs, photos, audio, a floorplan (JSON/CSV/Matterport URL), or a closed-deal CSV. Press **Run Analysis**.
-2. **Analysis** — review the 21 modules, each with source badges.
-3. **Results** — verified summaries, CapEx timeline, negotiation sandbox, legal documents, and exports.
-4. **Health** — live status of every data source.
-
-### Optional API keys
-Create `.env` (or set secrets) to unlock live enrichment:
-
-```
-CENSUS_API_KEY=your_key_here
-FEMA_API_KEY=your_key_here
-USGS_API_KEY=your_key_here
-OPENAI_API_KEY=your_key_here
+cp .env.example .env   # add keys to unlock live enrichment (optional)
+streamlit run app.py   # → http://localhost:8501
 ```
 
-Without keys, the tool still runs — it labels enriched values `REQUIRES_KEY` instead of guessing.
+Docker:
 
----
-
-## Architecture
-
-```
-Streamlit app.py
-   ├── Navigation + theme (frosted glass, dark/light, URL-persisted)
-   ├── Inputs  ── ingestion_engine.py  (validate, import, transcribe)
-   ├── Analysis ── analysis_engine.py   (orchestrates 21 modules)
-   ├── Results ── 21 renderers + exports
-   └── Health  ── real_data_fetcher.check_api_health()
-
-engines/ (each a focused, testable unit)
-   real_data_fetcher.py   live Census/BLS/FEMA/USGS/CPSC
-   cost_engine.py · capex_engine.py · market_engine.py · permit_engine.py
-   environmental_engine.py · insurance_engine.py · investor_engine.py
-   recall_engine.py · roi_engine.py · legal_engine.py · seo_engine.py
-   spatial_engine.py · sandbox_engine.py · contractor_engine.py
-   depreciation_engine.py · parser_engine.py · cv_engine.py
-   export_engine.py · voice_engine.py · ingestion_engine.py · analysis_engine.py
+```bash
+docker compose up --build        # Streamlit :8501 + FastAPI :8000
 ```
 
-### Design system
-`static/style.css` defines the full palette (light `#F5F5F7` + dark `#000` tokens), and `static/fonts/Inter-VF.woff2` is the self-hosted, offline-safe font. The theme is applied by Streamlit state, mirrored to the URL, and enforced in CSS — no element falls back to framework defaults.
+Agent API:
 
----
+```bash
+uvicorn api_server:app --port 8000
+# POST /api/estimate_repair · GET /s/{token} · GET /api/openapi.json · GET /llms.txt
+printf '{"method":"tools/list","id":1}\n' | python mcp_server.py
+```
 
-## Configuration
+Quality gates (same as CI):
 
-Key settings live in:
+```bash
+ruff check . && ruff format --check .
+pytest -q
+```
 
-| File | Purpose |
-|------|---------|
-| `config.py` | Market anchors, thresholds, cost baselines |
-| `.streamlit/config.toml` | Server, static serving, base theme |
-| `requirements.txt` | Runtime dependencies |
+## What the engine does
 
----
+| Module | Source of truth |
+|---|---|
+| Cost matrix (DIY / contractor / emergency) | BLS OEWS trade wages + BLS PPI materials + state multipliers, 24h cached |
+| Room-by-room | Good/Fair/Poor/Gut + Low/Mid/High + Immediate (<30d) / 6-mo / 12-mo / Deferred |
+| ARV + rents | Distance/recency/DOM-weighted sold comps; Attom/RentCast/BatchData key-gated, honest fallback |
+| Market baseline (per trade) | `estimate_market_baseline()` — USER_QUOTE wins, else BLS baseline + margin |
+| Permits | User portal rows (authoritative) + BuildFax/Echelon key-gated + retroactive cost/timeline |
+| Insurance + climate v2 | Red flags, denial probability, premium impact, non-renewal risk (2026 FL/CA headlines) |
+| Recalls | Live CPSC SaferProducts.gov cross-reference |
+| CapEx 24-mo | Depreciation tables (versioned) + failure probabilities |
+| Negotiation copilot | Cited offer-credit letter from sandbox + leverage + DOM |
+| Vision 2.0 | Photo → condition/system/confidence; YOLOv8-seg + multimodal LLM key-gated |
+| Voice | faster-whisper/Deepgram (default OFF — no 1GB download), diarization heuristic, transcript→finding link |
+| Exports + sharing | Lazy PDF/Excel/JSON + expiring lender share portal |
 
-## Data sources
+## Data sources (official first, proxies labeled)
 
-| Source | Used for |
-|--------|----------|
-| **US Census** | Housing statistics, market anchors |
-| **BLS** | Occupational wage baselines for labor |
-| **FEMA NFHL** | Flood zone designations |
-| **USGS** | Seismic hazard / peak ground acceleration |
-| **CPSC** | Product recall cross-referencing |
-| **CAL FIRE / USDA** | Wildfire severity and soil classification |
+Census Geocoder + ACS · USGS Earthquake Catalog + Design Maps (ASCE 7-22) · FEMA NFHL ArcGIS/WMS · BLS OEWS/PPI · CPSC recalls · Open-Meteo (supplemental). `floodzonemap.org`, `faultlinemap.com`, Nominatim are **fallback-only** and labeled as such in provenance. Shared session: retries, backoff, timeouts, latency metrics.
 
-All calculations are deterministic (hash-seeded, formula-based) — the same input always produces the same output, and no `random` module is used.
-
----
+Cost/config tables live versioned in `data/*.json` (`data/config_version.json`); `config.py` is a thin loader (`config.legacy.py` preserved for audit). PII is redacted in logs, vaulted with TTL; persistence is Supabase/RLS with sqlite fallback; per-key rate limits on runs and API.
 
 ## Project structure
 
 ```
-RealEstate-Repair-Cost-Estimator/
-├── app.py                      # Streamlit entrypoint (UI, nav, theme)
-├── config.py                   # Baselines & configuration
-├── requirements.txt
-├── .streamlit/config.toml
-├── engines/                    # 22 engine modules (see Architecture)
-├── static/
-│   ├── style.css               # Premium Apple-inspired design system
-│   └── fonts/Inter-VF.woff2    # Self-hosted Inter variable font
-├── templates/                  # Export templates
-├── utils/                      # Shared helpers
-└── data/                       # Local data artifacts
+app.py                    # Streamlit entrypoint (progressive intake, 5-badge UI, PWA)
+api_server.py             # FastAPI: /api/estimate_repair, /s/{token}, /api/openapi.json
+mcp_server.py             # MCP: repair-estimator-mcp (estimate_repair tool for agents)
+config.py                 # Versioned loader over data/*.json
+data/                     # Versioned datasets (config_version.json)
+engines/                  # 30 focused modules (cost, rooms, comps, climate, permits,
+                          #   insurance, recalls, vision, voice, copilot, share, exports…)
+static/                   # Apple-style design system, PWA manifest, llms.txt, openapi.json
+docs/                     # GEO templates (/repair-cost/{state}/{system}/), ARCHITECTURE.md
+tests/                    # Deterministic pytest suite (no live network)
 ```
 
----
+## GEO / agent visibility
 
-## Tech stack
+Next.js-ready MDX template (`docs/repair-cost/_template.mdx`): 50-word answer capsule, Low/Mid/High HTML table, FAQPage + Article schema. `static/llms.txt` invites agent traffic (GPTBot/ClaudeBot/PerplexityBot allowed). Track AI mention rate, citation rate, share of voice, agent-initiated estimates, PDF shares → offers accepted.
 
-| Layer | Technology |
-|-------|------------|
-| Frontend | Streamlit, Plotly |
-| Data | Pandas, NumPy |
-| Document parsing | pdfplumber, PyMuPDF |
-| Audio | openai-whisper |
-| Live data | requests (Census, BLS, FEMA, USGS, CPSC) |
-| Styling | Custom CSS design system (Inter typeface) |
+## Contributing
 
----
+See [CONTRIBUTING.md](CONTRIBUTING.md) — provenance contract, language rules (estimate, never "simulate"), and how to add a data source. Report issues via [GitHub Issues](https://github.com/dipakjad1993/RealEstate-Repair-Cost-Estimator/issues).
 
 ## Disclaimer
 
-This tool is for **informational purposes only** and is **not** a substitute for licensed inspectors, contractors, insurance agents, real estate agents, attorneys, or financial advisors. Estimates derive from regional averages, government datasets, and deterministic models — always verify with local professionals before making decisions. Provided **as is**, without warranty.
-
----
+Informational purposes only — **not** engineering, legal, financial, or insurance advice. Estimates derive from government datasets and deterministic models; actual bids vary. Always verify with licensed local professionals. Provided **as is**, without warranty.
 
 ## License
 
 MIT — see [LICENSE](LICENSE).
 
----
-
-## Contact
-
 **Dipak Jad** · [@dipakjad1993](https://github.com/dipakjad1993) · [Repository](https://github.com/dipakjad1993/RealEstate-Repair-Cost-Estimator)
-
-Issues, questions, and feature requests are welcome via [GitHub Issues](https://github.com/dipakjad1993/RealEstate-Repair-Cost-Estimator/issues).

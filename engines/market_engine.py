@@ -11,15 +11,17 @@ No hash-generated metro numbers.
 
 import logging
 from datetime import datetime
+
 from engines.real_data_fetcher import (
-    get_acs_housing_data, state_to_fips, get_bls_ppi_materials,
+    get_acs_housing_data,
+    get_bls_ppi_materials,
+    state_to_fips,
 )
 
 logger = logging.getLogger(__name__)
 
 
-def generate_market_profile(zip_code: str, state: str = None,
-                            user_mls: dict = None) -> dict:
+def generate_market_profile(zip_code: str, state: str = None, user_mls: dict = None) -> dict:
     """
     user_mls: {list_price, price_per_sqft, dom, property_type, beds, baths,
                sqft, zone, year_built, last_sale_price, mls_notes, source}
@@ -56,8 +58,8 @@ def generate_market_profile(zip_code: str, state: str = None,
         anchor_desc = "No verified market anchor supplied (add MLS data on Page 1)"
 
     estimated_ppsqft = user_mls.get("price_per_sqft") or (
-        round(acs_median / max(user_mls.get("sqft") or 0, 1), 0)
-        if acs_median else None)
+        round(acs_median / max(user_mls.get("sqft") or 0, 1), 0) if acs_median else None
+    )
 
     ppi_avg = None
     if ppi_val:
@@ -116,38 +118,50 @@ def generate_negotiation_strategies(findings, market_profile, property_data):
     strategies = []
 
     if position == "UNDER_ZIP_MEDIAN":
-        strategies.append({
-            "title": "Leverage below-median pricing but cap on repair discovery",
-            "detail": (f"List price is below the zip median. Anchor negotiations on "
-                       f"the {len(high_risk)} high-risk findings (e.g., {high_risk[0].get('description','')[:70]}...)."),
-            "relevance": "REAL_MARKET",
-        })
+        strategies.append(
+            {
+                "title": "Leverage below-median pricing but cap on repair discovery",
+                "detail": (
+                    f"List price is below the zip median. Anchor negotiations on "
+                    f"the {len(high_risk)} high-risk findings (e.g., {high_risk[0].get('description', '')[:70]}...)."
+                ),
+                "relevance": "REAL_MARKET",
+            }
+        )
     elif position == "AT_ZIP_MEDIAN":
-        strategies.append({
-            "title": "Use the verified high-risk repair list as primary credit driver",
-            "detail": "Price sits at zip median; request a sellers-credit equal to verified critical/high repair totals.",
-            "relevance": "REAL_MARKET",
-        })
+        strategies.append(
+            {
+                "title": "Use the verified high-risk repair list as primary credit driver",
+                "detail": "Price sits at zip median; request a sellers-credit equal to verified critical/high repair totals.",
+                "relevance": "REAL_MARKET",
+            }
+        )
     else:
-        strategies.append({
-            "title": "Assert repair-required discount above median",
-            "detail": "Priced above zip median; use repair estimates and permit status to negotiate toward median.",
-            "relevance": "REAL_MARKET",
-        })
+        strategies.append(
+            {
+                "title": "Assert repair-required discount above median",
+                "detail": "Priced above zip median; use repair estimates and permit status to negotiate toward median.",
+                "relevance": "REAL_MARKET",
+            }
+        )
 
     for f in high_risk[:3]:
-        strategies.append({
-            "title": f"Target {f.get('system_category','')} repair credit",
-            "detail": f.get("description", "")[:140],
-            "relevance": "FINDING_DRIVEN",
-        })
+        strategies.append(
+            {
+                "title": f"Target {f.get('system_category', '')} repair credit",
+                "detail": f.get("description", "")[:140],
+                "relevance": "FINDING_DRIVEN",
+            }
+        )
 
     if mkt.get("dom_days") is not None and mkt["dom_days"] > 45:
-        strategies.append({
-            "title": "Long DOM leverage",
-            "detail": f"Listed {mkt['dom_days']} days without a verified sale; seller may accept credits to close.",
-            "relevance": "USER_MLS",
-        })
+        strategies.append(
+            {
+                "title": "Long DOM leverage",
+                "detail": f"Listed {mkt['dom_days']} days without a verified sale; seller may accept credits to close.",
+                "relevance": "USER_MLS",
+            }
+        )
     return strategies
 
 
@@ -155,7 +169,9 @@ def calculate_negotiation_impact(selected_items, market_profile):
     """Compute sellers-credit totals from real cost estimates."""
     impact = {
         "selected_count": len(selected_items),
-        "credit_low": 0, "credit_high": 0, "credit_avg": 0,
+        "credit_low": 0,
+        "credit_high": 0,
+        "credit_avg": 0,
         "line_items": [],
     }
     for item in selected_items:
@@ -163,12 +179,15 @@ def calculate_negotiation_impact(selected_items, market_profile):
         high = item.get("contractor_high") or item.get("total_high") or 0
         impact["credit_low"] += low
         impact["credit_high"] += high
-        impact["line_items"].append({
-            "description": item.get("finding", item.get("description", "")),
-            "severity": item.get("severity"),
-            "system": item.get("system", item.get("system_category")),
-            "credit_low": low, "credit_high": high,
-        })
+        impact["line_items"].append(
+            {
+                "description": item.get("finding", item.get("description", "")),
+                "severity": item.get("severity"),
+                "system": item.get("system", item.get("system_category")),
+                "credit_low": low,
+                "credit_high": high,
+            }
+        )
     impact["credit_avg"] = round((impact["credit_low"] + impact["credit_high"]) / 2, 0)
     impact["credit_low"] = round(impact["credit_low"], 0)
     impact["credit_high"] = round(impact["credit_high"], 0)
@@ -181,7 +200,9 @@ def get_market_trends(state: str = ""):
     vals = ppi.value if ppi and ppi.value else {}
     return {
         "state": state,
-        "ppi_construction_index": round(sum(v for v in vals.values() if v) / max(len(vals), 1), 1) if vals else None,
+        "ppi_construction_index": round(sum(v for v in vals.values() if v) / max(len(vals), 1), 1)
+        if vals
+        else None,
         "trend": "RISING" if (vals and max(v for v in vals.values() if v) > 280) else "STABLE",
         "provenance": ppi.provenance.status if ppi else "UNAVAILABLE",
         "source": ppi.provenance.source if ppi else "",

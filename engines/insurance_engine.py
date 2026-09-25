@@ -8,7 +8,9 @@ Insurance Engine (VERIFIED REBUILD)
 """
 
 from datetime import datetime
+
 from config import INSURANCE_RED_FLAGS
+
 
 def analyze_insurance_risk(findings, property_data, user_quote=None):
     state = property_data.get("state", "")
@@ -23,58 +25,70 @@ def analyze_insurance_risk(findings, property_data, user_quote=None):
         for pattern in patterns:
             pattern_clean = pattern.strip().lower()
             if pattern_clean in all_findings_lower:
-                red_flags.append({
-                    "red_flag_type": flag["description"],
-                    "system": flag["system"],
-                    "risk_score": flag["risk_score"],
-                    "denial_probability": flag["denial_prob"],
-                    "annual_premium_impact": flag["annual_penalty"],
-                    "replacement_cost": flag["replacement_cost"],
-                    "matched_pattern": pattern_clean,
-                    "description": flag["description"],
-                    "recommendation": _get_insurance_recommendation(flag),
-                    "severity": "CRITICAL" if flag["risk_score"] >= 90 else "HIGH" if flag["risk_score"] >= 80 else "MEDIUM",
-                })
+                red_flags.append(
+                    {
+                        "red_flag_type": flag["description"],
+                        "system": flag["system"],
+                        "risk_score": flag["risk_score"],
+                        "denial_probability": flag["denial_prob"],
+                        "annual_premium_impact": flag["annual_penalty"],
+                        "replacement_cost": flag["replacement_cost"],
+                        "matched_pattern": pattern_clean,
+                        "description": flag["description"],
+                        "recommendation": _get_insurance_recommendation(flag),
+                        "severity": "CRITICAL"
+                        if flag["risk_score"] >= 90
+                        else "HIGH"
+                        if flag["risk_score"] >= 80
+                        else "MEDIUM",
+                    }
+                )
                 break
     if prop_age > 25:
         roof_risk = any("roof" in f.get("description", "").lower() for f in findings)
         if roof_risk:
             existing_roof_flag = any(r["system"] == "roof" for r in red_flags)
             if not existing_roof_flag:
-                red_flags.append({
-                    "red_flag_type": "Aging Roof (25+ years)",
-                    "system": "roof",
-                    "risk_score": 70,
-                    "denial_probability": 0.50,
-                    "annual_premium_impact": 1800,
-                    "replacement_cost": 12000,
-                    "matched_pattern": "aging_roof",
-                    "description": "Roof exceeding 25 years poses elevated insurance risk",
-                    "recommendation": "Roof certification may be required for insurance. Budget for replacement.",
-                    "severity": "HIGH",
-                })
+                red_flags.append(
+                    {
+                        "red_flag_type": "Aging Roof (25+ years)",
+                        "system": "roof",
+                        "risk_score": 70,
+                        "denial_probability": 0.50,
+                        "annual_premium_impact": 1800,
+                        "replacement_cost": 12000,
+                        "matched_pattern": "aging_roof",
+                        "description": "Roof exceeding 25 years poses elevated insurance risk",
+                        "recommendation": "Roof certification may be required for insurance. Budget for replacement.",
+                        "severity": "HIGH",
+                    }
+                )
     if prop_age > 30:
         electric_findings = [f for f in findings if f.get("system_category") == "ELECTRICAL"]
         if electric_findings:
-            red_flags.append({
-                "red_flag_type": "Aging Electrical System (30+ years)",
-                "system": "electrical",
-                "risk_score": 65,
-                "denial_probability": 0.40,
-                "annual_premium_impact": 1200,
-                "replacement_cost": 8000,
-                "matched_pattern": "aging_electrical",
-                "description": "Electrical system over 30 years may require panel upgrade for insurance",
-                "recommendation": "Electrical inspection and possible panel upgrade may be required.",
-                "severity": "MEDIUM",
-            })
+            red_flags.append(
+                {
+                    "red_flag_type": "Aging Electrical System (30+ years)",
+                    "system": "electrical",
+                    "risk_score": 65,
+                    "denial_probability": 0.40,
+                    "annual_premium_impact": 1200,
+                    "replacement_cost": 8000,
+                    "matched_pattern": "aging_electrical",
+                    "description": "Electrical system over 30 years may require panel upgrade for insurance",
+                    "recommendation": "Electrical inspection and possible panel upgrade may be required.",
+                    "severity": "MEDIUM",
+                }
+            )
     total_annual_impact = sum(r["annual_premium_impact"] for r in red_flags)
     max_denial_prob = max((r["denial_probability"] for r in red_flags), default=0)
     total_replacement = sum(r["replacement_cost"] for r in red_flags)
 
     base_premium, premium_provenance = _estimate_base_premium(state, prop_age, user_quote)
     inflated_premium = base_premium + total_annual_impact
-    insurability_score = max(10, 100 - (sum(r["risk_score"] for r in red_flags) // len(red_flags)) if red_flags else 100)
+    insurability_score = max(
+        10, 100 - (sum(r["risk_score"] for r in red_flags) // len(red_flags)) if red_flags else 100
+    )
     risk_level = "HIGH" if insurability_score < 40 else "MEDIUM" if insurability_score < 70 else "LOW"
     return {
         "red_flags": sorted(red_flags, key=lambda x: x["risk_score"], reverse=True),
@@ -102,6 +116,7 @@ def analyze_insurance_risk(findings, property_data, user_quote=None):
         },
     }
 
+
 def _estimate_base_premium(state, prop_age, user_quote=None):
     """
     MODELED state benchmark (not a quote). Overridden by user's real carrier
@@ -110,8 +125,15 @@ def _estimate_base_premium(state, prop_age, user_quote=None):
     if user_quote and user_quote.get("annual_premium"):
         return float(user_quote["annual_premium"]), "USER_PROVIDED_CARRIER_QUOTE"
     base_premiums = {
-        "FL": 4500, "TX": 3800, "LA": 3500, "CA": 3200, "NY": 2800,
-        "NJ": 2600, "MA": 2400, "CT": 2200, "RI": 2100,
+        "FL": 4500,
+        "TX": 3800,
+        "LA": 3500,
+        "CA": 3200,
+        "NY": 2800,
+        "NJ": 2600,
+        "MA": 2400,
+        "CT": 2200,
+        "RI": 2100,
         "default": 2000,
     }
     base = base_premiums.get(state, base_premiums["default"])
@@ -120,6 +142,7 @@ def _estimate_base_premium(state, prop_age, user_quote=None):
     elif prop_age > 20:
         base *= 1.10
     return base, "MODELED_STATE_BENCHMARK"
+
 
 def _get_insurance_recommendation(flag):
     system = flag["system"]
@@ -130,6 +153,7 @@ def _get_insurance_recommendation(flag):
         return f"Address {system} issue before policy renewal. Document repairs with licensed contractor for insurance carrier."
     else:
         return f"Monitor {system} condition. Consider proactive repair to prevent future premium increases."
+
 
 def calculate_insurance_scorecard(findings, property_data, user_quote=None):
     analysis = analyze_insurance_risk(findings, property_data, user_quote)
@@ -143,19 +167,26 @@ def calculate_insurance_scorecard(findings, property_data, user_quote=None):
         "five_year_impact": analysis["summary"]["five_year_cost_impact"],
         "verdict": _get_verdict(score),
         "premium_provenance": analysis["summary"]["premium_provenance"],
-        "recommendations": [
-            r["recommendation"] for r in analysis["red_flags"][:5]
-        ],
+        "recommendations": [r["recommendation"] for r in analysis["red_flags"][:5]],
     }
 
+
 def _score_to_grade(score):
-    if score >= 90: return "A"
-    elif score >= 80: return "B+"
-    elif score >= 70: return "B"
-    elif score >= 60: return "C+"
-    elif score >= 50: return "C"
-    elif score >= 40: return "D"
-    else: return "F"
+    if score >= 90:
+        return "A"
+    elif score >= 80:
+        return "B+"
+    elif score >= 70:
+        return "B"
+    elif score >= 60:
+        return "C+"
+    elif score >= 50:
+        return "C"
+    elif score >= 40:
+        return "D"
+    else:
+        return "F"
+
 
 def _get_verdict(score):
     if score >= 80:

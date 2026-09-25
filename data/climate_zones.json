@@ -1,0 +1,95 @@
+{
+ "version": "2026.09.25",
+ "dataset": "climate_zones",
+ "data": {
+  "extremely_hot_arid": {
+   "states": [
+    "AZ",
+    "NV",
+    "NM"
+   ],
+   "risks": [
+    "heat_damage",
+    "uv_degradation",
+    "expansive_soil"
+   ],
+   "insurance_mult": 1.18
+  },
+  "hot_humid": {
+   "states": [
+    "FL",
+    "GA",
+    "SC",
+    "NC",
+    "TX",
+    "LA",
+    "MS",
+    "AL",
+    "HI"
+   ],
+   "risks": [
+    "mold",
+    "termite",
+    "flood",
+    "hurricane"
+   ],
+   "insurance_mult": 1.35
+  },
+  "temperate": {
+   "states": [
+    "CA",
+    "OR",
+    "WA",
+    "CO",
+    "UT"
+   ],
+   "risks": [
+    "wildfire",
+    "earthquake",
+    "drought"
+   ],
+   "insurance_mult": 1.22
+  },
+  "cold_harsh": {
+   "states": [
+    "MN",
+    "WI",
+    "MI",
+    "ND",
+    "SD",
+    "MT",
+    "WY",
+    "ME",
+    "VT",
+    "NH"
+   ],
+   "risks": [
+    "ice_dam",
+    "frozen_pipes",
+    "snow_load",
+    "foundation_heave"
+   ],
+   "insurance_mult": 1.12
+  },
+  "moderate": {
+   "states": [
+    "NY",
+    "NJ",
+    "PA",
+    "OH",
+    "IL",
+    "IN",
+    "VA",
+    "MD",
+    "CT",
+    "MA"
+   ],
+   "risks": [
+    "freeze_thaw",
+    "radon",
+    "aging_infrastructure"
+   ],
+   "insurance_mult": 1.02
+  }
+ }
+}

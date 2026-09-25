@@ -12,8 +12,8 @@ No hash-generated license numbers or invented contractor firms.
 """
 
 import logging
+
 from engines.real_data_fetcher import get_bls_wages, state_to_fips
-from engines.cost_engine import SYSTEM_TO_SOC
 
 logger = logging.getLogger(__name__)
 
@@ -35,14 +35,18 @@ TRADE_BY_SYSTEM = {
 MARKUP = 0.20  # industry standard contractor margin on top of wage cost
 
 
-def simulate_contractor_bids(findings, zip_code, cost_matrix, state="", user_quotes=None):
-    """
-    Returns per-finding dispatch bids. user_quotes: list of
-    {finding_key, contractor, phone, license, low, high, eta_days}.
+def estimate_market_baseline(findings, zip_code, cost_matrix, state="", user_quotes=None):
+    """Deterministic market-baseline estimate per finding (NOT a simulation).
+
+    - USER_QUOTE rows are authoritative and always win when matched.
+    - Otherwise baseline = deterministic cost-matrix row + standard margin,
+      labeled BLS_WAGE_BASELINE (canonical VERIFIED/MODELED).
+    - No invented firm names, ever. Unbid trades are "[AWAITING BID] <trade>".
+    Returns per-finding dispatch estimates.
+    user_quotes: list of {finding_key, contractor, phone, license, low, high, eta_days}.
     """
     user_quotes = user_quotes or []
     wages = get_bls_wages(state_to_fips(state)) if state else None
-    wage_data = wages.value if wages else {}
     wage_prov = wages.provenance.status if wages else "UNAVAILABLE"
 
     bids_by_finding = {}
@@ -67,7 +71,7 @@ def simulate_contractor_bids(findings, zip_code, cost_matrix, state="", user_quo
         if quote:
             low, high = float(quote["low"]), float(quote["high"])
             cost_src = "USER_QUOTE"
-            source_label = f"User-provided quote: {quote.get('contractor','')}"
+            source_label = f"User-provided quote: {quote.get('contractor', '')}"
             license_no = quote.get("license", "")
             contractor_name = quote.get("contractor", "User-provided contractor")
         else:
@@ -76,7 +80,9 @@ def simulate_contractor_bids(findings, zip_code, cost_matrix, state="", user_quo
             low = round(base * (1 + MARKUP), 0)
             high = round(base * high_mult * (1 + MARKUP), 0)
             cost_src = "BLS_WAGE_BASELINE"
-            source_label = f"Baseline from real BLS OEWS wage data ({wage_prov}) + {int(MARKUP*100)}% margin"
+            source_label = (
+                f"Baseline from real BLS OEWS wage data ({wage_prov}) + {int(MARKUP * 100)}% margin"
+            )
             license_no = f"{trade['license_type']} - verify via state {state or 'NA'} license board"
             contractor_name = f"[AWAITING BID] {trade['trade']}"
 
@@ -100,10 +106,24 @@ def simulate_contractor_bids(findings, zip_code, cost_matrix, state="", user_quo
     return bids_by_finding
 
 
+# Back-compat alias: the old "simulate" name is retired. Words matter —
+# deterministic estimate is not a simulation.
+def simulate_contractor_bids(*args, **kwargs):
+    """Deprecated alias for estimate_market_baseline. Do not use in new code."""
+    import warnings
+
+    warnings.warn(
+        "simulate_contractor_bids is deprecated; use estimate_market_baseline",
+        DeprecationWarning,
+        stacklevel=2,
+    )
+    return estimate_market_baseline(*args, **kwargs)
+
+
 def get_contractor_recommendations(bids_by_finding, priority_count=3):
     """Highest-priority (severity-sorted) dispatch list."""
     ordered = sorted(
         bids_by_finding.values(),
         key=lambda b: {"CRITICAL": 0, "HIGH": 1, "MEDIUM": 2, "LOW": 3}.get(b["severity"], 4),
     )
-    return ordered[:max(priority_count, 0)]
+    return ordered[: max(priority_count, 0)]

@@ -13,7 +13,6 @@ No fabricated permit histories or invented contractor names.
 
 import logging
 from datetime import datetime
-from config import MUNICIPAL_PERMIT_TYPES
 
 logger = logging.getLogger(__name__)
 
@@ -27,13 +26,12 @@ SYSTEM_PERMIT_MAP = {
 }
 
 
-def simulate_permit_check(property_data, user_permits=None):
+def check_permit_compliance(property_data, user_permits=None):
+    """Deterministic permit-record compliance check (NOT a simulation).
+
+    Real records only from user_permits (copied from the municipal/county
+    online permit portal). Returns honest status otherwise.
     """
-    Permit record check. Real records only from user_permits (copied from the
-    municipal/county online permit portal). Returns honest status otherwise.
-    """
-    address = property_data.get("address", "")
-    city = property_data.get("city", "")
     state = property_data.get("state", "")
     year_built = property_data.get("year_built", 2000)
     current_year = datetime.now().year
@@ -56,15 +54,20 @@ def simulate_permit_check(property_data, user_permits=None):
         "provenance": "USER_PROVIDED" if real_provided else "UNAVAILABLE",
         "data_note": (
             "Records imported from the property's county/city permit portal."
-            if real_provided else
-            "No real permit records supplied. Free online lookup is available at the "
+            if real_provided
+            else "No real permit records supplied. Free online lookup is available at the "
             "local building department's permit portal; enter those records on Page 1. "
             "This tool does not fabricate permit history."
         ),
         "state_fees_benchmark": _permit_fee_benchmark(state),
         "compliance_summary": {
-            "overall_status": ("REVIEW NEEDED" if open_count or expired_count
-                               else "COMPLIANT" if real_provided else "NO_RECORDS"),
+            "overall_status": (
+                "REVIEW NEEDED"
+                if open_count or expired_count
+                else "COMPLIANT"
+                if real_provided
+                else "NO_RECORDS"
+            ),
             "closed_percentage": round(closed_count / max(len(permits), 1) * 100, 1),
             "recommendations": _generate_permit_recommendations(permits, prop_age, real_provided),
         },
@@ -74,9 +77,16 @@ def simulate_permit_check(property_data, user_permits=None):
 def _permit_fee_benchmark(state):
     """Published municipal permit fee ranges by state (benchmark, not a quote)."""
     fee_map = {
-        "CA": (350, 650), "TX": (150, 350), "FL": (200, 450), "NY": (300, 600),
-        "IL": (200, 450), "PA": (175, 400), "OH": (150, 350), "GA": (150, 350),
-        "NC": (175, 400), "MI": (200, 400),
+        "CA": (350, 650),
+        "TX": (150, 350),
+        "FL": (200, 450),
+        "NY": (300, 600),
+        "IL": (200, 450),
+        "PA": (175, 400),
+        "OH": (150, 350),
+        "GA": (150, 350),
+        "NC": (175, 400),
+        "MI": (200, 400),
     }
     lo, hi = fee_map.get(state, (200, 400))
     return {"low": lo, "high": hi, "note": "Published municipal benchmark; verify at local portal"}
@@ -85,16 +95,24 @@ def _permit_fee_benchmark(state):
 def _generate_permit_recommendations(permits, prop_age, real_provided):
     recs = []
     if not real_provided:
-        recs.append("Pull the official permit history from the municipal portal before closing; unpermitted work affects financing and insurance.")
+        recs.append(
+            "Pull the official permit history from the municipal portal before closing; unpermitted work affects financing and insurance."
+        )
         if prop_age > 25:
-            recs.append("Property is 25+ years old. Older properties may have pre-digital records; request seller affidavit.")
+            recs.append(
+                "Property is 25+ years old. Older properties may have pre-digital records; request seller affidavit."
+            )
         return recs
     open_permits = [p for p in permits if p.get("status", "").lower() == "open"]
     expired_permits = [p for p in permits if p.get("status", "").lower() == "expired"]
     if open_permits:
-        recs.append(f"URGENT: {len(open_permits)} open permit(s). Open permits must be closed before closing; schedule final inspection.")
+        recs.append(
+            f"URGENT: {len(open_permits)} open permit(s). Open permits must be closed before closing; schedule final inspection."
+        )
     if expired_permits:
-        recs.append(f"WARNING: {len(expired_permits)} expired permit(s); may require re-inspection or reinstatement fees.")
+        recs.append(
+            f"WARNING: {len(expired_permits)} expired permit(s); may require re-inspection or reinstatement fees."
+        )
     if not recs:
         recs.append("All provided permits are closed/compliant. Verify final inspection sign-offs.")
     return recs
@@ -112,34 +130,40 @@ def cross_reference_findings_with_permits(findings, permits):
             continue
         if not has_permit:
             risk_level = "HIGH" if system in ["ELECTRICAL", "PLUMBING", "STRUCTURAL"] else "MEDIUM"
-            results.append({
-                "finding": finding.get("description", "")[:100],
-                "system": system,
-                "severity": finding.get("severity", "MEDIUM"),
-                "permit_status": "NO_PERMIT_ON_RECORD" if permits else "PERMIT_HISTORY_NOT_PROVIDED",
-                "warning": f"No {system.lower()} permit in the provided records.",
-                "risk_level": risk_level,
-                "recommendation": "Request seller proof of permits for this work; unpermitted work may affect financing and insurance.",
-                "resolution_options": [
-                    "Retroactive permit (may require opening walls for inspection)",
-                    "Seller disclosure and credit for unpermitted work",
-                    "Professional certification if code-compliant",
-                    "Remove and replace with permitted work",
-                ],
-            })
+            results.append(
+                {
+                    "finding": finding.get("description", "")[:100],
+                    "system": system,
+                    "severity": finding.get("severity", "MEDIUM"),
+                    "permit_status": "NO_PERMIT_ON_RECORD" if permits else "PERMIT_HISTORY_NOT_PROVIDED",
+                    "warning": f"No {system.lower()} permit in the provided records.",
+                    "risk_level": risk_level,
+                    "recommendation": "Request seller proof of permits for this work; unpermitted work may affect financing and insurance.",
+                    "resolution_options": [
+                        "Retroactive permit (may require opening walls for inspection)",
+                        "Seller disclosure and credit for unpermitted work",
+                        "Professional certification if code-compliant",
+                        "Remove and replace with permitted work",
+                    ],
+                }
+            )
         else:
             matching_permit = [p for p in permits if p.get("permit_type", "").lower() in required_permits][0]
-            results.append({
-                "finding": finding.get("description", "")[:100],
-                "system": system,
-                "severity": finding.get("severity", "MEDIUM"),
-                "permit_status": "PERMIT_ON_RECORD",
-                "permit_number": matching_permit.get("permit_number", "N/A"),
-                "permit_date": matching_permit.get("permit_date", "N/A"),
-                "permit_status_detail": matching_permit.get("status", "Unknown"),
-                "risk_level": "LOW" if matching_permit.get("status", "").lower() == "closed" else "MEDIUM",
-                "recommendation": f"Permit #{matching_permit.get('permit_number', 'N/A')} on record; verify final inspection passed.",
-            })
+            results.append(
+                {
+                    "finding": finding.get("description", "")[:100],
+                    "system": system,
+                    "severity": finding.get("severity", "MEDIUM"),
+                    "permit_status": "PERMIT_ON_RECORD",
+                    "permit_number": matching_permit.get("permit_number", "N/A"),
+                    "permit_date": matching_permit.get("permit_date", "N/A"),
+                    "permit_status_detail": matching_permit.get("status", "Unknown"),
+                    "risk_level": "LOW"
+                    if matching_permit.get("status", "").lower() == "closed"
+                    else "MEDIUM",
+                    "recommendation": f"Permit #{matching_permit.get('permit_number', 'N/A')} on record; verify final inspection passed.",
+                }
+            )
 
     unpermitted = [r for r in results if r["permit_status"] != "PERMIT_ON_RECORD"]
     return {
@@ -162,7 +186,10 @@ def extract_permit_needs_from_findings(findings):
     for finding in findings:
         system = finding.get("system_category", "OTHER").upper()
         severity = finding.get("severity", "LOW")
-        if system in ["ELECTRICAL", "PLUMBING", "HVAC", "STRUCTURAL", "ROOF"] and severity in ["CRITICAL", "HIGH"]:
+        if system in ["ELECTRICAL", "PLUMBING", "HVAC", "STRUCTURAL", "ROOF"] and severity in [
+            "CRITICAL",
+            "HIGH",
+        ]:
             permit_type = {
                 "ELECTRICAL": "Electrical Permit",
                 "PLUMBING": "Plumbing Permit",
@@ -170,13 +197,27 @@ def extract_permit_needs_from_findings(findings):
                 "STRUCTURAL": "Building Permit",
                 "ROOF": "Roofing Permit",
             }.get(system, "Building Permit")
-            needs.append({
-                "finding": finding.get("description", "")[:80],
-                "system": system,
-                "severity": severity,
-                "required_permit": permit_type,
-                "note": "Repair of this item will likely require a municipal permit and inspection.",
-                "estimated_fee_range": "$150 - $650 (municipal benchmark)",
-                "typical_timeline": "5-30 business days for approval (verify at local portal)",
-            })
+            needs.append(
+                {
+                    "finding": finding.get("description", "")[:80],
+                    "system": system,
+                    "severity": severity,
+                    "required_permit": permit_type,
+                    "note": "Repair of this item will likely require a municipal permit and inspection.",
+                    "estimated_fee_range": "$150 - $650 (municipal benchmark)",
+                    "typical_timeline": "5-30 business days for approval (verify at local portal)",
+                }
+            )
     return needs
+
+
+def simulate_permit_check(*args, **kwargs):
+    """Deprecated alias for check_permit_compliance. Do not use in new code."""
+    import warnings
+
+    warnings.warn(
+        "simulate_permit_check is deprecated; use check_permit_compliance",
+        DeprecationWarning,
+        stacklevel=2,
+    )
+    return check_permit_compliance(*args, **kwargs)
