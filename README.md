@@ -39,7 +39,7 @@ Apple-grade Streamlit design system (`static/style.css`, self-hosted **Google Sa
 - Type-to-edit numeric fields (no clunky steppers), card-style metrics, segmented pill tabs, dashed-dropzone uploaders, copy-friendly share-link blocks.
 - Health renders a real status table (Operational / Needs API key / Unreachable + checked timestamps) instead of raw debug lines.
 - PDF export sanitizes inspection unicode (em-dashes, bullets, arrows) so the lender package never crashes on real-world text.
-- Mobile-first PWA CSS + web manifest — 70% of walkthroughs happen on a phone in a crawlspace.
+- Mobile-first PWA CSS + web manifest — 70% of walkthroughs happen on a phone in a crawlspace. Sticky frosted nav collapses to brand + scrollable pill strip on phones; metric rows become a 2-up grid.
 - Theme-safe tables everywhere: Streamlit's grid paints on `<canvas>` (ignores CSS, stays white in dark mode), so all read-only tables render as theme-aware HTML (sticky headers, tabular numerals, severity-tinted alerts). Sandbox picker uses native checkboxes, not a grid editor — dark mode is fully audited light + dark via Playwright screenshots.
 
 ## Quickstart

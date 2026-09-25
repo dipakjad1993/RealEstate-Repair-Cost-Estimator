@@ -908,9 +908,34 @@ table.ent-table {
   .hero-title { font-size: 1.7rem !important; line-height: 1.08 !important; }
   .hero-sub { font-size: 0.85rem !important; }
   .prem-brand-title { font-size: 0.95rem !important; }
-  /* Stack Streamlit columns vertically on phones (testid is stColumn) */
+  /* Stack Streamlit columns vertically on phones */
   [data-testid="stColumn"] { min-width: 100% !important; flex: 1 1 100% !important; }
   [data-testid="stHorizontalBlock"] { flex-wrap: wrap !important; }
+
+  /* NAV NEVER STACKS: row 1 = brand + toggle, row 2 = scrollable pill strip */
+  [data-testid="stHorizontalBlock"]:has(.prem-brand) { flex-wrap: wrap !important; }
+  [data-testid="stHorizontalBlock"]:has(.prem-brand) > [data-testid="stColumn"]:first-child {
+    flex: 1 1 60% !important; min-width: 0 !important;
+  }
+  [data-testid="stHorizontalBlock"]:has(.prem-brand) > [data-testid="stColumn"]:nth-child(2) {
+    order: 3 !important; flex: 1 1 100% !important; min-width: 100% !important;
+  }
+  [data-testid="stHorizontalBlock"]:has(.prem-brand) > [data-testid="stColumn"]:last-child {
+    order: 2 !important; flex: 1 1 32% !important; min-width: 0 !important;
+  }
+  [data-testid="stHorizontalBlock"]:has(.prem-brand) [data-testid="stColumn"] [data-testid="stHorizontalBlock"] {
+    flex-wrap: nowrap !important; overflow-x: auto !important; scrollbar-width: none !important;
+  }
+  [data-testid="stHorizontalBlock"]:has(.prem-brand) [data-testid="stColumn"] [data-testid="stHorizontalBlock"] > [data-testid="stColumn"] {
+    flex: 0 0 auto !important; min-width: max-content !important;
+  }
+  [data-testid="stHorizontalBlock"]:has(.prem-brand) [data-testid="stWidgetLabel"] {
+    display: none !important;
+  }
+  /* Metric rows become a 2-up grid instead of a long single column */
+  [data-testid="stHorizontalBlock"]:has([data-testid="stMetric"]) > [data-testid="stColumn"] {
+    flex: 1 1 46% !important; min-width: 46% !important;
+  }
   /* Tables: horizontal scroll, sticky first col, larger touch targets */
   [data-testid="stDataFrame"], .stDataEditor { overflow-x: auto !important; font-size: 0.8rem !important; }
   .stButton > button, .stDownloadButton > button { min-height: 44px !important; font-size: 1rem !important; }
