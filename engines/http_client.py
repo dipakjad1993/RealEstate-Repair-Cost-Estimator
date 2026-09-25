@@ -88,7 +88,7 @@ def _record(url, ms, status):
 def latency_summary():
     out = {}
     for host, samples in _LAT.items():
-        ms = [x["ms"] for x in samples if isinstance(x["ms"], (int, float))]
+        ms = [x["ms"] for x in samples if isinstance(x["ms"], int | float)]
         if not ms:
             continue
         out[host] = {

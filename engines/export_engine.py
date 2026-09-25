@@ -794,7 +794,7 @@ def generate_pdf_report(
     total_savings = 0
     for r in recall_items:
         sav = r.get("potential_savings", r.get("estimated_savings", 0))
-        if isinstance(sav, (int, float)):
+        if isinstance(sav, int | float):
             total_savings += sav
         recall_rows += f"""
         <tr>
@@ -803,7 +803,7 @@ def generate_pdf_report(
           <td>{r.get("recall_date", r.get("date", "N/A"))}</td>
           <td><span style="color:{_severity_color(r.get("severity", "HIGH"))};font-weight:600">{r.get("status", "RECALL")}</span></td>
           <td style="font-size:12px">{r.get("description", r.get("recall_description", "N/A"))}</td>
-          <td style="text-align:right">{format_currency(sav) if isinstance(sav, (int, float)) else sav}</td>
+          <td style="text-align:right">{format_currency(sav) if isinstance(sav, int | float) else sav}</td>
         </tr>"""
 
     escrow_items = _safe_list(escrow_data)
