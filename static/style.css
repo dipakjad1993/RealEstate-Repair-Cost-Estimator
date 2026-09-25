@@ -11,7 +11,7 @@
   font-style: normal;
   font-display: swap;
   font-weight: 100 900;
-  src: url('/app/static/fonts/Inter-VF.woff2') format('woff2-variations');
+  src: url('/app/static/fonts/Inter-VF.woff2') format('woff2');
 }
 @font-face {
   font-family: 'Inter';
@@ -315,10 +315,16 @@ button[data-testid="baseButton-secondary"]:not([class*="nav"]):hover {
 }
 
 /* ── INPUTS ────────────────────────────────────────────── */
+/* NOTE: baseweb nests [data-baseweb="input"] > [data-baseweb="base-input"];
+   the INNER box paints the visible fill — both must be themed. */
 [data-testid="stTextInput"] [data-baseweb="input"],
 [data-testid="stNumberInput"] [data-baseweb="input"],
 [data-testid="stDateInput"] [data-baseweb="input"],
 [data-testid="stTimeInput"] [data-baseweb="input"],
+[data-testid="stTextInput"] [data-baseweb="base-input"],
+[data-testid="stNumberInput"] [data-baseweb="base-input"],
+[data-testid="stDateInput"] [data-baseweb="base-input"],
+[data-testid="stTimeInput"] [data-baseweb="base-input"],
 [data-testid="stTextArea"] textarea,
 [data-testid="stSelectbox"] [data-baseweb="select"] > div,
 [data-testid="stMultiselect"] [data-baseweb="select"] > div {
@@ -329,16 +335,33 @@ button[data-testid="baseButton-secondary"]:not([class*="nav"]):hover {
   min-height: 44px !important;
   transition: border-color var(--t), box-shadow var(--t) !important;
 }
+/* Inner box must not double-draw borders */
+[data-testid="stTextInput"] [data-baseweb="base-input"],
+[data-testid="stNumberInput"] [data-baseweb="base-input"],
+[data-testid="stDateInput"] [data-baseweb="base-input"],
+[data-testid="stTimeInput"] [data-baseweb="base-input"] {
+  border: none !important;
+  box-shadow: none !important;
+  min-height: 42px !important;
+}
 [data-testid="stTextArea"] textarea { min-height: auto !important; }
 [data-testid="stTextInput"] [data-baseweb="input"]:hover,
 [data-testid="stNumberInput"] [data-baseweb="input"]:hover,
+[data-testid="stTextInput"] [data-baseweb="base-input"]:hover,
+[data-testid="stNumberInput"] [data-baseweb="base-input"]:hover,
 [data-testid="stSelectbox"] [data-baseweb="select"] > div:hover,
 [data-testid="stMultiselect"] [data-baseweb="select"] > div:hover,
 [data-testid="stTextArea"] textarea:hover {
   border-color: var(--ink-3) !important;
 }
+[data-testid="stTextInput"] [data-baseweb="base-input"]:hover,
+[data-testid="stNumberInput"] [data-baseweb="base-input"]:hover {
+  border: none !important;
+}
 [data-testid="stTextInput"] [data-baseweb="input"]:focus-within,
 [data-testid="stNumberInput"] [data-baseweb="input"]:focus-within,
+[data-testid="stTextInput"] [data-baseweb="base-input"]:focus-within,
+[data-testid="stNumberInput"] [data-baseweb="base-input"]:focus-within,
 [data-testid="stDateInput"] [data-baseweb="input"]:focus-within,
 [data-testid="stTimeInput"] [data-baseweb="input"]:focus-within,
 [data-testid="stSelectbox"] [data-baseweb="select"] > div:focus-within,
@@ -381,19 +404,12 @@ button[data-testid="baseButton-secondary"]:not([class*="nav"]):hover {
 }
 [data-testid="InputInstructions"] { display: none !important; }
 
-/* Number steppers */
+/* Number inputs: type-to-edit, no clunky steppers (values still typed + validated) */
 [data-testid="stNumberInput"] button,
 [data-testid="stNumberInput"] [data-baseweb="button"] {
-  background: var(--surface) !important;
-  border: 1px solid var(--line) !important;
-  border-radius: var(--r-xs) !important;
-  color: var(--ink-2) !important;
+  display: none !important;
 }
-[data-testid="stNumberInput"] button:hover {
-  color: var(--accent) !important;
-  border-color: var(--accent) !important;
-}
-[data-testid="stNumberInput"] button svg { fill: currentColor !important; }
+[data-testid="stNumberInput"] [data-baseweb="input"] { padding-right: 0.8rem !important; }
 
 /* ── DROPDOWNS / MENUS / TOOLTIPS ──────────────────────── */
 [data-baseweb="popover"] [data-testid="stPopoverBody"],
@@ -674,6 +690,64 @@ hr { border-color: var(--line) !important; }
 [data-testid="stProgress"] > div { background: var(--accent) !important; }
 
 [data-testid="stVerticalBlock"] [data-testid="stHorizontalBlock"] { gap: 0.75rem; }
+
+/* ── ENTERPRISE SECTIONS ─────────────────────────────── */
+.form-section { padding: 1.1rem 0 0.2rem; }
+.form-section:first-child { padding-top: 0.2rem; }
+.section-eyebrow {
+  font-size: 0.7rem; font-weight: 700;
+  letter-spacing: 0.12em; text-transform: uppercase;
+  color: var(--accent); margin-bottom: 0.25rem;
+  font-family: var(--font) !important;
+}
+.section-title {
+  font-size: 1.12rem; font-weight: 700;
+  letter-spacing: -0.02em; line-height: 1.25;
+  color: var(--ink);
+  font-family: var(--font) !important;
+}
+.section-sub {
+  font-size: 0.82rem; color: var(--ink-2);
+  margin-top: 0.2rem; line-height: 1.5;
+  font-family: var(--font) !important;
+}
+.pill-muted {
+  display: inline-block;
+  font-size: 0.68rem; font-weight: 600;
+  color: var(--ink-2);
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: var(--r-pill);
+  padding: 0.1rem 0.55rem;
+  margin-left: 0.4rem;
+  vertical-align: middle;
+  font-family: var(--font) !important;
+}
+
+/* ── FORM SHELL ──────────────────────────────────────── */
+[data-testid="stForm"] {
+  background: var(--surface) !important;
+  border: 1px solid var(--line) !important;
+  border-radius: var(--r-lg) !important;
+  box-shadow: var(--shadow-xs) !important;
+  padding: 1.4rem 1.6rem 1.6rem !important;
+}
+[data-testid="stForm"] hr { margin: 1.2rem 0 !important; }
+
+/* ── CODE BLOCKS (share links, tokens) ───────────────── */
+[data-testid="stCodeBlock"] {
+  border: 1px solid var(--line) !important;
+  border-radius: var(--r-sm) !important;
+  background: var(--surface-2) !important;
+}
+[data-testid="stCodeBlock"] code {
+  font-family: var(--mono) !important;
+  font-size: 0.78rem !important;
+  color: var(--ink) !important;
+}
+
+/* ── DIVIDERS BETWEEN CONTENT BLOCKS ─────────────────── */
+[data-testid="stMain"] hr { margin: 1.6rem 0 !important; }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

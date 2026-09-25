@@ -1,4 +1,4 @@
-# Real Estate Repair Cost Estimator — v3.1 Enterprise
+# Real Estate Repair Cost Estimator — v3.2 Enterprise
 
 [![CI](https://github.com/dipakjad1993/RealEstate-Repair-Cost-Estimator/actions/workflows/ci.yml/badge.svg)](https://github.com/dipakjad1993/RealEstate-Repair-Cost-Estimator/actions/workflows/ci.yml)
 [![Python](https://img.shields.io/badge/python-3.10%E2%80%933.13-blue)](https://www.python.org/)
@@ -29,7 +29,17 @@ Deterministic means reproducible: same inputs → same outputs, no randomness, n
 2. **Deep dive** — upload the inspection PDF (parsed with PyMuPDF + `pymupdf4llm`, chunk-perfect for RAG), damage photos (Vision 2.0 → condition/system/confidence + honest *NOT-visible* list), voice notes (faster-whisper/Deepgram, optional), floorplan JSON/CSV/Matterport, contractor quotes, permit rows, sold comps.
 3. **Analysis** — 21-module dossier: cost matrix, CapEx, rooms, ARV, market baseline, permits, insurance, climate, recalls, vision, voice, copilot letter.
 4. **Results** — lender share link (expiring HMAC URL, redacted PII), full PDF package, Excel workbook, auditable JSON.
-5. **Health** — live status + per-host latency for every data source.
+5. **Health** — live status + per-host latency for every data source (1h cached, loads in seconds).
+
+## Interface (v3.2)
+
+Apple-grade Streamlit design system (`static/style.css`, self-hosted Inter, frosted-glass sticky nav, true-black dark mode via `?theme=dark`):
+
+- One H1 per page (hero headers; enforced by test), numbered section rhythm across the intake form, Step-0 ballpark as a hero card — not a buried expander.
+- Type-to-edit numeric fields (no clunky steppers), card-style metrics, segmented pill tabs, dashed-dropzone uploaders, copy-friendly share-link blocks.
+- Health renders a real status table (Operational / Needs API key / Unreachable + checked timestamps) instead of raw debug lines.
+- PDF export sanitizes inspection unicode (em-dashes, bullets, arrows) so the lender package never crashes on real-world text.
+- Mobile-first PWA CSS + web manifest — 70% of walkthroughs happen on a phone in a crawlspace.
 
 ## Quickstart
 

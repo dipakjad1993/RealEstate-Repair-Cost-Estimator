@@ -143,6 +143,16 @@ def money(v):
         return "—"
 
 
+def section(number: str, title: str, sub: str = ""):
+    """Numbered enterprise section header with consistent rhythm."""
+    sub_html = f"<div class='section-sub'>{sub}</div>" if sub else ""
+    st.markdown(
+        f"<div class='form-section'><div class='section-eyebrow'>Section {number}</div>"
+        f"<div class='section-title'>{title}</div>{sub_html}</div>",
+        unsafe_allow_html=True,
+    )
+
+
 # ------------------------------------------------------------------
 # Theme + CSS injection
 # ------------------------------------------------------------------
@@ -367,6 +377,13 @@ def _cached_health():
     return _h()
 
 
+@st.cache_data(ttl=3600, show_spinner="Probing live data sources…")
+def _cached_detailed_health():
+    from engines.gov_sources_v2 import detailed_health as _dh
+
+    return _dh()
+
+
 def run_pipeline(session):
     pd_ = session["property_data"]
     mls = session["mls"]
@@ -516,7 +533,6 @@ def run_pipeline(session):
 # Page 1 - Inputs
 # ------------------------------------------------------------------
 def page_inputs():
-    st.title("🔨 Real Estate Repair Cost Estimator")
     st.caption(
         "Every output is derived from **real, verified data** (Census · BLS · FEMA · USGS · CPSC) "
         "or honestly labeled MODELED / UNAVAILABLE. Nothing is fabricated. "
@@ -525,9 +541,12 @@ def page_inputs():
     st.markdown("<link rel='manifest' href='/app/static/manifest.webmanifest'>", unsafe_allow_html=True)
 
     # ---- STEP 0 · Progressive intake: address-only instant ballpark (60s) ----
-    with st.expander("⚡ Step 0 · Instant ballpark — address only (no homework)", expanded=False):
-        st.caption(
-            "PropLab-style: address -> live market + climate + ballpark. Unlock the deep dive after PDF upload."
+    with st.container(border=True):
+        st.markdown(
+            "<div class='section-eyebrow'>Step 0 · 60 seconds</div>"
+            "<div class='section-title'>Instant ballpark — address only</div>"
+            "<div class='section-sub'>Live market anchor + climate risk. No homework, no upload.</div>",
+            unsafe_allow_html=True,
         )
         with st.form("quick_form"):
             q1, q2, q3, q4 = st.columns(4)
@@ -568,7 +587,7 @@ def page_inputs():
                     st.warning("Enter ZIP + state for a ballpark.")
 
     with st.form("input_form"):
-        st.subheader("1 · Property Metadata (required)")
+        section("1", "Property Metadata", "Required — address identity for verification-grade lookups.")
         c1, c2, c3 = st.columns(3)
         with c1:
             addr = st.text_input("Street address", placeholder="e.g. 1234 Maple Ave")
@@ -591,7 +610,7 @@ def page_inputs():
             sqft = st.number_input("Square footage", 100, 50000, 1800)
             year_built = st.number_input("Year built", 1800, 2026, 1995)
 
-        st.subheader("2 · Market & Geospatial Feeds (MLS)")
+        section("2", "Market & Geospatial Feeds", "MLS context — highest-authority market anchor.")
         c1, c2, c3 = st.columns(3)
         with c1:
             list_price = st.number_input("List price ($)", 0, 100_000_000, 0, 1000)
@@ -606,7 +625,7 @@ def page_inputs():
             st.write("✔ Census ACS (zip median value/rent) · ✔ USGS seismic/earthquakes")
             st.write("✔ FEMA flood zone · ✔ CPSC recalls · ✔ Open-Meteo · ✔ BLS wages/PPI")
 
-        st.subheader("3 · Price / Underwriting Data")
+        section("3", "Price & Underwriting", "Deal math inputs for investor mode.")
         c1, c2, c3 = st.columns(3)
         with c1:
             premium = st.number_input("Carrier annual premium quote ($)", 0, 1_000_000, 0, 100)
@@ -617,7 +636,7 @@ def page_inputs():
         with c3:
             holding_months = st.number_input("Holding months", 1, 24, 6)
 
-        st.subheader("4 · Contractor Quotes (optional but highest authority)")
+        section("4", "Contractor Quotes", "Optional — pasted quotes always win over baselines.")
         st.caption("Paste rows as: finding_key | contractor | license | low | high | eta_days")
         quotes_txt = st.text_area(
             "One quote per line",
@@ -625,7 +644,7 @@ def page_inputs():
             placeholder="heat exchanger crack | A1 HVAC LLC | CA-123456 | 1800 | 2600 | 5",
         )
 
-        st.subheader("5 · Permit Records (from your county/city portal)")
+        section("5", "Permit Records", "Copied from the county/city portal — never fabricated.")
         st.caption("Paste rows as: permit_type | permit_number | date | status | description")
         permits_txt = st.text_area(
             "One permit per line",
@@ -633,7 +652,7 @@ def page_inputs():
             placeholder="Electrical Permit | EL-2021-4412 | 2021-03-15 | Closed | Panel upgrade",
         )
 
-        st.subheader("6 · Evidence Uploads")
+        section("6", "Evidence Uploads", "PDF reports, damage photos, voice notes, floorplans.")
         c1, c2 = st.columns(2)
         with c1:
             pdfs = st.file_uploader(
@@ -660,14 +679,14 @@ def page_inputs():
                 "Matterport model URL (optional)", placeholder="https://my.matterport.com/..."
             )
 
-        st.subheader("7 · Brokerage Transactions (CSV, optional)")
+        section("7", "Brokerage Transactions", "Optional CSV for brokerage ROI.")
         txns_csv = st.file_uploader(
             "Closed-deal records",
             type=["csv"],
             help="Columns: agent,zip_code,date,credits_negotiated,items_requested,items_granted,deal_value",
         )
 
-        st.subheader("8 · Sold comps for ARV (optional, key-gated live)")
+        section("8", "Sold Comps for ARV", "Optional — paste comps or connect Attom/RentCast.")
         st.caption(
             "Paste rows as: price | sqft | distance_mi | recency_days | dom — or connect Attom/RentCast keys in .env"
         )
@@ -812,78 +831,77 @@ def _parse_csv(file):
 def page_results():
     res = st.session_state["results"]
     sess = st.session_state["session"]
-    st.title("📊 Verified Analysis Results")
-
     st.caption(
         f"Generated {res['generated_at']} · ZIP {sess['property_data']['zip_code']} · "
         f"{len(sess['findings'])} findings · Sources: {len(sess['ingestion_report']['report_sources'])} PDF(s), "
         f"{len(sess['ingestion_report']['audio_sources'])} audio"
     )
 
-    # Lender share + full-package exports (wired, not just download buttons)
+    # Lender share link (full-width, copy-friendly) + export row
     with st.container(border=True):
-        c1, c2, c3 = st.columns([1.4, 1.2, 1.2])
-        with c1:
-            tok = res.get("share_token")
-            if tok:
-                from engines.share_engine import share_url as _su
+        st.markdown(
+            "**Lender share link** <span class='pill-muted'>expiring · redacted PII</span>",
+            unsafe_allow_html=True,
+        )
+        tok = res.get("share_token")
+        if tok:
+            from engines.share_engine import share_url as _su
 
-                st.markdown(f"🔗 **Lender share link** (expiring, redacted PII): `{_su(tok)[:90]}…`")
-                st.code(_su(tok), language="text")
-            else:
-                st.caption("Share link unavailable for this run.")
-        with c2:
-            try:
-                from engines.export_pdf import build_pdf_package as _pdf
+            st.code(_su(tok), language="text")
+        else:
+            st.caption("Share link unavailable for this run.")
+    d1, d2, d3 = st.columns(3)
+    with d1:
+        try:
+            from engines.export_pdf import build_pdf_package as _pdf
 
-                pdf_bytes = _pdf(
-                    res["cost_matrix"].get("summary", {}), res["cost_matrix"].get("line_items", [])
-                )
-                st.download_button(
-                    "⬇ Full PDF package (lender portal)",
-                    pdf_bytes,
-                    file_name="lender_repair_package.pdf",
-                    mime="application/pdf",
-                    use_container_width=True,
-                )
-            except Exception as e:
-                st.caption(f"PDF unavailable: {e}")
-        with c3:
-            try:
-                from engines.export_excel import build_excel_workbook as _xl
-
-                xl = _xl(
-                    res["cost_matrix"].get("line_items", []),
-                    res.get("rooms") if isinstance(res.get("rooms"), list) else None,
-                    res.get("arv_comps") if isinstance(res.get("arv_comps"), dict) else None,
-                )
-                st.download_button(
-                    "⬇ Excel workbook (items+rooms+comps)",
-                    xl,
-                    file_name="repair_workbook.xlsx",
-                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                    use_container_width=True,
-                )
-            except Exception as e:
-                st.caption(f"Excel unavailable: {e}")
+            pdf_bytes = _pdf(res["cost_matrix"].get("summary", {}), res["cost_matrix"].get("line_items", []))
             st.download_button(
-                "⬇ JSON (auditable)",
-                json.dumps(res["cost_matrix"], indent=2, default=str),
-                file_name="cost_matrix.json",
+                "Full PDF package",
+                pdf_bytes,
+                file_name="lender_repair_package.pdf",
+                mime="application/pdf",
                 use_container_width=True,
             )
+        except Exception as e:
+            st.caption(f"PDF unavailable: {e}")
+    with d2:
+        try:
+            from engines.export_excel import build_excel_workbook as _xl
+
+            xl = _xl(
+                res["cost_matrix"].get("line_items", []),
+                res.get("rooms") if isinstance(res.get("rooms"), list) else None,
+                res.get("arv_comps") if isinstance(res.get("arv_comps"), dict) else None,
+            )
+            st.download_button(
+                "Excel workbook",
+                xl,
+                file_name="repair_workbook.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                use_container_width=True,
+            )
+        except Exception as e:
+            st.caption(f"Excel unavailable: {e}")
+    with d3:
+        st.download_button(
+            "JSON (auditable)",
+            json.dumps(res["cost_matrix"], indent=2, default=str),
+            file_name="cost_matrix.json",
+            use_container_width=True,
+        )
 
     t1, t2, t3, t4, t5, t6, t7, t8, t9 = st.tabs(
         [
-            "💰 Financial Matrix",
-            "🏠 Rooms & ARV",
-            "⏳ 24-Month CapEx",
-            "🤝 Sandbox + Copilot",
-            "⚖️ Legal Addendums",
-            "🧰 Market Baseline",
-            "🗺️ Spatial & Vision",
-            "🛡️ Insurance, Climate & Recalls",
-            "🌐 Pages & ROI",
+            "Financial Matrix",
+            "Rooms & ARV",
+            "24-Month CapEx",
+            "Sandbox + Copilot",
+            "Legal Addendums",
+            "Market Baseline",
+            "Spatial & Vision",
+            "Insurance, Climate & Recalls",
+            "Pages & ROI",
         ]
     )
 
@@ -1370,7 +1388,6 @@ def page_analysis():
     sess = st.session_state["session"]
     d = res["deep_analysis"]
 
-    st.title("🔬 Deep Analysis & Research Dossier")
     st.caption(
         "Long-form, line-item analytical output across all 21 platform modules. "
         "Every figure is real (live government data, user MLS/quotes) or honestly "
@@ -1933,30 +1950,42 @@ def _render_m21(d, res, sess):
 
 
 def page_health():
-    st.subheader("🔎 Live data source health + latency")
     st.caption(
         "Official endpoints first; proxies labeled fallback. Retries + backoff + timeouts via shared session. "
-        "Honest UNAVAILABLE when unreachable — nobody else admits it."
+        "Honest UNAVAILABLE when unreachable — nobody else admits it. Results cached 1h."
     )
     try:
         from config import config_version
-        from engines.gov_sources_v2 import detailed_health
 
         st.caption(
             f"Config version: `{config_version()}` · Whisper backend: `{__import__('os').environ.get('WHISPER_BACKEND', 'none')}`"
         )
-        det = detailed_health()
+        det = _cached_detailed_health()
+        rows = []
         for k, v in det.items():
             if k in ("latency_ms", "official_endpoints"):
                 continue
             if isinstance(v, dict) and "ok" in v:
-                ok = "🟢" if v["ok"] else ("🟠" if v.get("status") == "REQUIRES_KEY" else "🔴")
-                st.markdown(f"{ok} **{k}** — `{v}`")
-            else:
-                st.markdown(f"⚪ **{k}** — `{v}`")
+                status = (
+                    "Operational"
+                    if v["ok"]
+                    else ("Needs API key" if v.get("status") == "REQUIRES_KEY" else "Unreachable")
+                )
+                rows.append(
+                    {
+                        "Source": k.replace("_", " ").title(),
+                        "Status": (
+                            "🟢 " if v["ok"] else ("🟠 " if v.get("status") == "REQUIRES_KEY" else "🔴 ")
+                        )
+                        + status,
+                        "Checked (UTC)": str(v.get("at", ""))[:19],
+                    }
+                )
+        if rows:
+            st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
         lat = det.get("latency_ms") or {}
         if lat:
-            st.subheader("API latency (ms, in-session)")
+            section("H-1", "API latency", "In-session per-host timing from the shared HTTP client.")
             st.dataframe(
                 pd.DataFrame(
                     [

@@ -1,8 +1,11 @@
 """Deterministic engine tests — no network (mocked), no randomness."""
 
+from pathlib import Path
+
 from engines.climate_engine_v2 import assess_climate_v2
 from engines.comps_engine import estimate_arv, weight_comps
 from engines.contractor_engine import estimate_market_baseline
+from engines.export_pdf import _safe, build_pdf_package
 from engines.negotiation_copilot import draft_offer_credit
 from engines.pii_vault import redact_pii
 from engines.rate_limit import RateLimiter
@@ -109,3 +112,26 @@ def test_pii_redaction():
 def test_rate_limiter():
     rl = RateLimiter(max_calls=2, window_s=60)
     assert rl.allow("u1") and rl.allow("u1") and not rl.allow("u1")
+
+
+def test_pdf_export_unicode_safe():
+    assert _safe("em—dash–en “quotes” • bullet → arrow").isascii()
+    b = build_pdf_package(
+        {"total_avg": 12500, "total_low": 9000, "total_high": 17000},
+        [
+            {
+                "severity": "HIGH",
+                "system": "ROOF",
+                "finding": "Active leak — flashing failed • urgent → replace “now”",
+                "contractor_low": 8000,
+                "contractor_high": 12000,
+                "provenance": "MODELED",
+            }
+        ],
+    )
+    assert b[:5] == b"%PDF-"
+
+
+def test_single_h1_per_page():
+    app = (Path(__file__).resolve().parents[1] / "app.py").read_text(encoding="utf-8")
+    assert app.count("st.title(") == 0, "hero headers are the single H1; no st.title duplicates"

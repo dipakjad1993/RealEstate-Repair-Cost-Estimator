@@ -230,7 +230,7 @@ def _module_parse(session):
         "status": "VERIFIED" if len(rep["report_sources"]) else "NO_UPLOAD",
         "narrative": (
             "Normalized inspection documents into structured findings. Text layers were "
-            "extracted with pdfplumber; severity blocks, tables, and bullet lists were "
+            "extracted with PyMuPDF + pymupdf4llm; severity blocks, tables, and bullet lists were "
             "parsed independently and deduplicated by semantic similarity. Photo positions "
             "were matched to findings by page context."
         ),
