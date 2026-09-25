@@ -153,6 +153,81 @@ def section(number: str, title: str, sub: str = ""):
     )
 
 
+def dtable(data, use_container_width=True, hide_index=True, **kwargs):
+    """Theme-safe data table (enterprise).
+
+    Streamlit's grid paints cells on <canvas> using its own engine, which
+    ignores page CSS — white grid in dark mode. This renders an Apple-style
+    HTML table driven by theme vars, so tables look correct in light + dark,
+    print cleanly, and copy well. Accepts a DataFrame or list of dicts.
+    """
+    import html as _html
+
+    if data is None:
+        st.caption("No rows.")
+        return
+    if hasattr(data, "to_dict"):
+        try:
+            records = data.to_dict(orient="records")
+            columns = list(data.columns)
+        except Exception:
+            records = []
+            columns = []
+    elif isinstance(data, list):
+        records = [r if isinstance(r, dict) else {"Value": r} for r in data]
+        columns = []
+        for r in records:
+            for k in r:
+                if k not in columns:
+                    columns.append(k)
+    else:
+        st.caption("No rows.")
+        return
+    if not records:
+        st.caption("No rows.")
+        return
+
+    def _is_num_col(col):
+        hits = 0
+        seen = 0
+        for r in records[:50]:
+            v = r.get(col)
+            if v is None or v == "":
+                continue
+            seen += 1
+            s = str(v).strip().replace("$", "").replace(",", "").replace("%", "")
+            try:
+                float(s)
+                hits += 1
+            except (TypeError, ValueError):
+                pass
+        return seen > 0 and hits / seen >= 0.7
+
+    num_cols = {c for c in columns if _is_num_col(c)}
+    thead = "".join(f"<th>{_html.escape(str(c))}</th>" for c in columns)
+    body = []
+    for r in records:
+        tds = []
+        for c in columns:
+            v = r.get(c, "")
+            s = "" if v is None else str(v)
+            if len(s) > 220:
+                cell = f"<td title='{_html.escape(s, quote=True)}'>{_html.escape(s[:220])}…</td>"
+            else:
+                cell = f"<td>{_html.escape(s)}</td>"
+            if c in num_cols:
+                cell = cell.replace("<td", "<td class='num'", 1)
+            tds.append(cell)
+        body.append("<tr>" + "".join(tds) + "</tr>")
+    st.markdown(
+        "<div class='ent-table-wrap'><table class='ent-table'>"
+        f"<thead><tr>{thead}</tr></thead><tbody>{''.join(body)}</tbody>"
+        "</table></div>",
+        unsafe_allow_html=True,
+    )
+    st.caption(f"{len(records)} row(s).")
+
+
 # ------------------------------------------------------------------
 # Theme + CSS injection
 # ------------------------------------------------------------------
@@ -237,7 +312,10 @@ def theme_plotly(fig):
     fig.update_layout(
         paper_bgcolor="rgba(0, 0, 0, 0)",
         plot_bgcolor="rgba(0, 0, 0, 0)",
-        font=dict(family="Inter, -apple-system, 'Segoe UI', sans-serif", color=text),
+        font=dict(
+            family="'Google Sans Flex', 'Google Sans', Inter, -apple-system, 'Segoe UI', sans-serif",
+            color=text,
+        ),
         title_font_color=text,
         colorway=["#0071E3", "#5AC8FA", "#FF9F0A", "#FF375F", "#32D74B", "#BF5AF2", "#FFD60A", "#64D2FF"],
         hoverlabel=dict(
@@ -295,8 +373,8 @@ PAGE_HERO = {
 
 def render_top_nav():
     current = st.session_state.get("page", "Inputs")
-    with st.container(border=True):
-        brand, nav, theme = st.columns([1.8, 2.4, 1.0], vertical_alignment="center", gap="medium")
+    with st.container():
+        brand, nav, theme = st.columns([1.7, 2.1, 1.4], vertical_alignment="center", gap="medium")
         with brand:
             st.markdown(
                 """
@@ -952,7 +1030,7 @@ def render_financial_matrix(res, sess):
                 "Source": badge(item["provenance"]),
             }
         )
-    st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
+    dtable(pd.DataFrame(rows), use_container_width=True, hide_index=True)
 
     sev = s["by_severity"]
     sev_df = pd.DataFrame({"Severity": list(sev.keys()), "Est. total ($)": [int(v) for v in sev.values()]})
@@ -1004,43 +1082,38 @@ def render_capex(res):
                 "Urgency": it["urgency_category"],
             }
         )
-    st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
+    dtable(pd.DataFrame(rows), use_container_width=True, hide_index=True)
 
 
 def render_sandbox(res):
     sandbox = res["sandbox"]
     st.subheader("Sellers-Credit Negotiation Sandbox")
+    st.caption("Tick items to include in the credit ask. Totals update live.")
     items = sandbox["items"]
-    df = pd.DataFrame(
-        [
-            {
-                "id": i,
-                "Include": i.get("selected", False),
-                "System": i.get("system", ""),
-                "Severity": i.get("severity", ""),
-                "Description": i.get("description", ""),
-                "Credit (avg)": money(i.get("estimated_cost", 0)),
-                "Low": money(i.get("estimated_low", 0)),
-                "High": money(i.get("estimated_high", 0)),
-                "Repair type": i.get("repair_type", "seller_credit"),
-            }
-            for i in items
-        ]
-    )
-    edited = st.data_editor(
-        df,
-        use_container_width=True,
-        hide_index=True,
-        disabled=["System", "Severity", "Description", "Credit (avg)", "Low", "High"],
-        key="sandbox_editor",
-    )
-    selected_ids = set(edited[edited["Include"]].index.tolist())
-    sel_items = [items[i] for i in selected_ids if 0 <= i < len(items)]
-
-    for it in sel_items:
-        it["selected"] = True
-    for i, it in enumerate(items):
-        it["selected"] = i in selected_ids
+    with st.container(border=True):
+        h = st.columns([0.4, 1.1, 1.0, 3.4, 1.1])
+        h[0].markdown("**Include**")
+        h[1].markdown("**System**")
+        h[2].markdown("**Severity**")
+        h[3].markdown("**Description**")
+        h[4].markdown("**Credit (avg)**")
+        for i, it in enumerate(items):
+            row = st.columns([0.4, 1.1, 1.0, 3.4, 1.1])
+            with row[0]:
+                it["selected"] = st.checkbox(
+                    f"Include item {i + 1}",
+                    value=bool(it.get("selected", False)),
+                    key=f"sandbox_inc_{i}",
+                    label_visibility="collapsed",
+                )
+            with row[1]:
+                st.markdown(f"`{it.get('system', '')}`")
+            with row[2]:
+                st.markdown(badge(it.get("severity", "MEDIUM")))
+            with row[3]:
+                st.markdown(str(it.get("description", ""))[:140])
+            with row[4]:
+                st.markdown(f"**{money(it.get('estimated_cost', 0))}**")
 
     totals = calculate_sandbox_totals(items, {"leverage_score": res["leverage"]})
     c1, c2, c3, c4 = st.columns(4)
@@ -1109,7 +1182,7 @@ def render_contractor(res, sess):
                 "Source": badge(b["cost_source"]),
             }
         )
-    st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
+    dtable(pd.DataFrame(rows), use_container_width=True, hide_index=True)
 
     st.subheader("Priority dispatch queue")
     for r in get_contractor_recommendations(bids, 5):
@@ -1176,7 +1249,7 @@ def render_rooms_arv(res, sess):
     )
     rooms = res.get("rooms")
     if isinstance(rooms, list) and rooms:
-        st.dataframe(
+        dtable(
             pd.DataFrame(
                 [
                     {
@@ -1206,7 +1279,7 @@ def render_rooms_arv(res, sess):
     c3.metric("ARV high", money(arv.get("arv_high")))
     st.caption(f"Provenance: **{arv.get('provenance', 'UNAVAILABLE')}** — {arv.get('explain', '')}")
     if isinstance(arv.get("comps_weighted"), list) and arv["comps_weighted"]:
-        st.dataframe(
+        dtable(
             pd.DataFrame(
                 [
                     {
@@ -1259,7 +1332,7 @@ def render_vision_v2(res):
     v = res.get("vision_v2") or {}
     photos = v.get("photos") or []
     if photos:
-        st.dataframe(
+        dtable(
             pd.DataFrame(
                 [
                     {
@@ -1334,7 +1407,7 @@ def render_insurance_recalls(res):
                     "URL": r["recall_url"],
                 }
             )
-        st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
+        dtable(pd.DataFrame(rows), use_container_width=True, hide_index=True)
         st.metric("Potential avoided cost (heuristic)", money(recalls["summary"]["total_potential_savings"]))
     else:
         st.write("No CPSC recall matches from the findings. (Real query, honest result.)")
@@ -1356,7 +1429,7 @@ def render_seo_brokerage(res, sess):
                 "Meta": p["meta_description"][:90],
             }
         )
-    st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
+    dtable(pd.DataFrame(rows), use_container_width=True, hide_index=True)
     for p in seo["pages"][:2]:
         with st.expander(p["h1"]):
             for sec in p["content_sections"]:
@@ -1370,7 +1443,7 @@ def render_seo_brokerage(res, sess):
         c1.metric("Deals", s["total_transactions"])
         c2.metric("Credits negotiated", money(s["total_credits_negotiated"]))
         c3.metric("Success rate", f"{s['overall_success_rate']}%")
-        st.dataframe(pd.DataFrame(br["agent_performance"]), use_container_width=True, hide_index=True)
+        dtable(pd.DataFrame(br["agent_performance"]), use_container_width=True, hide_index=True)
         for i in br["insights"]:
             st.markdown(f"- {i}")
     else:
@@ -1409,7 +1482,7 @@ def page_analysis():
         "System / Issue / Severity / Immediate Repair Range / Future Risk Horizon / "
         "Strategic Action / Permit / Photos / Recalls / Bid — merged per finding."
     )
-    st.dataframe(pd.DataFrame(d["matrix"]), use_container_width=True, hide_index=True)
+    dtable(pd.DataFrame(d["matrix"]), use_container_width=True, hide_index=True)
 
     # ---- Per-finding deep dive ----
     st.subheader("🔎 Per-Finding Deep Dive")
@@ -1514,7 +1587,7 @@ def _render_m02(d, res, sess):
         }
         for i in m["line_items"]
     ]
-    st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
+    dtable(pd.DataFrame(rows), use_container_width=True, hide_index=True)
 
 
 def _render_m03(d, res, sess):
@@ -1540,10 +1613,10 @@ def _render_m03(d, res, sess):
         }
         for i in m["capex_items"]
     ]
-    st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
+    dtable(pd.DataFrame(rows), use_container_width=True, hide_index=True)
     if m["appliance_metadata"]:
         st.markdown("**Parsed appliance metadata (model year / condition cues):**")
-        st.dataframe(pd.DataFrame(m["appliance_metadata"]), use_container_width=True, hide_index=True)
+        dtable(pd.DataFrame(m["appliance_metadata"]), use_container_width=True, hide_index=True)
 
 
 def _render_m04(d, res, sess):
@@ -1615,10 +1688,10 @@ def _render_m07(d, res, sess):
         }
         for x in m["cross_reference"]
     ]
-    st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
+    dtable(pd.DataFrame(rows), use_container_width=True, hide_index=True)
     if m["needs"]:
         st.markdown("**Permits likely required (from findings):**")
-        st.dataframe(pd.DataFrame(m["needs"]), use_container_width=True, hide_index=True)
+        dtable(pd.DataFrame(m["needs"]), use_container_width=True, hide_index=True)
 
 
 def _render_m08(d, res, sess):
@@ -1658,7 +1731,7 @@ def _render_m08(d, res, sess):
         }
         for i in m["capex_items"]
     ]
-    st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
+    dtable(pd.DataFrame(rows), use_container_width=True, hide_index=True)
 
 
 def _render_m09(d, res, sess):
@@ -1677,7 +1750,7 @@ def _render_m09(d, res, sess):
             for i in sb["items"]
         ]
     )
-    st.dataframe(df, use_container_width=True, hide_index=True)
+    dtable(df, use_container_width=True, hide_index=True)
     st.markdown(f"**Market leverage:** {m['leverage']}/100 — model scenarios live on the Results page.")
 
 
@@ -1698,7 +1771,7 @@ def _render_m10(d, res, sess):
         }
         for b in m["bids"]
     ]
-    st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
+    dtable(pd.DataFrame(rows), use_container_width=True, hide_index=True)
     st.caption("Enter real quotes on Page 1 → Section 4 to replace BLS baselines with binding bids.")
 
 
@@ -1749,7 +1822,7 @@ def _render_m13(d, res, sess):
         c2.metric("Credits negotiated", money(s["total_credits_negotiated"]))
         c3.metric("Success rate", f"{s['overall_success_rate']}%")
         c4.metric("Deal value", money(s["total_deal_value"]))
-        st.dataframe(pd.DataFrame(m["agents"]), use_container_width=True, hide_index=True)
+        dtable(pd.DataFrame(m["agents"]), use_container_width=True, hide_index=True)
         for i in m["insights"]:
             st.markdown(f"- {i}")
     else:
@@ -1820,7 +1893,7 @@ def _render_m16(d, res, sess):
         }
         for y in m["forecast"]
     ]
-    st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
+    dtable(pd.DataFrame(rows), use_container_width=True, hide_index=True)
 
 
 def _render_m17(d, res, sess):
@@ -1843,7 +1916,7 @@ def _render_m17(d, res, sess):
             }
             for i in m["items"]
         ]
-        st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
+        dtable(pd.DataFrame(rows), use_container_width=True, hide_index=True)
     else:
         st.write("No critical/high findings to hold back.")
 
@@ -1863,7 +1936,7 @@ def _render_m18(d, res, sess):
         }
         for p in m["pages"]
     ]
-    st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
+    dtable(pd.DataFrame(rows), use_container_width=True, hide_index=True)
 
 
 def _render_m19(d, res, sess):
@@ -1899,7 +1972,7 @@ def _render_m20(d, res, sess):
             }
             for r in m["results"]
         ]
-        st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
+        dtable(pd.DataFrame(rows), use_container_width=True, hide_index=True)
     else:
         st.write("No CPSC recall matches from the findings. (Real query, honest result.)")
 
@@ -1982,11 +2055,11 @@ def page_health():
                     }
                 )
         if rows:
-            st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
+            dtable(pd.DataFrame(rows), use_container_width=True, hide_index=True)
         lat = det.get("latency_ms") or {}
         if lat:
             section("H-1", "API latency", "In-session per-host timing from the shared HTTP client.")
-            st.dataframe(
+            dtable(
                 pd.DataFrame(
                     [
                         {

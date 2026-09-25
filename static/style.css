@@ -5,7 +5,25 @@
    radius, and shadow. Every element honors the active theme.
    ============================================================ */
 
-/* ── FONT · Inter ≈ SF Pro (self-hosted, offline-safe) ── */
+/* ── FONT · Google Sans Flex — the 2026 Pixel system typeface ──
+   Open-licensed + self-hosted (offline-safe). On Pixel phones the OS resolves
+   'Google Sans' natively; everywhere else this file renders it identically. */
+@font-face {
+  font-family: 'Google Sans Flex';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 1 1000;
+  font-stretch: 75% 125%;
+  src: url('/app/static/fonts/GoogleSansFlex-VF.woff2') format('woff2-variations');
+}
+@font-face {
+  font-family: 'Google Sans Flex';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 1 1000;
+  src: url('https://fonts.gstatic.com/s/googlesansflex/v22/t5svIQcYNIWbFgDgAAzZ34auoVyXkJCOvp3SFWJbN5hF8Ju1x6sKCyp0l9sI40swNJwGpVd4AZzz0v6lJ4qFXNZhGjLvDSkV4W6GGn8.woff2') format('woff2');
+}
+/* ── FALLBACK · Inter (kept offline-safe) ── */
 @font-face {
   font-family: 'Inter';
   font-style: normal;
@@ -50,13 +68,14 @@
   --shadow-lg: 0 24px 60px rgba(0, 0, 0, 0.16);
   --r-xs: 8px;
   --r-sm: 10px;
-  --r-md: 14px;
-  --r-lg: 20px;
-  --r-xl: 26px;
+  --r-md: 18px;
+  --r-lg: 22px;
+  --r-xl: 28px;
   --r-pill: 9999px;
   --t: 0.18s cubic-bezier(0.2, 0, 0, 1);
   --ease: cubic-bezier(0.2, 0, 0, 1);
-  --font: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Display',
+  --font: 'Google Sans Flex', 'Google Sans', 'Google Sans Text', 'Inter',
+          -apple-system, BlinkMacSystemFont, 'SF Pro Display',
           'SF Pro Text', 'Segoe UI', Roboto, sans-serif;
   --mono: 'SF Mono', 'Cascadia Code', 'Roboto Mono', 'Consolas', monospace;
   color-scheme: light;
@@ -104,13 +123,16 @@
 }
 [data-testid="stHeader"] { display: none !important; }
 
-/* ── BASE ──────────────────────────────────────────────── */
+/* ── BASE · Pixel optical sizing + Apple rendering ─────── */
 html, body {
   background: var(--bg) !important;
   font-family: var(--font) !important;
+  font-optical-sizing: auto;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
 }
+::selection { background: var(--accent-soft) !important; }
 .stApp, [data-testid="stMain"], [data-testid="stAppViewContainer"],
 [data-testid="stAppViewContainer"] > .main {
   background: var(--bg) !important;
@@ -143,37 +165,45 @@ html, body {
   font-size: 0.8rem !important;
 }
 
-/* ── PAGE HERO ─────────────────────────────────────────── */
+/* ── PAGE HERO · Apple display scale ───────────────────── */
 .page-hero {
-  padding: 1.4rem 0 1.6rem;
+  padding: 2.4rem 0 2.1rem;
   border-bottom: 1px solid var(--line);
-  margin-bottom: 1.6rem;
+  margin-bottom: 2rem;
 }
 .hero-kicker {
-  font-size: 0.72rem;
-  font-weight: 600;
-  letter-spacing: 0.12em;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--accent);
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.7rem;
+  font-family: var(--font) !important;
 }
 .hero-title {
-  font-size: 2.1rem !important;
+  font-size: 3rem !important;
   font-weight: 700;
-  letter-spacing: -0.045em;
-  line-height: 1.05;
+  letter-spacing: -0.05em;
+  line-height: 1.02;
   color: var(--ink) !important;
-  margin: 0 0 0.55rem;
+  margin: 0 0 0.7rem;
+  text-wrap: balance;
+  font-family: var(--font) !important;
+  font-optical-sizing: auto;
 }
 .hero-sub {
-  font-size: 0.98rem;
-  line-height: 1.55;
+  font-size: 1.06rem;
+  line-height: 1.6;
   color: var(--ink-2);
-  max-width: 62ch;
+  max-width: 60ch;
+  text-wrap: pretty;
+  font-family: var(--font) !important;
 }
 
 /* ── FROSTED GLASS NAVBAR ──────────────────────────────── */
-[data-testid="stVerticalBlockBorderWrapper"] {
+/* NOTE: 1.56 draws bordered containers natively without a wrapper testid,
+   so the nav bar is scoped via :has(.prem-brand) on its own row. */
+[data-testid="stHorizontalBlock"]:has(.prem-brand) {
   position: sticky;
   top: 0.75rem;
   z-index: 100;
@@ -183,7 +213,7 @@ html, body {
   border: 1px solid var(--line) !important;
   border-radius: var(--r-xl) !important;
   box-shadow: var(--shadow-sm) !important;
-  padding: 0.4rem 0.9rem !important;
+  padding: 0.5rem 1rem !important;
   margin-bottom: 0.4rem;
 }
 
@@ -500,6 +530,18 @@ button[data-testid="baseButton-secondary"]:not([class*="nav"]):hover {
   box-shadow: var(--shadow-sm);
   border-color: var(--line-strong);
 }
+/* Apple layered translucency: hairline top-light in dark mode */
+:root.dark-mode [data-testid="stMetric"],
+:root:has([data-theme-hook="active"][data-theme="dark"]) [data-testid="stMetric"],
+[data-theme="dark"] [data-testid="stMetric"],
+:root.dark-mode [data-testid="stHorizontalBlock"]:has(.prem-brand),
+:root:has([data-theme-hook="active"][data-theme="dark"]) [data-testid="stHorizontalBlock"]:has(.prem-brand),
+[data-theme="dark"] [data-testid="stHorizontalBlock"]:has(.prem-brand),
+:root.dark-mode [data-testid="stExpander"],
+:root:has([data-theme-hook="active"][data-theme="dark"]) [data-testid="stExpander"],
+[data-theme="dark"] [data-testid="stExpander"] {
+  box-shadow: var(--shadow-xs), inset 0 1px 0 rgba(255, 255, 255, 0.06) !important;
+}
 [data-testid="stMetricLabel"] {
   font-family: var(--font) !important;
   color: var(--ink-2) !important;
@@ -521,16 +563,36 @@ button[data-testid="baseButton-secondary"]:not([class*="nav"]):hover {
   font-weight: 600 !important;
 }
 
-/* ── ALERTS ────────────────────────────────────────────── */
+/* ── ALERTS · kind-aware severity accents ──────────────── */
 [data-testid="stAlert"] {
   background-color: var(--surface) !important;
   border: 1px solid var(--line) !important;
+  border-left: 3px solid var(--info) !important;
   border-radius: var(--r-md) !important;
   color: var(--ink) !important;
   font-family: var(--font) !important;
   box-shadow: var(--shadow-xs);
 }
+[data-testid="stAlert"]:has([data-testid="stAlertContentSuccess"]) {
+  border-left-color: var(--ok) !important;
+  background: var(--ok-bg) !important;
+}
+[data-testid="stAlert"]:has([data-testid="stAlertContentWarning"]) {
+  border-left-color: var(--warn) !important;
+  background: var(--warn-bg) !important;
+}
+[data-testid="stAlert"]:has([data-testid="stAlertContentError"]) {
+  border-left-color: var(--err) !important;
+  background: var(--err-bg) !important;
+}
+[data-testid="stAlert"]:has([data-testid="stAlertContentInfo"]) {
+  border-left-color: var(--info) !important;
+  background: var(--info-bg) !important;
+}
 [data-testid="stAlert"] p { color: var(--ink) !important; }
+[data-testid="stAlert"]:has([data-testid="stAlertContentSuccess"]) svg { fill: var(--ok) !important; }
+[data-testid="stAlert"]:has([data-testid="stAlertContentWarning"]) svg { fill: var(--warn) !important; }
+[data-testid="stAlert"]:has([data-testid="stAlertContentError"]) svg { fill: var(--err) !important; }
 [data-testid="stAlert"] svg { fill: var(--info) !important; }
 
 /* ── TABS · segmented control ──────────────────────────── */
@@ -544,12 +606,16 @@ button[data-testid="baseButton-secondary"]:not([class*="nav"]):hover {
 .stTabs [data-baseweb="tab"] {
   font-family: var(--font) !important;
   font-weight: 500 !important;
+  font-size: 0.83rem !important;
   color: var(--ink-2) !important;
   border-radius: var(--r-pill) !important;
-  padding: 0.45rem 0.9rem;
+  padding: 0.45rem 0.7rem;
   transition: all var(--t);
   background: transparent !important;
+  white-space: nowrap;
 }
+.stTabs [data-baseweb="tab-list"]::-webkit-scrollbar { display: none !important; }
+.stTabs [data-baseweb="tab-list"] { scrollbar-width: none !important; }
 .stTabs [data-baseweb="tab"]:hover { color: var(--ink) !important; }
 .stTabs [data-baseweb="tab"][aria-selected="true"] {
   background: var(--surface) !important;
@@ -560,30 +626,48 @@ button[data-testid="baseButton-secondary"]:not([class*="nav"]):hover {
 .stTabs [data-baseweb="tab-border"] { display: none !important; }
 
 /* ── SEGMENTED CONTROL (theme toggle) ──────────────────── */
-[data-testid="stSegmentedControl"] {
-  background: var(--surface-2);
-  border: 1px solid var(--line);
-  border-radius: var(--r-pill);
-  padding: 3px;
+/* NOTE: 1.37 renders this as stButtonGroup + stBaseButton-segmented_control*. */
+[data-testid="stButtonGroup"] {
+  background: var(--surface-2) !important;
+  border: 1px solid var(--line) !important;
+  border-radius: var(--r-pill) !important;
+  padding: 3px !important;
+  gap: 2px !important;
 }
-[data-testid="stSegmentedControl"] button {
+[data-testid="stButtonGroup"] button {
   border-radius: var(--r-pill) !important;
   font-family: var(--font) !important;
   font-weight: 500 !important;
   color: var(--ink-2) !important;
   background: transparent !important;
   border: none !important;
-  font-size: 0.78rem !important;
-  padding: 0.3rem 0.6rem !important;
+  box-shadow: none !important;
+  font-size: 0.75rem !important;
+  padding: 0.28rem 0.5rem !important;
+  min-height: 0 !important;
   transition: all var(--t);
 }
-[data-testid="stSegmentedControl"] button:hover { color: var(--ink) !important; }
-[data-testid="stSegmentedControl"] button[aria-checked="true"] {
+[data-testid="stButtonGroup"] button:hover { color: var(--ink) !important; }
+[data-testid="stBaseButton-segmented_controlActive"] {
   background: var(--surface) !important;
   color: var(--ink) !important;
-  box-shadow: var(--shadow-xs);
+  box-shadow: var(--shadow-xs) !important;
 }
-[data-testid="stSegmentedControl"] [data-testid="stWidgetLabel"] { display: none !important; }
+
+/* ── CHECKBOXES + RADIOS (sandbox picker, forms) ────────── */
+[data-testid="stCheckbox"] label,
+[data-testid="stRadio"] label {
+  color: var(--ink) !important;
+  font-family: var(--font) !important;
+}
+[data-testid="stCheckbox"] [role="checkbox"],
+[data-testid="stRadio"] [role="radiogroup"] [role="radio"] {
+  border-color: var(--line-strong) !important;
+}
+[data-testid="stCheckbox"] svg,
+[data-testid="stRadio"] svg {
+  color: var(--accent) !important;
+}
 
 /* ── EXPANDERS ─────────────────────────────────────────── */
 [data-testid="stExpander"] {
@@ -735,19 +819,74 @@ hr { border-color: var(--line) !important; }
 [data-testid="stForm"] hr { margin: 1.2rem 0 !important; }
 
 /* ── CODE BLOCKS (share links, tokens) ───────────────── */
-[data-testid="stCodeBlock"] {
+/* NOTE: testid is stCode; the visible fill is painted by inner <pre>. */
+[data-testid="stCode"] {
   border: 1px solid var(--line) !important;
   border-radius: var(--r-sm) !important;
   background: var(--surface-2) !important;
 }
-[data-testid="stCodeBlock"] code {
+[data-testid="stCode"] pre {
+  background: var(--surface-2) !important;
+  border: none !important;
+  margin: 0 !important;
+}
+[data-testid="stCode"] code {
   font-family: var(--mono) !important;
   font-size: 0.78rem !important;
   color: var(--ink) !important;
+  background: transparent !important;
 }
+
 
 /* ── DIVIDERS BETWEEN CONTENT BLOCKS ─────────────────── */
 [data-testid="stMain"] hr { margin: 1.6rem 0 !important; }
+
+/* ── ENTERPRISE TABLES (theme-safe HTML, not canvas) ─── */
+.ent-table-wrap {
+  background: var(--surface) !important;
+  border: 1px solid var(--line) !important;
+  border-radius: var(--r-md) !important;
+  box-shadow: var(--shadow-xs) !important;
+  overflow: auto;
+  max-height: 560px;
+}
+table.ent-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-family: var(--font) !important;
+  font-size: 0.84rem;
+  line-height: 1.45;
+}
+.ent-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  text-align: left;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-2) !important;
+  background: var(--surface-2) !important;
+  padding: 0.65rem 0.9rem;
+  border-bottom: 1px solid var(--line-strong);
+  white-space: nowrap;
+}
+.ent-table tbody td {
+  padding: 0.6rem 0.9rem;
+  border-bottom: 1px solid var(--line);
+  color: var(--ink) !important;
+  vertical-align: top;
+  font-variant-numeric: tabular-nums;
+}
+.ent-table tbody tr:last-child td { border-bottom: none; }
+.ent-table tbody tr:hover td { background: var(--surface-hover) !important; }
+.ent-table td.num {
+  text-align: right;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
@@ -759,17 +898,18 @@ hr { border-color: var(--line) !important; }
 @media (max-width: 992px) {
   .block-container { padding-left: 1rem !important; padding-right: 1rem !important; }
   .prem-brand-sub { display: none; }
-  .hero-title { font-size: 1.6rem !important; }
+  .hero-title { font-size: 2rem !important; }
+  .page-hero { padding: 1.6rem 0 1.4rem; }
 }
 
 /* ── MOBILE-FIRST PWA (70% of walkthroughs are on phone in crawlspace) ── */
 @media (max-width: 640px) {
   .block-container { padding-left: 0.75rem !important; padding-right: 0.75rem !important; max-width: 100vw !important; }
-  .hero-title { font-size: 1.35rem !important; line-height: 1.2 !important; }
+  .hero-title { font-size: 1.7rem !important; line-height: 1.08 !important; }
   .hero-sub { font-size: 0.85rem !important; }
   .prem-brand-title { font-size: 0.95rem !important; }
-  /* Stack Streamlit columns vertically on phones */
-  [data-testid="column"] { min-width: 100% !important; flex: 1 1 100% !important; }
+  /* Stack Streamlit columns vertically on phones (testid is stColumn) */
+  [data-testid="stColumn"] { min-width: 100% !important; flex: 1 1 100% !important; }
   [data-testid="stHorizontalBlock"] { flex-wrap: wrap !important; }
   /* Tables: horizontal scroll, sticky first col, larger touch targets */
   [data-testid="stDataFrame"], .stDataEditor { overflow-x: auto !important; font-size: 0.8rem !important; }

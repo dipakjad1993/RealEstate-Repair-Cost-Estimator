@@ -66,3 +66,22 @@ def test_config_versioned():
 
     v = json.loads((ROOT / "data" / "config_version.json").read_text(encoding="utf-8"))
     assert "version" in v and "datasets" in v
+
+
+def test_pixel_font_wired():
+    css = (ROOT / "static" / "style.css").read_text(encoding="utf-8")
+    assert "Google Sans Flex" in css
+    font = ROOT / "static" / "fonts" / "GoogleSansFlex-VF.woff2"
+    assert font.exists() and font.stat().st_size > 50000
+
+
+def test_no_canvas_tables():
+    """Read-only tables must use theme-safe dtable(), not the canvas grid."""
+    app = (ROOT / "app.py").read_text(encoding="utf-8")
+    assert "st.dataframe(" not in app
+    assert "st.data_editor(" not in app
+
+
+def test_dtable_escapes_html():
+    src = (ROOT / "app.py").read_text(encoding="utf-8")
+    assert "def dtable(" in src and "_html.escape" in src

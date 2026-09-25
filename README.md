@@ -1,4 +1,4 @@
-# Real Estate Repair Cost Estimator — v3.2 Enterprise
+# Real Estate Repair Cost Estimator — v3.3 Enterprise
 
 [![CI](https://github.com/dipakjad1993/RealEstate-Repair-Cost-Estimator/actions/workflows/ci.yml/badge.svg)](https://github.com/dipakjad1993/RealEstate-Repair-Cost-Estimator/actions/workflows/ci.yml)
 [![Python](https://img.shields.io/badge/python-3.10%E2%80%933.13-blue)](https://www.python.org/)
@@ -31,15 +31,16 @@ Deterministic means reproducible: same inputs → same outputs, no randomness, n
 4. **Results** — lender share link (expiring HMAC URL, redacted PII), full PDF package, Excel workbook, auditable JSON.
 5. **Health** — live status + per-host latency for every data source (1h cached, loads in seconds).
 
-## Interface (v3.2)
+## Interface (v3.3)
 
-Apple-grade Streamlit design system (`static/style.css`, self-hosted Inter, frosted-glass sticky nav, true-black dark mode via `?theme=dark`):
+Apple-grade Streamlit design system (`static/style.css`, self-hosted **Google Sans Flex** — the 2026 Pixel system typeface, optical sizing on — frosted-glass sticky nav, true-black dark mode via `?theme=dark` or the nav toggle):
 
 - One H1 per page (hero headers; enforced by test), numbered section rhythm across the intake form, Step-0 ballpark as a hero card — not a buried expander.
 - Type-to-edit numeric fields (no clunky steppers), card-style metrics, segmented pill tabs, dashed-dropzone uploaders, copy-friendly share-link blocks.
 - Health renders a real status table (Operational / Needs API key / Unreachable + checked timestamps) instead of raw debug lines.
 - PDF export sanitizes inspection unicode (em-dashes, bullets, arrows) so the lender package never crashes on real-world text.
 - Mobile-first PWA CSS + web manifest — 70% of walkthroughs happen on a phone in a crawlspace.
+- Theme-safe tables everywhere: Streamlit's grid paints on `<canvas>` (ignores CSS, stays white in dark mode), so all read-only tables render as theme-aware HTML (sticky headers, tabular numerals, severity-tinted alerts). Sandbox picker uses native checkboxes, not a grid editor — dark mode is fully audited light + dark via Playwright screenshots.
 
 ## Quickstart
 
