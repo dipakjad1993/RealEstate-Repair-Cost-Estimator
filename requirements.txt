@@ -24,7 +24,7 @@ python-multipart==0.0.*
 # or WHISPER_BACKEND=deepgram with DEEPGRAM_API_KEY for API STT.
 faster-whisper==1.0.*
 # --- Supabase / Postgres (optional; sqlite fallback is automatic) ---
-supabase==2.7.*
+supabase==2.33.*
 psycopg2-binary==2.9.*
 # --- Distributed rate limiting (optional; in-memory fallback automatic) ---
 redis==5.0.*
