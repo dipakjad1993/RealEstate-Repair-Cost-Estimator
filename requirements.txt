@@ -3,7 +3,7 @@
 streamlit==1.37.*
 pandas==2.2.*
 numpy==1.26.*
-plotly==5.22.*
+plotly==7.1.*
 PyMuPDF==1.24.*
 pymupdf4llm==0.0.*
 requests==2.32.*
