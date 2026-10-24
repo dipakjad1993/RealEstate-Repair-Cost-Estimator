@@ -16,7 +16,7 @@ python-dateutil==2.9.*
 pydantic==2.8.*
 # --- API / MCP / agent layer (optional but installed: lightweight, no torch) ---
 fastapi==0.115.*
-uvicorn[standard]==0.30.*
+uvicorn[standard]==0.54.*
 python-multipart==0.0.*
 # --- Transcription: faster-whisper (CTranslate2, ~10x lighter than openai-whisper+torch).
 # Local transcription is OPTIONAL. Default path needs no model download:
