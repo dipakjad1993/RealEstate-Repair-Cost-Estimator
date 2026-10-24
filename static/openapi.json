@@ -1,261 +1,360 @@
 {
- "openapi": "3.1.0",
- "info": {
-  "title": "Repair Estimator API",
-  "description": "Provenance-tracked repair estimates. Every figure carries VERIFIED/USER_PROVIDED/MODELED/REQUIRES_KEY/UNAVAILABLE.",
-  "version": "3.1.0"
- },
- "paths": {
-  "/api/openapi.json": {
-   "get": {
-    "summary": "Openapi Json",
-    "operationId": "openapi_json_api_openapi_json_get",
-    "responses": {
-     "200": {
-      "description": "Successful Response",
-      "content": {
-       "application/json": {
-        "schema": {}
-       }
-      }
-     }
-    }
-   }
-  },
-  "/llms.txt": {
-   "get": {
-    "summary": "Llms Txt",
-    "operationId": "llms_txt_llms_txt_get",
-    "responses": {
-     "200": {
-      "description": "Successful Response",
-      "content": {
-       "application/json": {
-        "schema": {}
-       }
-      }
-     }
-    }
-   }
-  },
-  "/api/health": {
-   "get": {
-    "summary": "Health",
-    "operationId": "health_api_health_get",
-    "responses": {
-     "200": {
-      "description": "Successful Response",
-      "content": {
-       "application/json": {
-        "schema": {}
-       }
-      }
-     }
-    }
-   }
-  },
-  "/api/estimate_repair": {
-   "post": {
-    "summary": "Estimate Repair",
-    "operationId": "estimate_repair_api_estimate_repair_post",
-    "parameters": [
-     {
-      "name": "authorization",
-      "in": "header",
-      "required": false,
-      "schema": {
-       "type": "string",
-       "default": "",
-       "title": "Authorization"
-      }
-     }
-    ],
-    "requestBody": {
-     "required": true,
-     "content": {
-      "application/json": {
-       "schema": {
-        "$ref": "#/components/schemas/EstimateRequest"
-       }
-      }
-     }
-    },
-    "responses": {
-     "200": {
-      "description": "Successful Response",
-      "content": {
-       "application/json": {
-        "schema": {}
-       }
-      }
-     },
-     "422": {
-      "description": "Validation Error",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/HTTPValidationError"
-        }
-       }
-      }
-     }
-    }
-   }
-  },
-  "/s/{token}": {
-   "get": {
-    "summary": "Share Portal",
-    "operationId": "share_portal_s__token__get",
-    "parameters": [
-     {
-      "name": "token",
-      "in": "path",
-      "required": true,
-      "schema": {
-       "type": "string",
-       "title": "Token"
-      }
-     }
-    ],
-    "responses": {
-     "200": {
-      "description": "Successful Response",
-      "content": {
-       "text/html": {
-        "schema": {
-         "type": "string"
-        }
-       }
-      }
-     },
-     "422": {
-      "description": "Validation Error",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/HTTPValidationError"
-        }
-       }
-      }
-     }
-    }
-   }
-  }
- },
- "components": {
-  "schemas": {
-   "EstimateRequest": {
-    "properties": {
-     "address": {
-      "type": "string",
-      "title": "Address",
-      "default": ""
-     },
-     "city": {
-      "type": "string",
-      "title": "City",
-      "default": ""
-     },
-     "state": {
-      "type": "string",
-      "maxLength": 2,
-      "title": "State",
-      "default": ""
-     },
-     "zip_code": {
-      "type": "string",
-      "title": "Zip Code",
-      "default": ""
-     },
-     "sqft": {
-      "type": "number",
-      "title": "Sqft",
-      "default": 1500
-     },
-     "year_built": {
-      "type": "integer",
-      "title": "Year Built",
-      "default": 1995
-     },
-     "findings": {
-      "items": {
-       "additionalProperties": true,
-       "type": "object"
-      },
-      "type": "array",
-      "title": "Findings",
-      "default": []
-     },
-     "list_price": {
-      "anyOf": [
-       {
-        "type": "number"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "List Price"
-     },
-     "comps": {
-      "items": {
-       "additionalProperties": true,
-       "type": "object"
-      },
-      "type": "array",
-      "title": "Comps",
-      "default": []
-     }
-    },
-    "type": "object",
-    "title": "EstimateRequest"
-   },
-   "HTTPValidationError": {
-    "properties": {
-     "detail": {
-      "items": {
-       "$ref": "#/components/schemas/ValidationError"
-      },
-      "type": "array",
-      "title": "Detail"
-     }
-    },
-    "type": "object",
-    "title": "HTTPValidationError"
-   },
-   "ValidationError": {
-    "properties": {
-     "loc": {
-      "items": {
-       "anyOf": [
-        {
-         "type": "string"
+  "components": {
+    "schemas": {
+      "EstimateRequest": {
+        "properties": {
+          "address": {
+            "default": "",
+            "title": "Address",
+            "type": "string"
+          },
+          "city": {
+            "default": "",
+            "title": "City",
+            "type": "string"
+          },
+          "comps": {
+            "default": [],
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Comps",
+            "type": "array"
+          },
+          "findings": {
+            "default": [],
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Findings",
+            "type": "array"
+          },
+          "list_price": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "List Price"
+          },
+          "sqft": {
+            "default": 1500,
+            "title": "Sqft",
+            "type": "number"
+          },
+          "state": {
+            "default": "",
+            "maxLength": 2,
+            "title": "State",
+            "type": "string"
+          },
+          "year_built": {
+            "default": 1995,
+            "title": "Year Built",
+            "type": "integer"
+          },
+          "zip_code": {
+            "default": "",
+            "title": "Zip Code",
+            "type": "string"
+          }
         },
-        {
-         "type": "integer"
-        }
-       ]
+        "title": "EstimateRequest",
+        "type": "object"
       },
-      "type": "array",
-      "title": "Location"
-     },
-     "msg": {
-      "type": "string",
-      "title": "Message"
-     },
-     "type": {
-      "type": "string",
-      "title": "Error Type"
-     }
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "title": "Detail",
+            "type": "array"
+          }
+        },
+        "title": "HTTPValidationError",
+        "type": "object"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "title": "Location",
+            "type": "array"
+          },
+          "msg": {
+            "title": "Message",
+            "type": "string"
+          },
+          "type": {
+            "title": "Error Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError",
+        "type": "object"
+      }
+    }
+  },
+  "info": {
+    "contact": {
+      "name": "Dipak Jad",
+      "url": "https://github.com/dipakjad1993/RealEstate-Repair-Cost-Estimator"
     },
-    "type": "object",
-    "required": [
-     "loc",
-     "msg",
-     "type"
-    ],
-    "title": "ValidationError"
-   }
+    "description": "Provenance-tracked repair estimates. Every figure carries exactly one badge: VERIFIED / USER_PROVIDED / MODELED / REQUIRES_KEY / UNAVAILABLE. Deterministic \u2014 same inputs produce same outputs. Estimates, never simulations.",
+    "license": {
+      "name": "MIT"
+    },
+    "title": "Repair Estimator API",
+    "version": "3.4.0"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/api/estimate_repair": {
+      "post": {
+        "description": "Legacy alias \u2014 prefer /v1/estimate_repair (adds idempotency + richer provenance).",
+        "operationId": "estimate_repair_legacy_api_estimate_repair_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "default": "",
+              "title": "Authorization",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EstimateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Estimate Repair Legacy"
+      }
+    },
+    "/api/health": {
+      "get": {
+        "operationId": "health_api_health_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Health"
+      }
+    },
+    "/api/openapi.json": {
+      "get": {
+        "description": "Legacy alias \u2014 prefer /v1/openapi.json.",
+        "operationId": "openapi_legacy_api_openapi_json_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Openapi Legacy"
+      }
+    },
+    "/llms.txt": {
+      "get": {
+        "operationId": "llms_txt_llms_txt_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Llms Txt"
+      }
+    },
+    "/metrics": {
+      "get": {
+        "operationId": "metrics_metrics_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Metrics"
+      }
+    },
+    "/s/{token}": {
+      "get": {
+        "operationId": "share_portal_s__token__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "token",
+            "required": true,
+            "schema": {
+              "title": "Token",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Share Portal"
+      }
+    },
+    "/v1/estimate_repair": {
+      "post": {
+        "operationId": "estimate_repair_v1_v1_estimate_repair_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "default": "",
+              "title": "Authorization",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "default": "",
+              "title": "Idempotency-Key",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EstimateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Estimate Repair V1"
+      }
+    },
+    "/v1/openapi.json": {
+      "get": {
+        "operationId": "openapi_v1_v1_openapi_json_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Openapi V1"
+      }
+    }
   }
- }
 }

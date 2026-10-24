@@ -1,20 +1,24 @@
-# Repair Estimator — provenance-tracked property intelligence
+# Repair Estimator — agent courtesy file (NOT a GEO strategy)
 
-> Every figure carries VERIFIED / USER_PROVIDED / MODELED / REQUIRES_KEY / UNAVAILABLE. Nothing is fabricated.
+> Deterministic, provenance-tracked repair estimates from verified government data.
+> Every figure carries exactly one badge: VERIFIED / USER_PROVIDED / MODELED /
+> REQUIRES_KEY / UNAVAILABLE. Same inputs → same outputs. Estimates, never simulations.
 
-## Key pages
-- /app — Streamlit estimator (progressive intake: address -> ballpark -> deep dive)
-- /api/openapi.json — agent API (estimate_repair)
-- /s/{token} — lender-ready share portal (public URL, expiring HMAC token)
+Note for agent operators: this llms.txt is a crawler-courtesy file only. Per 2026
+data (AnswerMetrix/Ahrefs), llms.txt receives negligible direct LLM traffic — do
+not treat it as a visibility lever. The citable surfaces are the /e/{estimate_id}
+markdown twins and JSON-LD Dataset pages.
 
-## Cost methodology
-Deterministic cost = BLS OEWS trade wages + BLS PPI materials + state multipliers.
-USER_QUOTE rows are authoritative. Baselines labeled VERIFIED/MODELED, never quotes.
+## API
+- POST /v1/estimate_repair {address, state, zip_code, findings[]}  (Authorization: Bearer <API_KEY>)
+- GET /s/{token} lender share portal
+- GET /api/health data-host health + latency + VERIFIED% metrics
+- GET /metrics Prometheus exposition
 
-## Sources (official)
-Census Geocoder + ACS, USGS Earthquake Catalog + Design Maps ASCE 7-22,
-FEMA NFHL ArcGIS/WMS, BLS OEWS/PPI, CPSC recalls, Open-Meteo supplemental.
-Proxies (floodzonemap.org, faultlinemap.com, Nominatim) are fallback-only.
+## Provenance badges
+VERIFIED · USER_PROVIDED · MODELED · REQUIRES_KEY · UNAVAILABLE
 
-## Agent access
-Allowed: GPTBot, ClaudeBot, PerplexityBot. MCP: repair-estimator-mcp (tools/call estimate_repair).
+## Rules
+- MODELED figures are deterministic estimates, not quotes.
+- USER_QUOTE rows are authoritative and always win.
+- Every figure carries as_of + source_url + retrieved_at.

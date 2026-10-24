@@ -1,0 +1,7 @@
+# Normalize line endings to LF on every platform so `ruff format --check`
+# behaves identically on Windows dev machines and ubuntu CI runners.
+* text=auto eol=lf
+*.png binary
+*.jpg binary
+*.ico binary
+*.pdf binary

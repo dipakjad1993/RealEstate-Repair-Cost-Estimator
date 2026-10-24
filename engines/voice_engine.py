@@ -2,6 +2,7 @@ import re
 from datetime import datetime
 
 from config import SeverityLevels
+from engines.confidence_engine import score_finding
 
 
 def process_audio_transcript(transcript_text, property_id=None):
@@ -39,7 +40,13 @@ def extract_findings_from_text(text):
                     "subsystem": _extract_subcomponent(sentence),
                     "component": system,
                     "source_section": "Audio Transcript",
-                    "confidence_score": 0.75,
+                    "confidence_score": score_finding(
+                        sentence,
+                        severity=severity,
+                        location=location,
+                        system=system,
+                        source_type="audio",
+                    ),
                     "source_type": "audio",
                 }
             )

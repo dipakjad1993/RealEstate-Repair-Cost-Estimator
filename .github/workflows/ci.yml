@@ -1,6 +1,17 @@
 name: ci
 on: [push, pull_request]
+
 jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install ruff==0.15.22
+      - run: ruff check . && ruff format --check .
+
   test:
     runs-on: ubuntu-latest
     steps:
@@ -9,5 +20,80 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install -r requirements.txt
-      - run: ruff check . && ruff format --check .
-      - run: python -m pytest -q
+      - name: Run tests with coverage gate (critical security/provenance core ≥85%)
+        env:
+          SHARE_SECRET: ci-test-secret-0123456789abcdef0123456789abcdef
+          API_AUTH_DISABLED: "1"
+        run: |
+          python -m pytest -q \
+            --cov=engines.audit_log \
+            --cov=engines.share_engine \
+            --cov=engines.rate_limit \
+            --cov=engines.pii_vault \
+            --cov=engines.observability \
+            --cov=engines.confidence_engine \
+            --cov=engines.citable_engine \
+            --cov=engines.compliance_engine \
+            --cov=engines.etl_engine \
+            --cov=engines.fred_engine \
+            --cov=engines.insurance_engine \
+            --cov=engines.investor_engine \
+            --cov=engines.legal_engine \
+            --cov=engines.permit_live_engine \
+            --cov=engines.seo_engine \
+            --cov=engines.cost_engine \
+            --cov-report=term-missing \
+            --cov-fail-under=85
+
+  openapi-drift:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements.txt
+      - name: Generate OpenAPI from FastAPI and diff against static/openapi.json
+        env:
+          SHARE_SECRET: ci-test-secret-0123456789abcdef0123456789abcdef
+          API_AUTH_DISABLED: "1"
+        run: |
+          python - <<'EOF'
+          import json, sys
+          from api_server import app
+          generated = app.openapi()
+          try:
+              committed = json.load(open("static/openapi.json"))
+          except FileNotFoundError:
+              print("static/openapi.json missing — writing fresh copy")
+              json.dump(generated, open("static/openapi.json", "w"), indent=2, sort_keys=True)
+              sys.exit(0)
+          # Compare route paths + methods only (field descriptions may legitimately evolve).
+          def routes(spec):
+              return sorted((p, m) for p, ops in spec.get("paths", {}).items() for m in ops)
+          g, c = routes(generated), routes(committed)
+          if g != c:
+              print("OPENAPI DRIFT DETECTED")
+              print("only in generated:", set(g) - set(c))
+              print("only in committed:", set(c) - set(g))
+              sys.exit(1)
+          print("OpenAPI in sync.")
+          EOF
+
+  supply-chain:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install pip-audit==2.7.* -r requirements.txt
+      - name: pip-audit (known CVEs in dependencies)
+        run: pip-audit --strict --progress-spinner off || true  # advisory: fail-open until baseline triaged
+      - name: Trivy filesystem scan (secrets + misconfig)
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: fs
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+          format: table

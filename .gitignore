@@ -153,3 +153,9 @@ Thumbs.db
 # Test files
 _test_write.txt
 test_nav.py
+
+# Enterprise: never commit runtime DB or ETL snapshots
+data/*.db
+data/*.db-journal
+data/snapshots/
+data/audit_log.jsonl

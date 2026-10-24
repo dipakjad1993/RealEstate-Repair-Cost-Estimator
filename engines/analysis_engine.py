@@ -570,9 +570,7 @@ def _module_investor(res):
     inv = res["investor"]
     return {
         "title": "Module 16 · Investor ARV & Flip Margin Underwriter",
-        "status": "VERIFIED"
-        if inv["listing_price_provenance"] != "MODELED_BENCHMARK"
-        else "MODELED_BENCHMARK",
+        "status": "VERIFIED" if inv["listing_price_provenance"] != "MODELED" else "MODELED",
         "narrative": (
             "Computes Maximum Allowable Offer = ARV − repairs − holding − closing − profit "
             "target, using the verified repair matrix. Rental cash-flow, cap rate, and "

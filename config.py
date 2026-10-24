@@ -3,8 +3,6 @@
 Cost/config tables live versioned in data/*.json (see data/config_version.json).
 This module re-exports the same names the engines import, loaded from JSON
 so tables can be refreshed (RSMeans/BLS OEWS/FRED PPI) without code edits.
-
-Full legacy monolith preserved at config.legacy.py for audit diff.
 """
 
 import json

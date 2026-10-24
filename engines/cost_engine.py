@@ -229,6 +229,11 @@ def calculate_cost_bounds(
         high = (mat_high + lab_high) * mult
         cost_src = f"Benchmark ({h_src}; PPI material factor {mat_factor})"
 
+    from datetime import datetime, timezone
+
+    badge = "USER_PROVIDED" if quote else "MODELED"
+    as_of = datetime.now(timezone.utc).date().isoformat()
+    source_url = "https://www.bls.gov/oes/" if not quote else ""
     return {
         "finding": desc[:120],
         "finding_key": finding.get("key", desc),
@@ -244,6 +249,9 @@ def calculate_cost_bounds(
         "labor_rate_source": h_src,
         "cost_source": cost_src,
         "provenance": "USER_QUOTE" if quote else "BENCHMARK_REAL",
+        "badge": badge,
+        "as_of": as_of,
+        "source_url": source_url,
         "total_low": round(low, 0),
         "total_high": round(high, 0),
         "total_avg": round((low + high) / 2, 0),

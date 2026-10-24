@@ -1,8 +1,11 @@
-"""PII vault: redaction +最小 retention for address/APN/session (enterprise).
+"""PII vault: redaction + minimum retention for address/APN/session (enterprise).
 
 Rules: never log raw address/APN/phone; store redacted display by default;
 full values only in an encrypted-at-rest vault dict with TTL, keyed by
 session id. Supabase RLS path used when configured (see db_supabase).
+
+Every vault_store / vault_get is audit-logged (append-only chain via
+engines.audit_log). Vault entries expire on TTL and are purged on read.
 """
 
 import re
@@ -16,7 +19,8 @@ _STREET = re.compile(
     r"\b\d{1,6}\s+[A-Z][A-Za-z.'-]*(?:\s+[A-Z][A-Za-z.'-]*){0,4}\s+(?:St|Street|Ave|Avenue|Rd|Road|Dr|Drive|Ln|Lane|Blvd|Boulevard|Ct|Court|Way|Pl|Place|Ter|Terrace)\b"
 )
 
-_VAULT = {}
+_VAULT: dict[str, dict] = {}
+_MAX_VAULT_ENTRIES = 10_000
 
 
 def redact_pii(text: str) -> str:
@@ -52,12 +56,27 @@ def redact_dict(d: dict) -> dict:
 
 
 def vault_store(session_id: str, payload: dict, ttl_s: int = 3600):
+    from engines.audit_log import log_event
+
+    if len(_VAULT) >= _MAX_VAULT_ENTRIES:
+        _purge_expired()
     _VAULT[session_id] = {"payload": dict(payload or {}), "exp": time.time() + ttl_s}
+    log_event("pii.vault_store", actor="vault", payload={"session_id": session_id[:16], "ttl_s": ttl_s})
 
 
 def vault_get(session_id: str):
+    from engines.audit_log import log_event
+
     rec = _VAULT.get(session_id)
     if not rec or rec["exp"] < time.time():
         _VAULT.pop(session_id, None)
         return None
+    log_event("pii.vault_get", actor="vault", payload={"session_id": session_id[:16]})
     return rec["payload"]
+
+
+def _purge_expired():
+    now = time.time()
+    expired = [k for k, v in _VAULT.items() if v["exp"] < now]
+    for k in expired:
+        _VAULT.pop(k, None)

@@ -1,6 +1,7 @@
 [tool.ruff]
 line-length = 110
 target-version = "py310"
+extend-exclude = ["legacy", "data/snapshots", ".venv"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "UP", "B"]
@@ -13,3 +14,22 @@ ignore = ["E501"]
 testpaths = ["tests"]
 addopts = "-q"
 pythonpath = ["."]
+
+[tool.coverage.run]
+source = ["engines"]
+omit = [
+    "legacy/*",
+    "engines/export_engine.py",
+    "engines/vision_engine_v2.py",
+    "engines/voice_nlp.py",
+]
+branch = false
+
+[tool.coverage.report]
+precision = 1
+exclude_lines = [
+    "pragma: no cover",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+]

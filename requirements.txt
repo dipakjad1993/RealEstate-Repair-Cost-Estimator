@@ -1,5 +1,5 @@
 # Pinned runtime — reproducible enterprise deploys (Streamlit Cloud / Docker / Linux).
-# Last verified: 2026-09. Python 3.10–3.13.
+# Last verified: 2026-10. Python 3.10–3.13.
 streamlit==1.37.*
 pandas==2.2.*
 numpy==1.26.*
@@ -25,6 +25,13 @@ faster-whisper==1.0.*
 # --- Supabase / Postgres (optional; sqlite fallback is automatic) ---
 supabase==2.7.*
 psycopg2-binary==2.9.*
-# --- Quality ---
+# --- Distributed rate limiting (optional; in-memory fallback automatic) ---
+redis==5.0.*
+# --- Quality / test (CI + local) ---
 pytest==8.3.*
+pytest-cov==5.0.*
+hypothesis==6.112.*
 ruff==0.6.*
+# --- Optional observability (no-op if unset; install to enable OTel traces) ---
+# opentelemetry-sdk==1.27.*
+# opentelemetry-exporter-otlp==1.27.*

@@ -1,15 +1,28 @@
 """
-Insurance Engine (VERIFIED REBUILD)
-===================================
-- Red-flag detection: rule-based on REAL inspection findings (config rules)
+Insurance Engine (VERIFIED REBUILD v3.4)
+========================================
+- Red-flag detection: REGEX rules on REAL inspection findings. Patterns are
+  applied case-insensitively with alternation (the previous substring matcher
+  silently skipped every regex-style pattern — fixed).
 - Base premium: MODELED state benchmark (P&C underwriting requires carrier
-  credentials; user's real carrier quote overrides when supplied)
-- Every output labeled; nothing silently fabricated.
+  credentials; the user's real carrier quote overrides when supplied).
+- Every output carries badge + source_url + as_of. Nothing fabricated.
+
+Provenance contract:
+- denial_prob / annual_penalty / replacement_cost from red-flag rules are
+  MODELED heuristics (informed by public carrier guidance, NAIC, EPA/CPSC/
+  NFPA) — never actuarial. source_url + as_of travel with every flag.
 """
 
-from datetime import datetime
+import re
+from datetime import datetime, timezone
 
 from config import INSURANCE_RED_FLAGS
+
+_FLAG_SOURCE_NOTE = (
+    "MODELED heuristic — informed by public carrier guidance, not an actuarial table. "
+    "Replace with carrier underwriting manual for binding figures."
+)
 
 
 def analyze_insurance_risk(findings, property_data, user_quote=None):
@@ -19,31 +32,43 @@ def analyze_insurance_risk(findings, property_data, user_quote=None):
     prop_age = current_year - year_built if year_built else 30
     red_flags = []
     all_findings_text = " ".join(f.get("description", "") for f in findings)
-    all_findings_lower = all_findings_text.lower()
     for flag in INSURANCE_RED_FLAGS:
-        patterns = flag["pattern"].split("|")
+        patterns = [p.strip() for p in flag["pattern"].split("|") if p.strip()]
+        matched = None
         for pattern in patterns:
-            pattern_clean = pattern.strip().lower()
-            if pattern_clean in all_findings_lower:
-                red_flags.append(
-                    {
-                        "red_flag_type": flag["description"],
-                        "system": flag["system"],
-                        "risk_score": flag["risk_score"],
-                        "denial_probability": flag["denial_prob"],
-                        "annual_premium_impact": flag["annual_penalty"],
-                        "replacement_cost": flag["replacement_cost"],
-                        "matched_pattern": pattern_clean,
-                        "description": flag["description"],
-                        "recommendation": _get_insurance_recommendation(flag),
-                        "severity": "CRITICAL"
-                        if flag["risk_score"] >= 90
-                        else "HIGH"
-                        if flag["risk_score"] >= 80
-                        else "MEDIUM",
-                    }
-                )
-                break
+            try:
+                if re.search(pattern, all_findings_text, flags=re.IGNORECASE):
+                    matched = pattern
+                    break
+            except re.error:
+                # Malformed pattern — fall back to literal substring (deterministic, safe).
+                if pattern.lower() in all_findings_text.lower():
+                    matched = pattern
+                    break
+        if matched is None:
+            continue
+        red_flags.append(
+            {
+                "red_flag_type": flag["description"],
+                "system": flag["system"],
+                "risk_score": flag["risk_score"],
+                "denial_probability": flag["denial_prob"],
+                "annual_premium_impact": flag["annual_penalty"],
+                "replacement_cost": flag["replacement_cost"],
+                "matched_pattern": matched,
+                "description": flag["description"],
+                "recommendation": _get_insurance_recommendation(flag),
+                "severity": "CRITICAL"
+                if flag["risk_score"] >= 90
+                else "HIGH"
+                if flag["risk_score"] >= 80
+                else "MEDIUM",
+                "badge": "MODELED",
+                "source_url": flag.get("source_url", ""),
+                "source_note": flag.get("source_note", _FLAG_SOURCE_NOTE),
+                "as_of": flag.get("as_of", ""),
+            }
+        )
     if prop_age > 25:
         roof_risk = any("roof" in f.get("description", "").lower() for f in findings)
         if roof_risk:
@@ -61,6 +86,10 @@ def analyze_insurance_risk(findings, property_data, user_quote=None):
                         "description": "Roof exceeding 25 years poses elevated insurance risk",
                         "recommendation": "Roof certification may be required for insurance. Budget for replacement.",
                         "severity": "HIGH",
+                        "badge": "MODELED",
+                        "source_url": "https://wwwiii.org/article/roof-age-and-homeowners-insurance",
+                        "source_note": _FLAG_SOURCE_NOTE,
+                        "as_of": datetime.now(timezone.utc).date().isoformat(),
                     }
                 )
     if prop_age > 30:
@@ -78,6 +107,10 @@ def analyze_insurance_risk(findings, property_data, user_quote=None):
                     "description": "Electrical system over 30 years may require panel upgrade for insurance",
                     "recommendation": "Electrical inspection and possible panel upgrade may be required.",
                     "severity": "MEDIUM",
+                    "badge": "MODELED",
+                    "source_url": "https://www.nfpa.org/education-and-research/home-fire-safety",
+                    "source_note": _FLAG_SOURCE_NOTE,
+                    "as_of": datetime.now(timezone.utc).date().isoformat(),
                 }
             )
     total_annual_impact = sum(r["annual_premium_impact"] for r in red_flags)
@@ -107,6 +140,8 @@ def analyze_insurance_risk(findings, property_data, user_quote=None):
             "annual_premium_increase": round(total_annual_impact, 0),
             "five_year_cost_impact": round(total_annual_impact * 5, 0),
             "premium_provenance": premium_provenance,
+            "flag_values_badge": "MODELED",
+            "flag_values_note": _FLAG_SOURCE_NOTE,
         },
         "market_context": {
             "state": state,

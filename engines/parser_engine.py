@@ -3,6 +3,7 @@ import re
 from collections import defaultdict
 
 from config import INSPECTION_SYSTEM_PATTERNS, SeverityLevels
+from engines.confidence_engine import score_finding
 
 
 def extract_text_from_pdf(pdf_file):
@@ -577,16 +578,24 @@ def parse_structured_findings(text, page_texts):
             ):
                 continue
             severity, system = classify_severity(sentence)
+            loc = extract_location_info(sentence)
+            sys_cat = system if system != "UNCLASSIFIED" else classify_finding_system(sentence)
             finding = {
                 "description": sentence,
                 "severity": severity,
                 "severity_score": SeverityLevels.get(severity, {}).get("priority", 5),
-                "system_category": system if system != "UNCLASSIFIED" else classify_finding_system(sentence),
-                "location": extract_location_info(sentence),
+                "system_category": sys_cat,
+                "location": loc,
                 "component": current_section,
                 "subsystem": _extract_sub_component(sentence),
                 "source_section": current_section,
-                "confidence_score": 0.85 if severity in ["CRITICAL", "HIGH"] else 0.75,
+                "confidence_score": score_finding(
+                    sentence,
+                    severity=severity,
+                    location=loc,
+                    system=sys_cat,
+                    source_type="pdf",
+                ),
             }
             findings.append(finding)
     return findings
@@ -833,7 +842,13 @@ def extract_findings_from_tables(tables_found):
                 "component": component or "Table Finding",
                 "subsystem": _extract_sub_component(full_text),
                 "source_section": f"Table (Page {table_info.get('page', '?')})",
-                "confidence_score": 0.70,
+                "confidence_score": score_finding(
+                    full_text,
+                    severity=table_severity,
+                    location=extract_location_info(full_text),
+                    system=system,
+                    source_type="pdf",
+                ),
             }
             findings.append(finding)
     return findings
@@ -920,7 +935,13 @@ def _extract_list_items(text):
                 "component": "List Item",
                 "subsystem": _extract_sub_component(item_text),
                 "source_section": "List Extraction",
-                "confidence_score": 0.65,
+                "confidence_score": score_finding(
+                    item_text,
+                    severity=severity,
+                    location=extract_location_info(item_text),
+                    system=system,
+                    source_type="pdf",
+                ),
             }
             findings.append(finding)
     return findings
@@ -948,7 +969,13 @@ def process_uploaded_report(pdf_file):
                     "component": "Parsed Block",
                     "subsystem": _extract_sub_component(block["text"]),
                     "source_section": "Severity Parser",
-                    "confidence_score": 0.80,
+                    "confidence_score": score_finding(
+                        block["text"],
+                        severity=block["severity"],
+                        location=extract_location_info(block["text"]),
+                        system=system,
+                        source_type="pdf",
+                    ),
                 }
             )
     table_findings = extract_findings_from_tables(extraction_result["tables_found"])

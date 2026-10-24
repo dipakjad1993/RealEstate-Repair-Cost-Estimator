@@ -1,6 +1,110 @@
-from datetime import datetime
+from datetime import datetime, timezone
 
 from config import DEPRECIATION_TABLES, ZIP_COST_MODIFIERS
+
+# ------------------------------------------------------------------
+# Provenance registry for every hardcoded heuristic in this engine.
+# The audit contract: every number carries exactly one badge. The
+# investor engine previously violated this with silent constants —
+# every assumption is now registered, badged MODELED (or
+# USER_PROVIDED when the operator overrides), with a source note.
+# ------------------------------------------------------------------
+_ASSUMPTION_AS_OF = datetime.now(timezone.utc).date().isoformat()
+INVESTOR_HEURISTICS = {
+    "expense_ratio": {
+        "value": 0.75,
+        "badge": "MODELED",
+        "description": "NOI = 75% of gross rent (25% opex: tax/ins/mgmt/vacancy)",
+        "source_url": "https://www.biggerpockets.com/blog/marketplace-article-what-is-a-good-cap-rate",
+        "source_note": "Common investor rule of thumb; varies by market/asset class",
+    },
+    "profit_target_pct": {
+        "value": 0.12,
+        "badge": "MODELED",
+        "description": "12% target profit on list price for flip MAO",
+        "source_url": "https://www.biggerpockets.com/blog/marketplace-article-what-is-a-good-flip-profit-margin",
+        "source_note": "BiggerPockets flip-margin guidance (10-15% typical)",
+    },
+    "closing_cost_buyer_pct": {
+        "value": 0.03,
+        "badge": "MODELED",
+        "description": "3% buyer closing costs",
+        "source_url": "https://www.investopedia.com/terms/c/closingcosts.asp",
+        "source_note": "Investopedia typical buyer closing cost range (2-5%)",
+    },
+    "closing_cost_seller_pct": {
+        "value": 0.01,
+        "badge": "MODELED",
+        "description": "1% seller closing costs",
+        "source_url": "https://www.investopedia.com/terms/c/closingcosts.asp",
+        "source_note": "Investopedia typical seller closing cost range (1-3%)",
+    },
+    "capex_reserve_multiplier": {
+        "value": 2.5,
+        "badge": "MODELED",
+        "description": "5-year CapEx reserve = 2.5x 24-mo weighted risk exposure",
+        "source_url": "",
+        "source_note": "Internal deterministic reserve heuristic; override via user_inputs.capex_reserve_mult",
+    },
+    "arv_rehab_mult": {
+        "value": {"CA": 0.75, "NY": 0.70, "TX": 0.85, "FL": 0.80, "default": 0.72},
+        "badge": "MODELED",
+        "description": "Rehab-to-ARV premium multiplier by state",
+        "source_url": "",
+        "source_note": "Modeled from state-level flip margins; not a comp",
+    },
+    "state_ppsf": {
+        "value": "see _modeled_listing state_ppsf table",
+        "badge": "MODELED",
+        "description": "Modeled state-level $/sqft listing benchmark",
+        "source_url": "https://www.census.gov/construction/bps/",
+        "source_note": "Oriented to Census BPS + public median sale price ranges; ZIP modifier applied",
+    },
+    "state_rent_ppsf": {
+        "value": "see _rental state_rent_ppsf table",
+        "badge": "MODELED",
+        "description": "Modeled state-level rent $/sqft benchmark",
+        "source_url": "https://www.census.gov/programs-surveys/acs",
+        "source_note": "Oriented to Census ACS median gross rent ranges; override with ACS or USER_PROVIDED",
+    },
+    "holding_cost_rates": {
+        "value": {"tax": 0.012, "insurance": 0.005, "interest": 0.07, "maintenance": 250, "utilities": 350},
+        "badge": "MODELED",
+        "description": "Annual tax 1.2%, insurance 0.5%, interest 7% of price; base monthly maint/util",
+        "source_url": "https://www.nerdwallet.com/article/mortgages/costs-owning-home-calculator",
+        "source_note": "NerdWallet homeownership cost model; state utility multipliers applied",
+    },
+    "interest_rate_default": {
+        "value": 0.07,
+        "badge": "MODELED",
+        "description": "Default mortgage rate 7% for CoC calc",
+        "source_url": "https://www.freddiemac.com/pmms",
+        "source_note": "Freddie Mac PMMS-anchored; override via user_inputs.interest_rate",
+    },
+    "failure_prob_curve": {
+        "value": "age/useful_life cubic + over-life linear",
+        "badge": "MODELED",
+        "description": "Deterministic failure-probability curve from depreciation tables",
+        "source_url": "",
+        "source_note": "Internal curve; tables versioned in data/depreciation_tables.json",
+    },
+    "condition_mults": {
+        "value": "excellent=0.7 … terrible=1.5",
+        "badge": "MODELED",
+        "description": "Condition keyword multipliers on failure probability",
+        "source_url": "",
+        "source_note": "Internal heuristic; override via inspection severity",
+    },
+}
+
+
+def investor_provenance() -> dict:
+    """Export the full heuristic registry for API/UI citation."""
+    return {
+        "heuristics": INVESTOR_HEURISTICS,
+        "badge_contract": "Every heuristic is MODELED unless user_inputs override it (then USER_PROVIDED).",
+        "as_of": _ASSUMPTION_AS_OF,
+    }
 
 
 def analyze_investor_deal(
@@ -12,6 +116,7 @@ def analyze_investor_deal(
     - repair costs from the verified cost matrix
     - 24-month CapEx risk from the capex engine
     Falls back to clearly-labeled MODELED benchmarks only where no real anchor exists.
+    Every heuristic constant is registered in INVESTOR_HEURISTICS (badged MODELED).
     """
     user_inputs = user_inputs or {}
     current_year = datetime.now().year
@@ -36,23 +141,34 @@ def analyze_investor_deal(
         mkt, user_inputs, listing_price, total_repair, state, zip_code, sqft, property_data
     )
     holding_costs_monthly = _estimate_holding_costs(listing_price, state)
-    closing_costs_buyer = listing_price * 0.03
-    closing_costs_seller = listing_price * 0.01
+    closing_costs_buyer = listing_price * INVESTOR_HEURISTICS["closing_cost_buyer_pct"]["value"]
+    closing_costs_seller = listing_price * INVESTOR_HEURISTICS["closing_cost_seller_pct"]["value"]
     holding_period_months = int(user_inputs.get("holding_months", 6))
     total_holding = holding_costs_monthly * holding_period_months
-    profit_target = listing_price * 0.12
+    profit_target = listing_price * INVESTOR_HEURISTICS["profit_target_pct"]["value"]
     max_offer = (
         arv - total_repair - total_holding - closing_costs_buyer - closing_costs_seller - profit_target
     )
 
     monthly_rental, rent_provenance = _rental(mkt, user_inputs, zip_code, sqft, bedrooms, bathrooms)
     annual_rental = monthly_rental * 12
-    annual_noi = annual_rental * 0.75
+    expense_ratio = float(user_inputs.get("expense_ratio", INVESTOR_HEURISTICS["expense_ratio"]["value"]))
+    annual_noi = annual_rental * expense_ratio
     cap_rate = (annual_noi / arv * 100) if arv > 0 else 0
     cash_invested = max_offer + total_repair + closing_costs_buyer
-    monthly_mortgage = max_offer * (float(user_inputs.get("interest_rate", 0.07)) / 12)
+    interest_rate = float(
+        user_inputs.get("interest_rate", INVESTOR_HEURISTICS["interest_rate_default"]["value"])
+    )
+    monthly_mortgage = max_offer * (interest_rate / 12)
     cash_on_cash = ((annual_noi - (monthly_mortgage * 12)) / cash_invested * 100) if cash_invested > 0 else 0
-    capex_reserve_5yr = capex_weighted * 2.5
+    capex_reserve_mult = float(
+        user_inputs.get("capex_reserve_mult", INVESTOR_HEURISTICS["capex_reserve_multiplier"]["value"])
+    )
+    capex_reserve_5yr = capex_weighted * capex_reserve_mult
+
+    expense_ratio_badge = "USER_PROVIDED" if user_inputs.get("expense_ratio") else "MODELED"
+    interest_badge = "USER_PROVIDED" if user_inputs.get("interest_rate") else "MODELED"
+    capex_mult_badge = "USER_PROVIDED" if user_inputs.get("capex_reserve_mult") else "MODELED"
 
     depreciation_forecast = _build_5yr_capex_forecast(findings, property_data)
 
@@ -81,7 +197,7 @@ def analyze_investor_deal(
             "offer_to_arv_ratio": round(max_offer / max(arv, 1) * 100, 1),
             "gross_rent_multiplier": round(arv / max(annual_rental, 1), 2),
             "cash_required": round(cash_invested, 0),
-            "net_monthly_cashflow": round((annual_noi - (max_offer * 0.07)) / 12, 0),
+            "net_monthly_cashflow": round((annual_noi - (max_offer * interest_rate)) / 12, 0),
         },
         "risk_assessment": {
             "repair_risk": "HIGH"
@@ -110,6 +226,22 @@ def analyze_investor_deal(
             prop_age,
             sqft,
         ),
+        "figure_provenance": {
+            "listing_price": list_provenance,
+            "after_repair_value": arv_provenance,
+            "monthly_rental": rent_provenance,
+            "repair_costs": "MODELED",
+            "expense_ratio": expense_ratio_badge,
+            "interest_rate": interest_badge,
+            "capex_reserve_multiplier": capex_mult_badge,
+            "profit_target": "MODELED",
+            "closing_costs": "MODELED",
+            "holding_costs": "MODELED",
+            "cap_rate": "MODELED_DERIVED",
+            "cash_on_cash": "MODELED_DERIVED",
+            "max_allowable_offer": "MODELED_DERIVED",
+        },
+        "heuristics_registry": investor_provenance(),
     }
 
 
@@ -117,9 +249,9 @@ def _listing_price(mkt, user_inputs, zip_code, sqft, property_data, bedrooms, ba
     if user_inputs.get("list_price"):
         return float(user_inputs["list_price"]), "USER_PROVIDED"
     if mkt.get("list_price"):
-        return float(mkt["list_price"]), "USER_MLS_VERIFIED"
+        return float(mkt["list_price"]), "VERIFIED"
     # MODELED fallback: published state-level $/sqft benchmarks
-    return _modeled_listing(zip_code, sqft, property_data, bedrooms, bathrooms), "MODELED_BENCHMARK"
+    return _modeled_listing(zip_code, sqft, property_data, bedrooms, bathrooms), "MODELED"
 
 
 def _modeled_listing(zip_code, sqft, property_data, bedrooms=3, bathrooms=2):
@@ -165,10 +297,10 @@ def _arv(mkt, user_inputs, listing_price, repair_cost, state, zip_code, sqft, pr
     if user_inputs.get("arv"):
         return float(user_inputs["arv"]), "USER_PROVIDED"
     if mkt.get("price_per_sqft") and mkt.get("sqft"):
-        return mkt["price_per_sqft"] * mkt["sqft"], "USER_MLS_VERIFIED"
-    roi_mults = {"CA": 0.75, "NY": 0.70, "TX": 0.85, "FL": 0.80, "default": 0.72}
+        return mkt["price_per_sqft"] * mkt["sqft"], "VERIFIED"
+    roi_mults = INVESTOR_HEURISTICS["arv_rehab_mult"]["value"]
     rehab_premium = repair_cost * roi_mults.get(state, roi_mults["default"])
-    return listing_price + rehab_premium, "MODELED_BENCHMARK"
+    return listing_price + rehab_premium, "MODELED"
 
 
 def _estimate_holding_costs(price, state=""):
@@ -189,7 +321,7 @@ def _rental(mkt, user_inputs, zip_code, sqft, bedrooms=3, bathrooms=2):
         return float(user_inputs["monthly_rent"]), "USER_PROVIDED"
     acs = mkt.get("acs") or {}
     if acs.get("median_gross_rent"):
-        return float(acs["median_gross_rent"]), f"CENSUS_ACS_{acs.get('acs_year', '')}"
+        return float(acs["median_gross_rent"]), "VERIFIED"
     state = mkt.get("state", "")
     state_rent_ppsf = {
         "CA": 2.50,
@@ -213,7 +345,7 @@ def _rental(mkt, user_inputs, zip_code, sqft, bedrooms=3, bathrooms=2):
     base_rent = sqft * base_ppsf
     bedroom_adj = 1.0 + (bedrooms - 3) * 0.05
     bath_adj = 1.0 + (bathrooms - 2) * 0.03
-    return base_rent * bedroom_adj * bath_adj, "MODELED_BENCHMARK"
+    return base_rent * bedroom_adj * bath_adj, "MODELED"
 
 
 def _assess_deal_quality(max_offer, arv, repair, cap_rate, coc):

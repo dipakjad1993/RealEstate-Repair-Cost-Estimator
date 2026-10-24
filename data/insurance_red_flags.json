@@ -1,6 +1,7 @@
 {
- "version": "2026.09.25",
+ "version": "2026.10.24",
  "dataset": "insurance_red_flags",
+ "provenance_note": "risk_score/denial_prob/annual_penalty are MODELED heuristics informed by public carrier guidelines, NAIC bulletins, and industry loss data — NOT actuarial tables. Replace with carrier underwriting manuals for binding figures. Patterns are regex (applied case-insensitively with alternation).",
  "data": [
   {
    "pattern": "polybutylene|poly-b|polybutelyne",
@@ -9,7 +10,11 @@
    "denial_prob": 0.94,
    "annual_penalty": 3400,
    "replacement_cost": 9500,
-   "description": "Polybutylene plumbing - known failure risk, most carriers will deny coverage"
+   "description": "Polybutylene plumbing - known failure risk, most carriers will deny coverage",
+   "badge": "MODELED",
+   "source_url": "https://www.nachi.org/polybutylene-piping.htm",
+   "source_note": "InterNACHI guidance; carrier denial practice widely documented",
+   "as_of": "2026-10-24"
   },
   {
    "pattern": "knob.and.tube|K&T|knob & tube",
@@ -18,7 +23,11 @@
    "denial_prob": 0.91,
    "annual_penalty": 3100,
    "replacement_cost": 14000,
-   "description": "Knob-and-tube wiring - fire hazard, most carriers require full rewiring"
+   "description": "Knob-and-tube wiring - fire hazard, most carriers require full rewiring",
+   "badge": "MODELED",
+   "source_url": "https://www.nfpa.org/education-and-research/home-fire-safety/knob-and-tube-wiring",
+   "source_note": "NFPA guidance; carrier non-renewal practice documented in state DOI bulletins",
+   "as_of": "2026-10-24"
   },
   {
    "pattern": "federal.pacific|FPE|stab-lok",
@@ -27,7 +36,11 @@
    "denial_prob": 0.89,
    "annual_penalty": 2800,
    "replacement_cost": 2800,
-   "description": "Federal Pacific panel - active class action, 94% denial probability"
+   "description": "Federal Pacific panel - active class action, 94% denial probability",
+   "badge": "MODELED",
+   "source_url": "https://www.cpsc.gov/Recalls/1983/federal-pacific-electric-company-connection-failures",
+   "source_note": "CPSC recall history; UL and carrier bulletins on Stab-Lok failure rates",
+   "as_of": "2026-10-24"
   },
   {
    "pattern": "zinsco|zinsco.*panel|Sylvania.*panel",
@@ -36,7 +49,11 @@
    "denial_prob": 0.88,
    "annual_penalty": 2600,
    "replacement_cost": 3200,
-   "description": "Zinsco panel - known breaker welding/failure under overload"
+   "description": "Zinsco panel - known breaker welding/failure under overload",
+   "badge": "MODELED",
+   "source_url": "https://www.nachi.org/zinsco-panels.htm",
+   "source_note": "InterNACHI hazard profile; carrier surcharge practice",
+   "as_of": "2026-10-24"
   },
   {
    "pattern": "aluminum.wiring|aluminum.branch",
@@ -45,7 +62,11 @@
    "denial_prob": 0.82,
    "annual_penalty": 2200,
    "replacement_cost": 16000,
-   "description": "Aluminum branch wiring - fire/overheating risk at connections"
+   "description": "Aluminum branch wiring - fire/overheating risk at connections",
+   "badge": "MODELED",
+   "source_url": "https://www.cpsc.gov/safety-education/safety-guides-the-home/aluminum-wiring",
+   "source_note": "CPSC consumer guidance; COPAL/AlumiConn remediation standard",
+   "as_of": "2026-10-24"
   },
   {
    "pattern": "asbestos|asbestos.insulation|asbestos.siding",
@@ -54,7 +75,11 @@
    "denial_prob": 0.7,
    "annual_penalty": 1800,
    "replacement_cost": 28000,
-   "description": "Asbestos materials - specialized abatement required by law"
+   "description": "Asbestos materials - specialized abatement required by law",
+   "badge": "MODELED",
+   "source_url": "https://www.epa.gov/asbestos",
+   "source_note": "EPA AHERA/RRP rules; abatement cost ranges from state health depts",
+   "as_of": "2026-10-24"
   },
   {
    "pattern": "lead.paint|lead-based",
@@ -63,7 +88,11 @@
    "denial_prob": 0.65,
    "annual_penalty": 1400,
    "replacement_cost": 18000,
-   "description": "Lead-based paint - EPA RRP rule compliance required"
+   "description": "Lead-based paint - EPA RRP rule compliance required",
+   "badge": "MODELED",
+   "source_url": "https://www.epa.gov/lead",
+   "source_note": "EPA RRP rule; HUD lead-safe work practice standards",
+   "as_of": "2026-10-24"
   },
   {
    "pattern": "mold|active.mold|mold.growth|mold.colon",
@@ -72,7 +101,11 @@
    "denial_prob": 0.75,
    "annual_penalty": 2400,
    "replacement_cost": 9500,
-   "description": "Active mold growth - health hazard, carrier may exclude related claims"
+   "description": "Active mold growth - health hazard, carrier may exclude related claims",
+   "badge": "MODELED",
+   "source_url": "https://www.epa.gov/mold",
+   "source_note": "EPA mold remediation guidance; carrier exclusion practice post-2000 policies",
+   "as_of": "2026-10-24"
   },
   {
    "pattern": "roof.*1[3-9].years|roof.*2[0-9].years|roof.over.*12",
@@ -81,7 +114,11 @@
    "denial_prob": 0.6,
    "annual_penalty": 2000,
    "replacement_cost": 14500,
-   "description": "Aging roof (12+ years) - many carriers require certification or will non-renew"
+   "description": "Aging roof (12+ years) - many carriers require certification or will non-renew",
+   "badge": "MODELED",
+   "source_url": "https://wwwiii.org/article/roof-age-and-homeowners-insurance",
+   "source_note": "Insurance Information Institute; state DOI roofing-billing laws (FL TX NC)",
+   "as_of": "2026-10-24"
   },
   {
    "pattern": "active.leak|active.water|water.intrusion|active.dripping",
@@ -90,7 +127,11 @@
    "denial_prob": 0.8,
    "annual_penalty": 2300,
    "replacement_cost": 6000,
-   "description": "Active water intrusion - immediate risk of structural damage and mold"
+   "description": "Active water intrusion - immediate risk of structural damage and mold",
+   "badge": "MODELED",
+   "source_url": "https://www.iii.org/article/water-damage",
+   "source_note": "Insurance Information Institute; sudden-vs-continuing damage doctrine",
+   "as_of": "2026-10-24"
   },
   {
    "pattern": "foundation.crack|structural.crack|settling|shifting",
@@ -99,7 +140,11 @@
    "denial_prob": 0.85,
    "annual_penalty": 3800,
    "replacement_cost": 25000,
-   "description": "Foundation/structural issues - major liability, often excluded from coverage"
+   "description": "Foundation/structural issues - major liability, often excluded from coverage",
+   "badge": "MODELED",
+   "source_url": "https://www.iii.org/article/homeowners-insurance-policy-coverage",
+   "source_note": "III foundational-exclusion overview; state adjuster manuals",
+   "as_of": "2026-10-24"
   },
   {
    "pattern": "radon|radon.mitigation|radon.level",
@@ -108,7 +153,11 @@
    "denial_prob": 0.5,
    "annual_penalty": 900,
    "replacement_cost": 1800,
-   "description": "Radon above 4.0 pCi/L - mitigation system required for occupancy"
+   "description": "Radon above 4.0 pCi/L - mitigation system required for occupancy",
+   "badge": "MODELED",
+   "source_url": "https://www.epa.gov/radon/radon-levels",
+   "source_note": "EPA action level 4.0 pCi/L; state disclosure statutes",
+   "as_of": "2026-10-24"
   },
   {
    "pattern": "termites|termite.damage|wood.destroying|wdi",
@@ -117,7 +166,11 @@
    "denial_prob": 0.55,
    "annual_penalty": 1200,
    "replacement_cost": 9500,
-   "description": "Termite/WDI - structural wood damage, often excluded from homeowner policies"
+   "description": "Termite/WDI - structural wood damage, often excluded from homeowner policies",
+   "badge": "MODELED",
+   "source_url": "https://www.iii.org/article/termites-and-insurance",
+   "source_note": "III; state WDI inspection laws (termite bonds)",
+   "as_of": "2026-10-24"
   },
   {
    "pattern": "septic|septic.system|septic.tank",
@@ -126,7 +179,11 @@
    "denial_prob": 0.45,
    "annual_penalty": 1000,
    "replacement_cost": 18000,
-   "description": "Septic system - potential failure, replacement is major expense"
+   "description": "Septic system - potential failure, replacement is major expense",
+   "badge": "MODELED",
+   "source_url": "https://www.epa.gov/septic",
+   "source_note": "EPA septic systems overview; state replacement cost surveys",
+   "as_of": "2026-10-24"
   },
   {
    "pattern": "well.water|private.well",
@@ -135,7 +192,11 @@
    "denial_prob": 0.35,
    "annual_penalty": 700,
    "replacement_cost": 9500,
-   "description": "Private well - water quality risk, no municipal backup"
+   "description": "Private well - water quality risk, no municipal backup",
+   "badge": "MODELED",
+   "source_url": "https://www.epa.gov/privatewells",
+   "source_note": "EPA private well guidance; state health dept testing standards",
+   "as_of": "2026-10-24"
   }
  ]
 }

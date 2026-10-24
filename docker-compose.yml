@@ -8,8 +8,12 @@ services:
     environment:
       PYTHONPATH: /app
       WHISPER_BACKEND: none
+      REDIS_URL: redis://redis:6379/0
+      AUDIT_LOG_PATH: /app/data/audit_log.jsonl
     volumes:
       - ./data:/app/data
+    depends_on:
+      - redis
     restart: unless-stopped
 
   api:
@@ -21,4 +25,21 @@ services:
       - .env
     environment:
       PYTHONPATH: /app
+      REDIS_URL: redis://redis:6379/0
+      AUDIT_LOG_PATH: /app/data/audit_log.jsonl
+    volumes:
+      - ./data:/app/data
+    depends_on:
+      - redis
     restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis-data:/data
+    restart: unless-stopped
+    # Not exposed to the host — internal network only.
+
+volumes:
+  redis-data:

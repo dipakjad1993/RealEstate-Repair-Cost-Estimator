@@ -1,46 +1,91 @@
-# Real Estate Repair Cost Estimator — v3.3 Enterprise
+# Real Estate Repair Cost Estimator — v3.4 Enterprise
 
 [![CI](https://github.com/dipakjad1993/RealEstate-Repair-Cost-Estimator/actions/workflows/ci.yml/badge.svg)](https://github.com/dipakjad1993/RealEstate-Repair-Cost-Estimator/actions/workflows/ci.yml)
 [![Python](https://img.shields.io/badge/python-3.10%E2%80%933.13-blue)](https://www.python.org/)
 [![Streamlit](https://img.shields.io/badge/streamlit-1.37-red)](https://streamlit.io/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green)](LICENSE)
 
-> **Provenance-tracked property intelligence.** Inspection PDFs, photos, voice walkthroughs, and floorplans become transparent, deterministic repair estimates across **21+ analysis modules** — powered by live government data, with every figure badged. **Nothing is fabricated.**
+> **Provenance-tracked property intelligence.** Inspection PDFs, photos, voice walkthroughs, and floorplans become transparent, deterministic repair estimates across **21+ analysis modules** — powered by live government data, with every figure badged. **Nothing is fabricated. Estimates, never simulations.**
+
+## Why this exists (2026)
+
+> "Rebuilding cost models need to be very transparent and deterministic. The current LLMs and AIs don't meet that criteria... They can't be trusted because of hallucination."
+> — Matt Wielbut, CTO, Openly (*Digital Insurance*, Oct 13 2026)
+
+This tool is a direct answer to that. A deterministic, auditable, provenance-first estimate engine — the anti-black-box machine for an industry where 90% of firms are piloting AI and ~1% report transformative impact (Deloitte 2026). Same inputs → same outputs. Every number carries exactly one badge.
 
 ## The provenance contract
 
-Every number in this tool carries exactly one badge:
+Every number carries exactly one badge:
 
 | Badge | Meaning |
 |---|---|
-| 🟢 **VERIFIED** | Live government data (Census · BLS · FEMA · USGS · CPSC) or evidence-backed user MLS |
+| 🟢 **VERIFIED** | Live government data (Census · BLS · FEMA · USGS · CPSC · FRED) or evidence-backed user MLS |
 | 🟡 **USER_PROVIDED** | Your quotes, MLS rows, uploads — authoritative, always wins |
 | 🔵 **MODELED** | Deterministic estimate from verified baselines — **not a quote** |
 | 🟠 **REQUIRES_KEY** | Live enrichment available once an API key is configured |
 | ⚪ **UNAVAILABLE** | Source unreachable — reported honestly, never guessed |
 
-Deterministic means reproducible: same inputs → same outputs, no randomness, no invented firms, licenses, permits, or comps.
+v3.4 enforces this contract inside the code: the investor engine's every heuristic is registered in `INVESTOR_HEURISTICS` and badged; insurance red-flag values carry `badge` + `source_url` + `as_of`; the cost engine stamps `badge`/`as_of`/`source_url` on every line item; the API returns per-figure provenance as first-class response fields. Property-based tests (Hypothesis) machine-check the invariant across random inputs.
 
-## 60-second path vs deep dive
+## What v3.4 changed (enterprise transformation)
 
-**Progressive intake** — no 7-section homework up front:
+### Security (TIER 0)
+- **Killed the dev HMAC default.** `SHARE_SECRET` is required; boot fails if unset or equal to the retired `dev-share-secret-change-me`. Rotation via `SHARE_SECRET_PREVIOUS`. See [SECURITY.md](SECURITY.md).
+- **Timing-safe auth.** API-key checks use `hmac.compare_digest` (was plain `==`, a timing oracle).
+- **OWASP headers** on every API response: CSP, HSTS, X-Content-Type-Options, X-Frame-Options, Referrer-Policy, Permissions-Policy, X-Request-ID.
+- **Distributed rate limiting.** Redis-backed sliding window when `REDIS_URL` is set; in-memory fallback otherwise. Multi-replica ready.
+- **Append-only audit log** (`engines/audit_log.py`): every estimate, share-token read, PII vault access, and failed auth — hash-chained, tamper-detectable, PII-redacted. Your SOC2 seed and carrier sales weapon.
+- **PII vault** now audit-logs every store/get, purges on TTL and capacity, and the stray CJK character is gone.
+- **Supply-chain CI:** Dependabot + pip-audit + Trivy on every PR. OpenAPI generated from FastAPI in CI and diffed against `static/openapi.json` — drift fails the build.
 
-1. **Step 0 · Instant ballpark** — address + ZIP + sqft → live Census/BLS market anchor + climate v2 (wildfire / hurricane / NFIP premium impact / non-renewal risk).
-2. **Deep dive** — upload the inspection PDF (parsed with PyMuPDF + `pymupdf4llm`, chunk-perfect for RAG), damage photos (Vision 2.0 → condition/system/confidence + honest *NOT-visible* list), voice notes (faster-whisper/Deepgram, optional), floorplan JSON/CSV/Matterport, contractor quotes, permit rows, sold comps.
-3. **Analysis** — 21-module dossier: cost matrix, CapEx, rooms, ARV, market baseline, permits, insurance, climate, recalls, vision, voice, copilot letter.
-4. **Results** — lender share link (expiring HMAC URL, redacted PII), full PDF package, Excel workbook, auditable JSON.
-5. **Health** — live status + per-host latency for every data source (1h cached, loads in seconds).
+### Provenance contract fixes (TIER 1)
+- **Investor engine**: every hardcoded heuristic (expense ratio, profit target, closing costs, CapEx reserve, ARV rehab multipliers, holding-cost rates, interest default, failure-probability curve, condition multipliers) is now registered in `INVESTOR_HEURISTICS` with badge + description + source note. `figure_provenance` and `heuristics_registry` ship in every response. User overrides flip badges to `USER_PROVIDED`.
+- **Insurance red flags**: every rule now carries `badge: MODELED` + `source_url` (EPA/CPSC/NFPA/III/InterNACHI) + `as_of`. Fixed the regex-vs-substring bug — the previous substring matcher silently skipped every regex-style pattern (e.g. `roof.*1[3-9].years`); patterns are now applied as real case-insensitive regex with alternation.
+- **Per-figure provenance in the API**: `/v1/estimate_repair` returns `line_items[]` each with `badge`, `as_of`, `source_url`, `retrieved_at` — first-class response fields, not buried in a badge. This is what makes you citable.
+- **Hardcoded confidence killed.** The flat `0.85`/`0.75` priors in `parser_engine`/`voice_engine` are replaced by `engines/confidence_engine.py`: a deterministic, signal-weighted scorer (numeric measurements, component specificity, imperative verbs, location, hedging, source type) with a `calibrate()` path for fitting weights to a labeled corpus. `calibration_status: DEFAULT_WEIGHTS` until corpus-fitted — honest about what it is.
 
-## Interface (v3.3)
+### Data layer (TIER 2)
+- **FRED integration** (`engines/fred_engine.py`): fed funds, housing starts, CPI rent, PPI construction materials — VERIFIED official Fed data with `as_of` + `source_url`. Free key.
+- **ETL snapshot pipeline** (`engines/etl_engine.py`): content-hashed, lineage-tracked snapshots under `data/snapshots/` with a manifest. Cache ≠ snapshot; snapshots give auditability, speed, and offline demos. Object-storage-ready (point `SNAPSHOT_DIR` at S3/GCS).
 
-Apple-grade Streamlit design system (`static/style.css`, self-hosted **Google Sans Flex** — the 2026 Pixel system typeface, optical sizing on — frosted-glass sticky nav, true-black dark mode via `?theme=dark` or the nav toggle):
+### API productization (TIER 4)
+- **`/v1/estimate_repair`** with `Idempotency-Key` support (agents retry — you need this), richer provenance envelope, and structured logging. Legacy `/api/estimate_repair` preserved.
+- **`/metrics`** Prometheus exposition: estimate volume, badge mix, **VERIFIED% North Star**, p95 latencies per host/engine.
+- **Share portal XSS fixed**: all dynamic HTML is escaped (the previous lender portal interpolated room values raw into `<td>`).
+- **MCP server** now exposes **resources** (`repair://provenance/legend`, `repair://cost-tables/{zip}`) alongside tools — agents cite resources; tools are for actions. Fixed the `rate_rooms` call that omitted `cost_by_finding` (produced zero-cost room rows over MCP).
 
-- One H1 per page (hero headers; enforced by test), numbered section rhythm across the intake form, Step-0 ballpark as a hero card — not a buried expander.
-- Type-to-edit numeric fields (no clunky steppers), card-style metrics, segmented pill tabs, dashed-dropzone uploaders, copy-friendly share-link blocks.
-- Health renders a real status table (Operational / Needs API key / Unreachable + checked timestamps) instead of raw debug lines.
-- PDF export sanitizes inspection unicode (em-dashes, bullets, arrows) so the lender package never crashes on real-world text.
-- Mobile-first PWA CSS + web manifest — 70% of walkthroughs happen on a phone in a crawlspace. Sticky frosted nav collapses to brand + scrollable pill strip on phones; metric rows become a 2-up grid.
-- Theme-safe tables everywhere: Streamlit's grid paints on `<canvas>` (ignores CSS, stays white in dark mode), so all read-only tables render as theme-aware HTML (sticky headers, tabular numerals, severity-tinted alerts). Sandbox picker uses native checkboxes, not a grid editor — dark mode is fully audited light + dark via Playwright screenshots.
+### Observability (TIER 5)
+- **Structured JSON logs** with `estimate_id`, badge counts, latencies — one JSON object per line, logfmt-compatible.
+- **Badge-mix metrics**: `observe_badges()` tracks the North-Star VERIFIED% per estimate; rolling aggregates on the health page and `/metrics`. If VERIFIED% drops, the product is lying — now you'll see it.
+- **OpenTelemetry hooks** (`trace_span`): no-op unless `OTEL_EXPORTER_OTLP_ENDPOINT` is set — the deterministic core never depends on it.
+
+### Tests (TIER 6)
+- **Property-based badge invariant** (Hypothesis): for random findings × states × ZIPs, every output figure carries exactly one valid badge, no nulls. Machine-checked.
+- **Security tests**: dev-secret rejection, tamper detection, timing-safe auth, OWASP headers, HTML escaping.
+- **MCP contract tests**: JSON-RPC frames for `tools/list`, `resources/list`, `resources/read`.
+- **Coverage gate ≥85%** on the 16 critical security/provenance modules, enforced in CI.
+- **Insurance regex tests** prove the previously-dead patterns now fire.
+- **Investor provenance tests** prove every heuristic is badged.
+
+### GEO / answer-surface strategy (TIER 7)
+- **Citable answer artifacts** (`engines/citable_engine.py`): every export ships a markdown twin (answer capsule + number table with per-row badge + as_of + source + Q&A block + canonical URL) and schema.org Dataset JSON-LD. The PDF closes the deal; the markdown gets cited; the badge survives the citation. Attribution-proofing for the chat-window era.
+- **Prompt portfolio** (`seo_engine.build_prompt_portfolio`): 200 ICP prompts × geos, with per-engine (ChatGPT/Gemini/Perplexity/AI Mode) mention-vs-citation tracking under the St. Gallen protocol (7+ runs/day, 2–4 week rolling windows). Citations ≠ mentions — track both.
+- **Q&A blocks** on every programmatic page — the answer-shaped format AI engines actually cite.
+- **llms.txt demoted to courtesy file** (honestly documented): 2026 data says it receives negligible direct LLM traffic. Kept for crawler politeness, removed as a strategy claim.
+
+### Legal / compliance (TIER 8)
+- **`ATTORNEY_REVIEW_REQUIRED: true`** hard-coded, non-removable, on every generated legal artifact (repair addenda, escrow holdbacks). Stamped into the payload and the document text.
+- **EU AI Act documentation pack** (`engines/compliance_engine.eu_ai_act_documentation`): intended purpose, human-oversight path, training-data provenance (deterministic — none, the strongest answer), post-market monitoring.
+- **ECOA/fair-lending screen** (`ecoa_audit`): disparate-impact tercile comparison on ZIP cost modifiers against supplied Census ACS minority-share data. Runs before every enterprise deployment.
+
+### Kill list executed
+- `utils/` deleted (1,168 lines, zero importers). Git history keeps the audit.
+- `config.legacy.py` deleted (3,180 lines). Git is the audit diff.
+- `engines/export_engine.py` (2,046 lines) quarantined in `legacy/`.
+- `data/repair_estimator.db` (3.4MB committed binary) purged from the repo and git index; now `.gitignore`d.
+- `engines/__init__.py` star-exports removed — explicit imports only.
+- `permit_live_engine` is honest: `NO_PROVIDER_CONFIGURED` / `PROVIDER_UNSUPPORTED` instead of a stub that always said `REQUIRES_KEY`.
 
 ## Quickstart
 
@@ -50,22 +95,28 @@ cd RealEstate-Repair-Cost-Estimator
 python -m venv .venv
 # Windows: .venv\Scripts\activate  |  macOS/Linux: source .venv/bin/activate
 pip install -r requirements.txt
-cp .env.example .env   # add keys to unlock live enrichment (optional)
+cp .env.example .env
+# REQUIRED for share links — generate and paste into .env:
+python -c "import secrets; print(secrets.token_urlsafe(48))"   # → SHARE_SECRET=...
 streamlit run app.py   # → http://localhost:8501
 ```
 
 Docker:
 
 ```bash
-docker compose up --build        # Streamlit :8501 + FastAPI :8000
+docker compose up --build        # Streamlit :8501 + FastAPI :8000 + Redis (rate limiting)
 ```
 
 Agent API:
 
 ```bash
+export SHARE_SECRET=$(python -c "import secrets; print(secrets.token_urlsafe(48))")
+export API_KEY=your-api-key
 uvicorn api_server:app --port 8000
-# POST /api/estimate_repair · GET /s/{token} · GET /api/openapi.json · GET /llms.txt
+# POST /v1/estimate_repair (Bearer auth + Idempotency-Key)
+# GET  /s/{token}  ·  GET /v1/openapi.json  ·  GET /api/health  ·  GET /metrics
 printf '{"method":"tools/list","id":1}\n' | python mcp_server.py
+printf '{"method":"resources/list","id":2}\n' | python mcp_server.py
 ```
 
 Quality gates (same as CI):
@@ -73,49 +124,44 @@ Quality gates (same as CI):
 ```bash
 ruff check . && ruff format --check .
 pytest -q
+pytest -q --cov=engines.share_engine --cov=engines.audit_log --cov-fail-under=85  # …16 modules, see ci.yml
 ```
-
-## What the engine does
-
-| Module | Source of truth |
-|---|---|
-| Cost matrix (DIY / contractor / emergency) | BLS OEWS trade wages + BLS PPI materials + state multipliers, 24h cached |
-| Room-by-room | Good/Fair/Poor/Gut + Low/Mid/High + Immediate (<30d) / 6-mo / 12-mo / Deferred |
-| ARV + rents | Distance/recency/DOM-weighted sold comps; Attom/RentCast/BatchData key-gated, honest fallback |
-| Market baseline (per trade) | `estimate_market_baseline()` — USER_QUOTE wins, else BLS baseline + margin |
-| Permits | User portal rows (authoritative) + BuildFax/Echelon key-gated + retroactive cost/timeline |
-| Insurance + climate v2 | Red flags, denial probability, premium impact, non-renewal risk (2026 FL/CA headlines) |
-| Recalls | Live CPSC SaferProducts.gov cross-reference |
-| CapEx 24-mo | Depreciation tables (versioned) + failure probabilities |
-| Negotiation copilot | Cited offer-credit letter from sandbox + leverage + DOM |
-| Vision 2.0 | Photo → condition/system/confidence; YOLOv8-seg + multimodal LLM key-gated |
-| Voice | faster-whisper/Deepgram (default OFF — no 1GB download), diarization heuristic, transcript→finding link |
-| Exports + sharing | Lazy PDF/Excel/JSON + expiring lender share portal |
-
-## Data sources (official first, proxies labeled)
-
-Census Geocoder + ACS · USGS Earthquake Catalog + Design Maps (ASCE 7-22) · FEMA NFHL ArcGIS/WMS · BLS OEWS/PPI · CPSC recalls · Open-Meteo (supplemental). `floodzonemap.org`, `faultlinemap.com`, Nominatim are **fallback-only** and labeled as such in provenance. Shared session: retries, backoff, timeouts, latency metrics.
-
-Cost/config tables live versioned in `data/*.json` (`data/config_version.json`); `config.py` is a thin loader (`config.legacy.py` preserved for audit). PII is redacted in logs, vaulted with TTL; persistence is Supabase/RLS with sqlite fallback; per-key rate limits on runs and API.
 
 ## Project structure
 
 ```
 app.py                    # Streamlit entrypoint (progressive intake, 5-badge UI, PWA)
-api_server.py             # FastAPI: /api/estimate_repair, /s/{token}, /api/openapi.json
-mcp_server.py             # MCP: repair-estimator-mcp (estimate_repair tool for agents)
+api_server.py             # FastAPI v1: /v1/estimate_repair, /s/{token}, /metrics, OWASP headers
+mcp_server.py             # MCP: tools + resources (repair://provenance, repair://cost-tables)
 config.py                 # Versioned loader over data/*.json
-data/                     # Versioned datasets (config_version.json)
-engines/                  # 30 focused modules (cost, rooms, comps, climate, permits,
-                          #   insurance, recalls, vision, voice, copilot, share, exports…)
-static/                   # Apple-style design system, PWA manifest, llms.txt, openapi.json
-docs/                     # GEO templates (/repair-cost/{state}/{system}/), ARCHITECTURE.md
-tests/                    # Deterministic pytest suite (no live network)
+data/                     # Versioned datasets (config_version.json); snapshots/ + audit_log.jsonl (gitignored)
+engines/                  # 35 focused modules — see below
+legacy/                   # Quarantined export_engine.py (superseded by export_pdf/export_excel)
+static/                   # Design system, PWA manifest, llms.txt (courtesy), openapi.json (CI-synced)
+docs/                     # GEO templates, ARCHITECTURE.md
+tests/                    # 82 deterministic tests: property-based badge invariant, security, MCP contract
 ```
 
-## GEO / agent visibility
+### Key engines (v3.4 new + hardened)
 
-Next.js-ready MDX template (`docs/repair-cost/_template.mdx`): 50-word answer capsule, Low/Mid/High HTML table, FAQPage + Article schema. `static/llms.txt` invites agent traffic (GPTBot/ClaudeBot/PerplexityBot allowed). Track AI mention rate, citation rate, share of voice, agent-initiated estimates, PDF shares → offers accepted.
+| Module | Role |
+|---|---|
+| `audit_log.py` | Append-only hash-chained audit trail (SOC2 seed) |
+| `observability.py` | Structured JSON logs, badge-mix metrics, VERIFIED% North Star, OTel hooks |
+| `confidence_engine.py` | Signal-based calibrated finding confidence (replaces flat 0.85/0.75) |
+| `citable_engine.py` | Markdown twin + JSON-LD + citation block (GEO attribution-proofing) |
+| `compliance_engine.py` | EU AI Act docs + ECOA disparate-impact screen |
+| `etl_engine.py` | Content-hashed, lineage-tracked data snapshots |
+| `fred_engine.py` | FRED macro anchors (FEDFUNDS/HOUST/CPI-rent/PPI-construction) |
+| `share_engine.py` | HMAC share tokens — required secret, rotation, timing-safe verify |
+| `rate_limit.py` | Redis-backed sliding window + in-memory fallback |
+| `insurance_engine.py` | Regex red-flag rules with per-flag source_url + as_of |
+| `investor_engine.py` | MAO/cap-rate/CoC with fully-badged heuristic registry |
+| `legal_engine.py` | Repair addenda + escrow holdbacks — ATTORNEY_REVIEW_REQUIRED hard flag |
+
+## Data sources (official first, proxies labeled)
+
+Census Geocoder + ACS · USGS Earthquake Catalog + Design Maps (ASCE 7-22) · FEMA NFHL ArcGIS/WMS · BLS OEWS/PPI · CPSC recalls · FRED (St. Louis Fed) · Open-Meteo (supplemental). Fallback proxies are labeled as such in provenance. Shared HTTP session: retries, backoff, timeouts, latency metrics.
 
 ## Contributing
 
@@ -123,7 +169,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) — provenance contract, language rules (
 
 ## Disclaimer
 
-Informational purposes only — **not** engineering, legal, financial, or insurance advice. Estimates derive from government datasets and deterministic models; actual bids vary. Always verify with licensed local professionals. Provided **as is**, without warranty.
+Informational purposes only — **not** engineering, legal, financial, or insurance advice. Estimates derive from government datasets and deterministic models; actual bids vary. Generated legal templates carry `ATTORNEY_REVIEW_REQUIRED: true` and must be reviewed by a licensed attorney. Always verify with licensed local professionals. Provided **as is**, without warranty.
 
 ## License
 
