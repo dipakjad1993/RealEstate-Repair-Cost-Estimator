@@ -192,6 +192,18 @@ def _is_noise_finding(text):
     # Checked against RAW text — newlines carry the signal.
     if re.search(r"(?im)^\s*(?:item|system|severity|location|recommended action)\s*$", raw):
         return True
+    # Header signature joined into one run — markdown pipes are stripped by
+    # _sanitize_extracted_text, so pymupdf4llm tables arrive as
+    # "Item System Severity Location Recommendedaction ..." on a single line.
+    if re.search(
+        r"(?i)\bitem\b[\s|]{0,40}\bsystem\b[\s|]{0,40}\bseverity\b[\s|]{0,40}\blocation\b",
+        raw,
+    ):
+        return True
+    # Markdown table separator residue ("--- --- --- --- ---") survives sanitize
+    # because the dashed groups are space-joined.
+    if re.search(r"(?m)^\s*-{3,}(?:\s+-{3,})+\s*$", raw):
+        return True
     stripped = re.sub(r"\s+", " ", raw).strip()
     if len(stripped) < 15:
         return True
