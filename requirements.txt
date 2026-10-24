@@ -13,7 +13,7 @@ XlsxWriter==3.2.*
 fpdf2==2.7.*
 reportlab==4.2.*
 python-dateutil==2.9.*
-pydantic==2.8.*
+pydantic==2.14.*
 # --- API / MCP / agent layer (optional but installed: lightweight, no torch) ---
 fastapi==0.115.*
 uvicorn[standard]==0.30.*
