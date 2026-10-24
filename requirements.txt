@@ -31,7 +31,7 @@ redis==5.0.*
 # --- Quality / test (CI + local) ---
 pytest==8.3.*
 pytest-cov==5.0.*
-hypothesis==6.112.*
+hypothesis==6.170.*
 ruff==0.6.*
 # --- Optional observability (no-op if unset; install to enable OTel traces) ---
 # opentelemetry-sdk==1.27.*
