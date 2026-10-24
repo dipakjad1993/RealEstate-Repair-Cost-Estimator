@@ -204,6 +204,27 @@ def dtable(data, use_container_width=True, hide_index=True, **kwargs):
         return seen > 0 and hits / seen >= 0.7
 
     num_cols = {c for c in columns if _is_num_col(c)}
+    try:
+        from config import SeverityLevels as _sev_levels
+    except Exception:
+        _sev_levels = {}
+
+    def _sev_chip(value):
+        """Gradient severity pill for CRITICAL/HIGH/MEDIUM/LOW/INFO cells."""
+        key = str(value).strip().upper()
+        lvl = _sev_levels.get(key)
+        if not lvl or not isinstance(lvl, dict):
+            return None
+        color = lvl.get("color", "#0071E3")
+        bg = lvl.get("bg", "rgba(0,113,227,0.12)")
+        icon = lvl.get("icon", "")
+        label = str(value).strip().upper()
+        return (
+            f"<span class='sev-chip sev-{key.lower()}' "
+            f"style='--sev:{color};--sev-bg:{bg}'>"
+            f"{icon} {label}</span>"
+        )
+
     thead = "".join(f"<th>{_html.escape(str(c))}</th>" for c in columns)
     body = []
     for r in records:
@@ -211,11 +232,14 @@ def dtable(data, use_container_width=True, hide_index=True, **kwargs):
         for c in columns:
             v = r.get(c, "")
             s = "" if v is None else str(v)
-            if len(s) > 220:
+            chip = _sev_chip(s)
+            if chip is not None:
+                cell = f"<td>{chip}</td>"
+            elif len(s) > 220:
                 cell = f"<td title='{_html.escape(s, quote=True)}'>{_html.escape(s[:220])}…</td>"
             else:
                 cell = f"<td>{_html.escape(s)}</td>"
-            if c in num_cols:
+            if c in num_cols and chip is None:
                 cell = cell.replace("<td", "<td class='num'", 1)
             tds.append(cell)
         body.append("<tr>" + "".join(tds) + "</tr>")
@@ -483,6 +507,21 @@ def run_pipeline(session):
     spatial = create_spatial_map(findings, pd_, floorplan.get("rooms", []))
     investor = analyze_investor_deal(pd_, findings, cost_matrix, capex, market, uw)
     legal = generate_legal_addendum(pd_, findings, cost_matrix)
+    # Escrow holdback (Module 17) — computed once here with live bids + costs.
+    try:
+        _cost_avg = {
+            it.get("finding_key"): it.get("total_avg", 0) for it in cost_matrix.get("line_items", [])
+        }
+        _high_risk = []
+        for f in findings:
+            if f.get("severity") in ("CRITICAL", "HIGH"):
+                fcost = dict(f)
+                fcost["estimated_cost_avg"] = _cost_avg.get(f.get("key", f.get("description", "")), 0)
+                _high_risk.append(fcost)
+        escrow = generate_escrow_holdback_agreement(pd_, _high_risk, bids)
+    except Exception as e:
+        logger.warning("escrow holdback failed: %s", e)
+        escrow = {"items": [], "total_holdback": 0, "holdback_multiplier": 1.5}
     permit_result = check_permit_compliance(pd_, permits)
     permit_xref = cross_reference_findings_with_permits(findings, permits)
     permit_needs = extract_permit_needs_from_findings(findings)
@@ -512,6 +551,7 @@ def run_pipeline(session):
         "spatial": spatial,
         "investor": investor,
         "legal": legal,
+        "escrow": escrow,
         "permit": permit_result,
         "permit_xref": permit_xref,
         "permit_needs": permit_needs,
@@ -610,6 +650,39 @@ def run_pipeline(session):
 # ------------------------------------------------------------------
 # Page 1 - Inputs
 # ------------------------------------------------------------------
+def _sample_data_controls():
+    """One-click demo: fill every Page-1 field + attach sample evidence files."""
+    from engines.sample_data import SAMPLE_FIELDS
+
+    active = bool(st.session_state.get("sample_active"))
+    left, right = st.columns([5, 1])
+    with left:
+        if st.button(
+            "⚡ Load sample data — 1428 Elm Street demo (fills every field + evidence files)",
+            type="primary",
+            use_container_width=True,
+        ):
+            for _k, _v in SAMPLE_FIELDS.items():
+                st.session_state[_k] = _v
+            from engines.sample_data import build_sample_files
+
+            st.session_state["sample_files"] = build_sample_files()
+            st.session_state["sample_active"] = True
+            st.rerun()
+    with right:
+        if active and st.button("✕ Clear", use_container_width=True):
+            for _k in SAMPLE_FIELDS:
+                st.session_state.pop(_k, None)
+            st.session_state.pop("sample_files", None)
+            st.session_state.pop("sample_active", None)
+            st.rerun()
+    if active:
+        st.caption(
+            "✅ Sample dataset loaded — metadata, MLS, quotes, permits, comps, and evidence files "
+            "are pre-filled. Scroll to **▶ Run Analysis**."
+        )
+
+
 def page_inputs():
     st.caption(
         "Every output is derived from **real, verified data** (Census · BLS · FEMA · USGS · CPSC) "
@@ -617,6 +690,7 @@ def page_inputs():
         "PII (address/APN) is redacted in logs and vaulted with TTL."
     )
     st.markdown("<link rel='manifest' href='/app/static/manifest.webmanifest'>", unsafe_allow_html=True)
+    _sample_data_controls()
 
     # ---- STEP 0 · Progressive intake: address-only instant ballpark (60s) ----
     with st.container(border=True):
@@ -668,36 +742,40 @@ def page_inputs():
         section("1", "Property Metadata", "Required — address identity for verification-grade lookups.")
         c1, c2, c3 = st.columns(3)
         with c1:
-            addr = st.text_input("Street address", placeholder="e.g. 1234 Maple Ave")
-            city = st.text_input("City", placeholder="e.g. Beverly Hills")
-            state = st.selectbox("State", sorted(STATE_ABBREV), index=4)
+            addr = st.text_input("Street address", placeholder="e.g. 1234 Maple Ave", key="f_addr")
+            city = st.text_input("City", placeholder="e.g. Beverly Hills", key="f_city")
+            state = st.selectbox("State", sorted(STATE_ABBREV), index=4, key="f_state")
         with c2:
             zip9 = st.text_input(
                 "9-digit ZIP (ZIP+4)",
                 placeholder="90210-4801",
                 help="Required for verification-grade Census/BLS/FEMA lookups",
+                key="f_zip9",
             )
-            apn = st.text_input("APN (Assessor Parcel Number)", placeholder="e.g. 44-33-12-08-1024")
+            apn = st.text_input(
+                "APN (Assessor Parcel Number)", placeholder="e.g. 44-33-12-08-1024", key="f_apn"
+            )
             ptype = st.selectbox(
                 "Property type",
                 ["Single Family", "Condo", "Townhouse", "Multi-Family", "Manufactured", "Other"],
+                key="f_ptype",
             )
         with c3:
-            beds = st.number_input("Bedrooms", 0, 20, 3)
-            baths = st.number_input("Bathrooms", 0.0, 20.0, 2.0, 0.5)
-            sqft = st.number_input("Square footage", 100, 50000, 1800)
-            year_built = st.number_input("Year built", 1800, 2026, 1995)
+            beds = st.number_input("Bedrooms", 0, 20, 3, key="f_beds")
+            baths = st.number_input("Bathrooms", 0.0, 20.0, 2.0, 0.5, key="f_baths")
+            sqft = st.number_input("Square footage", 100, 50000, 1800, key="f_sqft")
+            year_built = st.number_input("Year built", 1800, 2026, 1995, key="f_year")
 
         section("2", "Market & Geospatial Feeds", "MLS context — highest-authority market anchor.")
         c1, c2, c3 = st.columns(3)
         with c1:
-            list_price = st.number_input("List price ($)", 0, 100_000_000, 0, 1000)
-            price_psf = st.number_input("Price / sqft ($)", 0.0, 50000.0, 0.0)
-            dom = st.number_input("Days on market", 0, 5000, 0)
+            list_price = st.number_input("List price ($)", 0, 100_000_000, 0, 1000, key="f_list_price")
+            price_psf = st.number_input("Price / sqft ($)", 0.0, 50000.0, 0.0, key="f_price_psf")
+            dom = st.number_input("Days on market", 0, 5000, 0, key="f_dom")
         with c2:
-            last_sale = st.number_input("Last sale price ($)", 0, 100_000_000, 0, 1000)
-            mls_zone = st.text_input("MLS zone / tract", placeholder="e.g. C08")
-            mls_source = st.text_input("MLS source (e.g. CRMLS, Bright MLS)")
+            last_sale = st.number_input("Last sale price ($)", 0, 100_000_000, 0, 1000, key="f_last_sale")
+            mls_zone = st.text_input("MLS zone / tract", placeholder="e.g. C08", key="f_mls_zone")
+            mls_source = st.text_input("MLS source (e.g. CRMLS, Bright MLS)", key="f_mls_source")
         with c3:
             st.caption("Verified live feeds enabled automatically")
             st.write("✔ Census ACS (zip median value/rent) · ✔ USGS seismic/earthquakes")
@@ -706,13 +784,15 @@ def page_inputs():
         section("3", "Price & Underwriting", "Deal math inputs for investor mode.")
         c1, c2, c3 = st.columns(3)
         with c1:
-            premium = st.number_input("Carrier annual premium quote ($)", 0, 1_000_000, 0, 100)
-            arv = st.number_input("After-repair value ($)", 0, 100_000_000, 0, 1000)
+            premium = st.number_input(
+                "Carrier annual premium quote ($)", 0, 1_000_000, 0, 100, key="f_premium"
+            )
+            arv = st.number_input("After-repair value ($)", 0, 100_000_000, 0, 1000, key="f_arv")
         with c2:
-            interest_rate = st.number_input("Interest rate (%)", 0.0, 30.0, 7.0, 0.1)
-            monthly_rent = st.number_input("Expected monthly rent ($)", 0, 100_000, 0, 50)
+            interest_rate = st.number_input("Interest rate (%)", 0.0, 30.0, 7.0, 0.1, key="f_interest")
+            monthly_rent = st.number_input("Expected monthly rent ($)", 0, 100_000, 0, 50, key="f_rent")
         with c3:
-            holding_months = st.number_input("Holding months", 1, 24, 6)
+            holding_months = st.number_input("Holding months", 1, 24, 6, key="f_holding")
 
         section("4", "Contractor Quotes", "Optional — pasted quotes always win over baselines.")
         st.caption("Paste rows as: finding_key | contractor | license | low | high | eta_days")
@@ -720,6 +800,7 @@ def page_inputs():
             "One quote per line",
             height=90,
             placeholder="heat exchanger crack | A1 HVAC LLC | CA-123456 | 1800 | 2600 | 5",
+            key="f_quotes",
         )
 
         section("5", "Permit Records", "Copied from the county/city portal — never fabricated.")
@@ -728,6 +809,7 @@ def page_inputs():
             "One permit per line",
             height=90,
             placeholder="Electrical Permit | EL-2021-4412 | 2021-03-15 | Closed | Panel upgrade",
+            key="f_permits",
         )
 
         section("6", "Evidence Uploads", "PDF reports, damage photos, voice notes, floorplans.")
@@ -754,7 +836,9 @@ def page_inputs():
             )
             floorplan_file = st.file_uploader("Floorplan export (JSON/CSV of rooms)", type=["json", "csv"])
             matterport = st.text_input(
-                "Matterport model URL (optional)", placeholder="https://my.matterport.com/..."
+                "Matterport model URL (optional)",
+                placeholder="https://my.matterport.com/...",
+                key="f_matterport",
             )
 
         section("7", "Brokerage Transactions", "Optional CSV for brokerage ROI.")
@@ -763,6 +847,10 @@ def page_inputs():
             type=["csv"],
             help="Columns: agent,zip_code,date,credits_negotiated,items_requested,items_granted,deal_value",
         )
+        if st.session_state.get("sample_active"):
+            from engines.sample_data import sample_file_names
+
+            st.caption("📎 Sample evidence attached: " + " · ".join(sample_file_names()))
 
         section("8", "Sold Comps for ARV", "Optional — paste comps or connect Attom/RentCast.")
         st.caption(
@@ -773,6 +861,16 @@ def page_inputs():
         )
 
         run = st.form_submit_button("▶ Run Analysis", type="primary", use_container_width=True)
+
+    # Sample-mode fallback: Streamlit forbids injecting file_uploader widget
+    # state, so empty uploaders use the generated sample evidence instead.
+    if st.session_state.get("sample_active"):
+        _sf = st.session_state.get("sample_files") or {}
+        pdfs = pdfs or _sf.get("pdfs") or []
+        photos = photos or _sf.get("photos") or []
+        audios = audios or _sf.get("audios") or []
+        floorplan_file = floorplan_file or _sf.get("floorplan")
+        txns_csv = txns_csv or _sf.get("txns")
 
     if run:
         zchk = validate_zip9(zip9)
@@ -1017,6 +1115,36 @@ def render_financial_matrix(res, sess):
     c4.metric("Items", s["total_items"])
     st.caption(f"Labor: **{s['wage_provenance']}** · Materials: **{s['ppi_provenance']}** (BLS PPI index)")
 
+    by_system = s.get("by_system") or {}
+    if by_system:
+        total_avg = float(s.get("total_avg") or 0) or 1.0
+        rollup = []
+        for sys_name, b in by_system.items():
+            rollup.append(
+                {
+                    "System": sys_name,
+                    "Items": b["items"],
+                    "Crit/High": b["critical_high_items"],
+                    "Low": money(b["total_low"]),
+                    "Avg": money(b["total_avg"]),
+                    "High": money(b["total_high"]),
+                    "Share": f"{100.0 * float(b['total_avg']) / total_avg:.0f}%",
+                }
+            )
+        rollup.append(
+            {
+                "System": "TOTAL",
+                "Items": s["total_items"],
+                "Crit/High": sum(b["critical_high_items"] for b in by_system.values()),
+                "Low": money(s["total_low"]),
+                "Avg": money(s["total_avg"]),
+                "High": money(s["total_high"]),
+                "Share": "100%",
+            }
+        )
+        st.markdown("**Cost by system**")
+        dtable(pd.DataFrame(rollup), use_container_width=True, hide_index=True)
+
     rows = []
     for item in cm["line_items"]:
         rows.append(
@@ -1146,17 +1274,81 @@ def render_legal(res, sess):
     legal = res["legal"]
     st.subheader("Legal Addendums")
     st.markdown(f"**{legal['addendum_type']}** · {legal['address']} · {legal['date']}")
-    c1, c2, c3 = st.columns(3)
+    c1, c2, c3, c4 = st.columns(4)
     c1.metric("Seller repairs", legal["total_repair_items"])
     c2.metric("Seller credits", legal["total_credit_items"])
     c3.metric("Total requested", money(legal["total_requested_value"]))
+    c4.metric(
+        "Holdback (est.)",
+        money((res.get("escrow") or {}).get("total_holdback", 0)),
+        help="1.5× live contractor bid on every CRITICAL/HIGH finding (Module 17)",
+    )
     st.text_area("Repair Request Addendum", legal["addendum_text"], height=320)
 
-    high_risk = [f for f in sess["findings"] if f.get("severity") in ("CRITICAL", "HIGH")]
-    if high_risk:
-        escrow = generate_escrow_holdback_agreement(sess["property_data"], high_risk, res["bids"])
-        st.text_area("Escrow Holdback Agreement (preview)", str(escrow), height=260)
+    escrow = res.get("escrow") or {}
+    items = escrow.get("items") or []
+    if items:
+        st.subheader("Escrow Holdback Schedule")
+        st.caption(
+            f"Standard **{escrow.get('holdback_multiplier', 1.5)}×** multiplier on the live contractor "
+            "bid — protects Buyer against cost overruns on high-risk items before close."
+        )
+        c1, c2 = st.columns(2)
+        c1.metric("Total holdback", money(escrow["total_holdback"]))
+        c2.metric("Line items", len(items))
+        rows = [
+            {
+                "System": it.get("system", "—"),
+                "Severity": it.get("severity", "—"),
+                "Finding": it.get("finding", ""),
+                "Contractor": it.get("contractor", "—"),
+                "Bid": money(it.get("contractor_bid", 0)),
+                "Holdback (1.5×)": money(it.get("holdback_amount", 0)),
+                "Release conditions": it.get("release_conditions", ""),
+            }
+            for it in items
+        ]
+        dtable(pd.DataFrame(rows), use_container_width=True, hide_index=True)
+        st.download_button(
+            "Download holdback schedule (.txt)",
+            _format_escrow_text(escrow),
+            file_name="escrow_holdback_schedule.txt",
+            use_container_width=True,
+        )
+    else:
+        st.caption("No CRITICAL/HIGH findings — escrow holdback not required for this dossier.")
+
     st.download_button("Download addendum (.txt)", legal["addendum_text"], file_name="repair_addendum.txt")
+
+
+def _format_escrow_text(escrow):
+    """Plain-text escrow holdback schedule for download."""
+    lines = [
+        "=" * 80,
+        "ESCROW HOLDBACK SCHEDULE (TEMPLATE)",
+        f"Property: {escrow.get('property_address', 'N/A')}",
+        f"Date: {escrow.get('date', '')}",
+        f"Multiplier: {escrow.get('holdback_multiplier', 1.5)}x contractor bid",
+        "=" * 80,
+        "",
+    ]
+    for idx, it in enumerate(escrow.get("items", []), 1):
+        lines += [
+            f"Item {idx}: {it.get('system', '')} [{it.get('severity', '')}]",
+            f"  Finding     : {it.get('finding', '')}",
+            f"  Contractor  : {it.get('contractor', '—')}  ({it.get('cost_source', '')})",
+            f"  Bid         : {money(it.get('contractor_bid', 0))}",
+            f"  Holdback    : {money(it.get('holdback_amount', 0))}",
+            f"  Release     : {it.get('release_conditions', '')}",
+            f"  Milestones  : {it.get('milestone_1', '')} / {it.get('milestone_2', '')}",
+            "",
+        ]
+    lines += [
+        f"TOTAL HOLDBACK: {money(escrow.get('total_holdback', 0))}",
+        "",
+        escrow.get("compliance_banner", ""),
+    ]
+    return "\n".join(lines)
 
 
 def render_contractor(res, sess):

@@ -1,4 +1,4 @@
-# Real Estate Repair Cost Estimator — v3.4 Enterprise
+# Real Estate Repair Cost Estimator — v3.5 Enterprise
 
 [![CI](https://github.com/dipakjad1993/RealEstate-Repair-Cost-Estimator/actions/workflows/ci.yml/badge.svg)](https://github.com/dipakjad1993/RealEstate-Repair-Cost-Estimator/actions/workflows/ci.yml)
 [![Python](https://img.shields.io/badge/python-3.10%E2%80%933.13-blue)](https://www.python.org/)
@@ -27,6 +27,31 @@ Every number carries exactly one badge:
 | ⚪ **UNAVAILABLE** | Source unreachable — reported honestly, never guessed |
 
 v3.4 enforces this contract inside the code: the investor engine's every heuristic is registered in `INVESTOR_HEURISTICS` and badged; insurance red-flag values carry `badge` + `source_url` + `as_of`; the cost engine stamps `badge`/`as_of`/`source_url` on every line item; the API returns per-figure provenance as first-class response fields. Property-based tests (Hypothesis) machine-check the invariant across random inputs.
+
+## What v3.5 changed (parser finish + enterprise polish)
+
+### Inspection parser finish
+- **Sample-report parse: 42 raw rows → 10 clean, correctly-classified findings.** A line-based section scanner (`_is_section_header_line` + `_SECTION_SYSTEM_MAP`) strips `ROOF SYSTEM:`-style headers and applies section bias — a "chimney" item under the ROOF section classifies as ROOF, not EXTERIOR.
+- **Table-blob & noise filtering.** Flattened PDF table cells (`item|system|severity|location`) are dropped from prose parsing while structural rows still come through `page.find_tables()` — now in **both** the pymupdf4llm and fitz extraction paths. Severity blocks no longer glue rows across lines, and photographed-items boilerplate is filtered.
+- **Subsystem-aware dedupe.** Same-subsystem + same-system findings merge deterministically; cross-source dedupe uses containment (>0.8) and Jaccard (>0.6) similarity; every finding receives a stable `f001…` id via `assign_finding_ids`.
+
+### Escrow holdback crash fixed
+- **Root cause of `'str' object has no attribute 'get'`:** the pipeline emits contractor bids as a **dict** keyed by finding, but `generate_escrow_holdback_agreement` iterated it as a list. `_normalize_bids`/`_get_best_bid` now accept every bid shape (dict, list, or garbage) and the escrow engine degrades gracefully instead of crashing.
+- Holdback = **1.5× the live bid** (fallback: the finding's estimate), per-item milestone release schedule (50% commencement / 50% completion), `cost_source` provenance on every line, and a normalized `{items, total_holdback, holdback_multiplier}` payload.
+
+### Enterprise UI
+- **Severity gradient chips** (CRITICAL → INFO) rendered in every data table, backed by `--sev-*` design tokens + `.sev-chip` styles in `static/style.css`.
+- **Gradient accent bars** on KPI metric cards; **per-system cost rollup table** (items, critical/high count, avg/low/high, share of total) in the financial matrix.
+
+### Pixel font + brand on every surface
+- **Google Sans Flex** (self-hosted, no CDN dependency) across the Streamlit app, Swagger UI (`/static/ui.css`), the share portal (light/dark modes, `noindex`), and the SEO widget.
+- **PDF export** embeds Google Sans Flex TTFs (400/700, subset) with a brand header band, summary metric strip, and severity color-bar rows.
+- **Excel export**: brand-blue header fills, freeze panes, autofilter, severity fills, currency formats, per-tab colors.
+- Fonts are served from a whitelist route (`/static/fonts/{name}`) — path traversal returns 404.
+
+### Tests & quality gates
+- **96 tests pass.** New `tests/test_regression_oct.py` (12 tests) locks in parser sample quality, classification spot-checks (GFCI→ELECTRICAL, chimney→ROOF, heat exchanger→HVAC/CRITICAL), the escrow bid-shape matrix, chip/CSS/brand assertions, XSS escaping, and PDF font embedding.
+- All CI gates verified green before every push: `ruff check` · `ruff format --check` · coverage **87.7% ≥ 85** on the 16 critical modules · OpenAPI route sync.
 
 ## What v3.4 changed (enterprise transformation)
 
@@ -139,7 +164,7 @@ engines/                  # 35 focused modules — see below
 legacy/                   # Quarantined export_engine.py (superseded by export_pdf/export_excel)
 static/                   # Design system, PWA manifest, llms.txt (courtesy), openapi.json (CI-synced)
 docs/                     # GEO templates, ARCHITECTURE.md
-tests/                    # 82 deterministic tests: property-based badge invariant, security, MCP contract
+tests/                    # 96 deterministic tests: property-based badge invariant, security, MCP contract
 ```
 
 ### Key engines (v3.4 new + hardened)

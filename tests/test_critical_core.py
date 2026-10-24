@@ -431,6 +431,32 @@ def test_cost_engine_user_quote_badge():
     assert out2["source_url"] == "https://www.bls.gov/oes/"
 
 
+def test_cost_engine_short_quote_key_matches_description():
+    """Users paste short keys ('heat exchanger') — must match the full description."""
+    from engines.cost_engine import calculate_cost_bounds
+
+    finding = {
+        "description": "Carbon monoxide risk: the heat exchanger is cracked and must be replaced.",
+        "system_category": "HVAC",
+        "severity": "CRITICAL",
+    }
+    out = calculate_cost_bounds(
+        finding,
+        "CA",
+        "90210",
+        user_quotes=[
+            {"finding_key": "heat exchanger", "low": 1800, "high": 2600, "contractor": "Pacific Coast"}
+        ],
+    )
+    assert out["badge"] == "USER_PROVIDED"
+    assert out["provenance"] == "USER_QUOTE"
+    # Non-matching keys never match
+    out2 = calculate_cost_bounds(
+        finding, "CA", "90210", user_quotes=[{"finding_key": "rooftop decking", "low": 5, "high": 9}]
+    )
+    assert out2["badge"] == "MODELED"
+
+
 # ------------------------------------------------------------------
 # Extra coverage: fred VERIFIED + error paths (mocked, no network)
 # ------------------------------------------------------------------

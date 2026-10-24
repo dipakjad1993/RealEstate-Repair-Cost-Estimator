@@ -5,6 +5,249 @@ from collections import defaultdict
 from config import INSPECTION_SYSTEM_PATTERNS, SeverityLevels
 from engines.confidence_engine import score_finding
 
+# ---------------------------------------------------------------------------
+# Text hygiene helpers
+# ---------------------------------------------------------------------------
+# Common report abbreviations whose trailing period must NOT split a sentence
+# ("...furnace (mfg. 2012, serial 4318A28479) is cracked..." must stay whole).
+_ABBREV_RE = re.compile(
+    r"\b(mfg|mgf|mfr|approx|e\.g|i\.e|vs|no|inc|llc|ltd|corp|co|dept|est|min|max|sec|rev"
+    r"|attn|ashi|cslb|nec|ul|ansi|u\.s|a\.o|sq|ft|in|yr|dr|mr|mrs|ms|jr|sr|fig|ref"
+    r"|cm|mm|kv|amp|gal|psi|hvac)\.",
+    re.IGNORECASE,
+)
+_DOT_SENTINEL = "\u2024"  # one-dot leader: invisible to the sentence splitter
+
+_HTML_TAG_RE = re.compile(r"</?[a-zA-Z][^>]{0,200}>")
+_MD_TABLE_ROW_RE = re.compile(r"^\s*\|.*\|\s*$")
+_MD_NOISE_RE = re.compile(r"(?:^|\n)\s*(?:#{1,6}\s*|[-*_]{3,}\s*$)")
+_MD_WRAP_RE = re.compile(r"(\*\*|__|~~|`{1,3})")
+
+# Report chrome (headers/footers/scope/boilerplate) that must never become a finding.
+_NOISE_PATTERNS = [
+    re.compile(p, re.IGNORECASE)
+    for p in (
+        r"^\s*report\s+no\b",
+        r"^\s*rpt[-\s]",
+        r"\binspection\s+date\b",
+        r"\bpage\s+\d+\s+of\s+\d+\b",
+        r"inspector\s+signature",
+        r"\bashi\s*#",
+        r"sample\s+fixture",
+        r"^\s*scope\s*:",
+        r"items?(?:\s+were)?\s+photographed\s+for\s+documentation",
+        r"opinions?\s+on\s+readily\s+observable",
+        r"^\s*(?:findings?\s+)?summary\s*$",
+        r"^\s*recommendations?\s*\d*\s*\.?\s*$",
+        r"^\s*(?:this\s+)?report\s+(?:is|was|has)\b",
+        r"\bliability\s+(?:is|shall|disclaimed)",
+        r"^\s*built\s+19\d\d\b",
+        r"\bescrow\s+\d",
+        r"^\s*(?:reserved|intentionally\s+left)\b",
+        r"^\s*(?:inspection|report)\s+(?:scope|overview|objectives?)\b",
+        r"\bvisual\s+inspection\s+of\s+readily\s+accessible\b",
+        r"^\s*(?:item|system|severity|location|recommended\s+action)\s*$",
+    )
+]
+
+_SECTION_HEADER_LINE_RE = re.compile(r"^\s*(?:\d+\.\s*)?[A-Z][A-Z0-9 &/()\-]{2,60}$")
+
+# Section-header -> canonical system. Inspection reports are system-organized,
+# so the section header is the strongest classification signal — stronger than
+# generic stems like 'rust' (which used to steal chimney findings into HVAC).
+_SECTION_SYSTEM_MAP = [
+    ("roof", "ROOF"),
+    ("chimney", "ROOF"),
+    ("gutter", "ROOF"),
+    ("plumb", "PLUMBING"),
+    ("water heater", "PLUMBING"),
+    ("sewer", "PLUMBING"),
+    ("drain", "PLUMBING"),
+    ("electric", "ELECTRICAL"),
+    ("gfci", "ELECTRICAL"),
+    ("hvac", "HVAC"),
+    ("heating", "HVAC"),
+    ("cooling", "HVAC"),
+    ("furnace", "HVAC"),
+    ("structur", "STRUCTURAL"),
+    ("foundation", "STRUCTURAL"),
+    ("exterior", "EXTERIOR"),
+    ("siding", "EXTERIOR"),
+    ("deck", "EXTERIOR"),
+    ("interior", "INTERIOR"),
+    ("attic", "ATTIC"),
+    ("insulation", "INSULATION"),
+    ("appliance", "APPLIANCES"),
+    ("window", "WINDOWS_DOORS"),
+    ("door", "WINDOWS_DOORS"),
+    ("fireplace", "ROOF"),
+    ("moisture", "MOISTURE"),
+    ("mold", "MOISTURE"),
+]
+
+_SECTION_KEYWORDS = (
+    "heating",
+    "cooling",
+    "roofing",
+    "roof",
+    "chimney",
+    "plumbing",
+    "electrical",
+    "hvac",
+    "interior",
+    "exterior",
+    "attic",
+    "insulation",
+    "structural",
+    "foundation",
+    "appliance",
+    "window",
+    "door",
+    "moisture",
+    "fireplace",
+    "summary",
+    "recommendation",
+    "deficienc",
+    "observation",
+)
+
+
+def _sanitize_extracted_text(text):
+    """Strip markup residue so table/HTML/markdown never leaks into findings.
+
+    PDF text layers regularly contain HTML tags (print-to-PDF reports),
+    markdown table pipes (pymupdf4llm), page markers, and emphasis wrappers.
+    """
+    if not text:
+        return ""
+    text = _HTML_TAG_RE.sub(" ", text)
+    lines = []
+    for line in text.splitlines():
+        if _MD_TABLE_ROW_RE.match(line):
+            line = re.sub(r"^\s*\||\|\s*$", "", line)
+            line = re.sub(r"\s*\|\s*", " ", line)
+        lines.append(line)
+    text = "\n".join(lines)
+    text = _MD_NOISE_RE.sub("\n", text)
+    text = _MD_WRAP_RE.sub("", text)
+    text = re.sub(r"---\s*end of page=\d+\s*---", "\n", text, flags=re.IGNORECASE)
+    text = re.sub(r"&;", "&", text)
+    text = re.sub(r"\f", "\n", text)
+    text = re.sub(r"[ \t]+", " ", text)
+    text = re.sub(r"\n{3,}", "\n\n", text)
+    return text
+
+
+def _split_sentences_safe(text):
+    """Sentence split that respects report abbreviations and merges fragments."""
+    protected = _ABBREV_RE.sub(lambda m: m.group(1) + _DOT_SENTINEL, text)
+    parts = re.split(r"(?<=[.!?])\s+", protected)
+    sentences = []
+    for part in parts:
+        part = part.replace(_DOT_SENTINEL, ".").strip()
+        if not part:
+            continue
+        while sentences and _needs_continuation(part):
+            sentences[-1] = f"{sentences[-1]} {part}".strip()
+            part = None
+        if part is not None:
+            sentences.append(part)
+    return sentences
+
+
+def _needs_continuation(sentence):
+    """True when a split fragment clearly continues the previous sentence."""
+    if not sentence:
+        return False
+    if sentence.count("(") != sentence.count(")"):
+        return True
+    if sentence[0].islower():
+        return True
+    # "2012, serial 4318A28479) is cracked..." — year-led continuation
+    if re.match(r"^(?:19|20)\d\d\s*[,)]", sentence):
+        return True
+    return False
+
+
+def _kw_hit(keyword, text_lower):
+    """Word-START keyword match.
+
+    Fixed-stem keywords ('rot', 'thin', 'rust') must never match inside
+    unrelated words ('protected', 'within', 'robust'). Prefix-at-word-start
+    still matches inflections: 'crack' -> 'cracked'/'cracking',
+    'deteriorat' -> 'deteriorating', 'recommend' -> 'recommended'.
+    """
+    kw = str(keyword or "").strip().lower()
+    if not kw or not text_lower:
+        return False
+    if not re.search(r"[a-z]", kw):
+        return kw in text_lower
+    return re.search(r"(?<![a-z])" + re.escape(kw), text_lower) is not None
+
+
+def _is_noise_finding(text):
+    """Drop report chrome, fragments, and header rows before they become findings."""
+    raw = text or ""
+    # Flattened table blob: standalone header cells on their own lines.
+    # Checked against RAW text — newlines carry the signal.
+    if re.search(r"(?im)^\s*(?:item|system|severity|location|recommended action)\s*$", raw):
+        return True
+    stripped = re.sub(r"\s+", " ", raw).strip()
+    if len(stripped) < 15:
+        return True
+    lowered = stripped.lower()
+    for pattern in _NOISE_PATTERNS:
+        if pattern.search(lowered):
+            return True
+    tokens = [t for t in re.findall(r"[a-zA-Z']+", lowered) if len(t) > 1]
+    if len(tokens) < 3:
+        return True
+    if stripped[0].islower():
+        return True
+    if stripped.endswith(":") or stripped.endswith(","):
+        return True
+    if stripped.count("(") != stripped.count(")"):
+        return True
+    # Header row: short, all-caps run with no sentence body ("2. ROOFING & CHIMNEY")
+    if len(stripped) < 70 and _SECTION_HEADER_LINE_RE.match(stripped) and "." not in stripped[1:]:
+        return True
+    # "RECOMMENDATIONS 1." / "FINDINGS SUMMARY Item" leftovers
+    if (
+        re.match(r"^(?:findings?\s+)?(?:summary|recommendations?|observations?|deficiencies)\b", lowered)
+        and len(tokens) < 8
+    ):
+        return True
+    return False
+
+
+def _normalize_for_dupe(text):
+    text = re.sub(r"\s+", " ", (text or "").lower().strip())
+    text = re.sub(r"\d+", "n", text)
+    text = re.sub(r"[^a-zn\s]", " ", text)
+    return re.sub(r"\s+", " ", text).strip()
+
+
+def _dup_similarity(text1, text2):
+    """Jaccard AND containment — containment catches summary-table restatements."""
+    words1 = set(text1.split())
+    words2 = set(text2.split())
+    if not words1 or not words2:
+        return 0.0
+    inter = len(words1.intersection(words2))
+    union = len(words1.union(words2))
+    jaccard = inter / union if union else 0.0
+    containment = inter / min(len(words1), len(words2))
+    return max(jaccard, containment)
+
+
+def assign_finding_ids(findings, prefix="f"):
+    """Stable per-dossier ids so bids/legal/escrow can join on exact keys."""
+    for idx, finding in enumerate(findings, 1):
+        if isinstance(finding, dict):
+            finding.setdefault("id", f"{prefix}{idx:03d}")
+            finding.setdefault("key", finding["id"])
+    return findings
+
 
 def extract_text_from_pdf(pdf_file):
     """Chunk-perfect extraction via PyMuPDF + pymupdf4llm (single stack).
@@ -16,6 +259,7 @@ def extract_text_from_pdf(pdf_file):
     text_content = []
     page_texts = []
     tables_found = []
+    extractor_used = "fitz"
     try:
         import fitz
 
@@ -29,15 +273,38 @@ def extract_text_from_pdf(pdf_file):
         try:
             import pymupdf4llm
 
-            md = pymupdf4llm.to_markdown(fitz.open(stream=data, filetype="pdf"))
-            pages = md.split("\n\n---\n\n") if "---" in md else md.split("\f")
+            doc = fitz.open(stream=data, filetype="pdf")
+            md = pymupdf4llm.to_markdown(doc)
+            extractor_used = "pymupdf4llm+fitz"
+            pages = re.split(r"\n\s*---\s*end of page=\d+\s*---\s*|\n\s*---\s*\n\s*|\f", md)
             for i, p in enumerate(pages):
+                p = _sanitize_extracted_text(p)
+                if not p.strip():
+                    continue
                 text_content.append(p)
                 page_texts.append({"page": i + 1, "text": p, "char_count": len(p)})
+            # Structured tables ride along regardless of extractor, so summary
+            # rows survive as real findings even when the flattened blob is
+            # filtered out as noise.
+            for i, page in enumerate(doc):
+                try:
+                    for tb in page.find_tables():
+                        df = tb.to_pandas()
+                        tables_found.append(
+                            {
+                                "page": i + 1,
+                                "rows": len(df),
+                                "cols": len(df.columns),
+                                "data": df.values.tolist(),
+                            }
+                        )
+                except Exception:
+                    pass
+            doc.close()
         except Exception:
             doc = fitz.open(stream=data, filetype="pdf")
             for i, page in enumerate(doc):
-                t = page.get_text("text") or ""
+                t = _sanitize_extracted_text(page.get_text("text") or "")
                 text_content.append(t)
                 page_texts.append({"page": i + 1, "text": t, "char_count": len(t)})
                 try:
@@ -64,7 +331,7 @@ def extract_text_from_pdf(pdf_file):
         "tables_found": tables_found,
         "char_count": sum(len(t) for t in text_content),
         "has_text_layer": any(len(t) > 50 for t in text_content),
-        "extractor": "pymupdf4llm+fitz",
+        "extractor": extractor_used,
     }
 
 
@@ -104,10 +371,10 @@ def classify_severity(text):
     for system_name, system_data in INSPECTION_SYSTEM_PATTERNS.items():
         for severity, keywords in system_data["severity_keywords"].items():
             for kw in keywords:
-                if kw.lower() in text_lower:
+                if _kw_hit(kw, text_lower):
                     return severity, system_name
     if any(
-        w in text_lower
+        _kw_hit(w, text_lower)
         for w in [
             "dangerous",
             "immediate",
@@ -132,7 +399,7 @@ def classify_severity(text):
     ):
         return "CRITICAL", "UNCLASSIFIED"
     if any(
-        w in text_lower
+        _kw_hit(w, text_lower)
         for w in [
             "broken",
             "damaged",
@@ -179,7 +446,7 @@ def classify_severity(text):
     ):
         return "HIGH", "UNCLASSIFIED"
     if any(
-        w in text_lower
+        _kw_hit(w, text_lower)
         for w in [
             "worn",
             "aging",
@@ -229,7 +496,7 @@ def classify_severity(text):
     ):
         return "MEDIUM", "UNCLASSIFIED"
     if any(
-        w in text_lower
+        _kw_hit(w, text_lower)
         for w in [
             "cosmetic",
             "normal wear",
@@ -374,11 +641,21 @@ def extract_severity_block(text):
     blocks = []
     for severity, patterns in severity_markers.items():
         for pattern in patterns:
-            matches = re.finditer(pattern, text, re.IGNORECASE | re.MULTILINE)
-            for match in matches:
+            # Word-start guard: the stem 'rot' must never fire inside 'protected'.
+            compiled = re.compile(r"(?<![a-z])" + pattern, re.IGNORECASE | re.MULTILINE)
+            for match in compiled.finditer(text):
+                block_text = match.group().strip()
+                # Regexes cross newlines (`[^.]*`) — in flattened tables that
+                # glues adjacent cells ("Utility room\nReplace furnace…").
+                # Real wrapped prose reaches findings via parse_structured_
+                # findings anyway, so drop cross-line blocks.
+                if "\n" in block_text:
+                    continue
+                if len(block_text) < 25 or _is_noise_finding(block_text):
+                    continue
                 blocks.append(
                     {
-                        "text": match.group().strip(),
+                        "text": block_text,
                         "severity": severity,
                         "start_pos": match.start(),
                         "end_pos": match.end(),
@@ -402,7 +679,7 @@ def classify_finding_system(text):
     for system_name, system_data in INSPECTION_SYSTEM_PATTERNS.items():
         score = 0
         for kw in system_data["keywords"]:
-            if kw.lower() in text_lower:
+            if _kw_hit(kw, text_lower):
                 score += len(kw)
         if score > best_score:
             best_score = score
@@ -455,149 +732,194 @@ def extract_appliance_metadata(text):
 
 
 def deduplicate_findings(findings):
-    seen_hashes = {}
-    deduplicated = []
-    duplicate_groups = defaultdict(list)
+    """Collapse restatements of the same defect (narrative vs summary table vs
+    recommendation list vs severity-block scrap) into ONE finding.
+
+    Survivor = highest severity, then longest description. Group members are
+    drained once — the old loop appended the survivor once per group member.
+    """
+    survivors = []
+    seen = []  # entry per processed finding — lets late restatements join groups
+    groups = defaultdict(list)
     for finding in findings:
-        desc = finding.get("description", "")
-        normalized = re.sub(r"\s+", " ", desc.lower().strip())
-        normalized = re.sub(r"\d+", "N", normalized)
-        text_hash = hashlib.md5(normalized.encode()).hexdigest()[:12]
-        similar = False
-        for existing_hash in list(seen_hashes.keys()):
-            if _text_similarity(normalized, seen_hashes[existing_hash]["normalized"]) > 0.65:
-                similar = True
-                group_id = seen_hashes[existing_hash]["group"]
-                duplicate_groups[group_id].append(finding)
-                finding["dedup_group"] = group_id
+        if not isinstance(finding, dict):
+            continue
+        normalized = _normalize_for_dupe(finding.get("description", ""))
+        f_sys = (finding.get("system_category") or "").strip().upper()
+        f_sub = (finding.get("subsystem") or "").strip().lower()
+        matched = None
+        for entry in seen:
+            if _dup_similarity(normalized, entry["normalized"]) > 0.55:
+                matched = entry
                 break
-        if not similar:
-            group_id = f"grp_{len(seen_hashes)}"
+            # Same specific part + same system = same defect, different phrasing
+            # ("Replace the furnace heat exchanger…" vs the narrative CRITICAL).
+            e_sub = entry["subsystem"]
+            if f_sub and f_sub == e_sub and f_sys and f_sys == entry["system"]:
+                matched = entry
+                break
+        if matched is None:
+            group_id = f"grp_{len(seen)}"
             finding["dedup_group"] = group_id
-            seen_hashes[text_hash] = {"normalized": normalized, "group": group_id}
-        deduplicated.append(finding)
-    unique_findings = []
-    for finding in deduplicated:
-        group = finding.get("dedup_group", "")
-        if group in duplicate_groups:
-            all_in_group = [finding] + duplicate_groups[group]
-            all_in_group.sort(
-                key=lambda x: SeverityLevels.get(x.get("severity", "LOW"), {}).get("priority", 5)
+            seen.append(
+                {
+                    "normalized": normalized,
+                    "group_id": group_id,
+                    "system": f_sys,
+                    "subsystem": f_sub,
+                }
             )
-            best = all_in_group[0]
-            best["merged_count"] = len(all_in_group)
-            best["merged_descriptions"] = [f.get("description", "") for f in all_in_group]
-            unique_findings.append(best)
+            survivors.append(finding)
         else:
-            unique_findings.append(finding)
-    return unique_findings
+            group_id = matched["group_id"]
+            finding["dedup_group"] = group_id
+            groups[group_id].append(finding)
+            seen.append(
+                {
+                    "normalized": normalized,
+                    "group_id": group_id,
+                    "system": f_sys,
+                    "subsystem": f_sub,
+                }
+            )
+    for group_id, dupes in groups.items():
+        members = dupes
+        primary = next((s for s in survivors if s.get("dedup_group") == group_id), None)
+        if primary is None:
+            continue
+        all_in_group = [primary] + members
+        all_in_group.sort(
+            key=lambda x: (
+                SeverityLevels.get(x.get("severity", "LOW"), {}).get("priority", 5),
+                -len(x.get("description", "")),
+            )
+        )
+        best = all_in_group[0]
+        best["merged_count"] = len(all_in_group)
+        best["merged_descriptions"] = [f.get("description", "") for f in all_in_group]
+        if primary is not best:
+            primary_idx = survivors.index(primary)
+            survivors[primary_idx] = best
+    return survivors
 
 
 def _text_similarity(text1, text2):
-    words1 = set(text1.split())
-    words2 = set(text2.split())
-    if not words1 or not words2:
-        return 0.0
-    intersection = words1.intersection(words2)
-    union = words1.union(words2)
-    return len(intersection) / len(union) if union else 0.0
+    """Back-compat wrapper — canonical matcher is _dup_similarity."""
+    return _dup_similarity(_normalize_for_dupe(text1), _normalize_for_dupe(text2))
+
+
+def _is_section_header_line(line):
+    """True for '2. ROOFING & CHIMNEY' / 'HEATING & COOLING (HVAC)' — never prose."""
+    stripped = (line or "").strip()
+    if not stripped or len(stripped) > 80:
+        return False
+    if re.search(r"[.;,]$|^\d+\.\d", stripped):
+        return False
+    if _SECTION_HEADER_LINE_RE.match(stripped):
+        return True
+    lower = stripped.lower()
+    # Short keyword title without sentence punctuation ("Interior / General").
+    # ';' / ',' means prose ("Re-flash and seal; roofing repair"), not a header.
+    return (
+        len(stripped.split()) <= 8
+        and not re.search(r"[,;|]|[-.]$", stripped)
+        and any(h in lower for h in _SECTION_KEYWORDS)
+        and not stripped[0].islower()
+    )
 
 
 def parse_structured_findings(text, page_texts):
     findings = []
-    sections = re.split(r"\n{2,}|\r\n{2,}", text)
-    section_headers = [
-        "roofing",
-        "roof",
-        "plumbing",
-        "electrical",
-        "hvac",
-        "heating",
-        "cooling",
-        "structural",
-        "foundation",
-        "exterior",
-        "interior",
-        "insulation",
-        "windows",
-        "doors",
-        "fireplace",
-        "chimney",
-        "garage",
-        "appliance",
-        "moisture",
-        "ventilation",
-        "grading",
-        "drainage",
-        "siding",
-        "deck",
-        "porch",
-        "balcony",
-        "crawl space",
-        "basement",
-        "attic",
-        "summary",
-        "findings",
-        "deficiencies",
-        "recommendations",
-        "concerns",
-        "observations",
-        "conditions",
-        "items",
-        "issues",
-        "problems",
-        "repair",
-        "maintenance",
-        "safety",
-        "code",
-        "deficiency",
-        "deficiencies",
-        "note",
-        "notes",
-        "comment",
-        "comments",
-    ]
     current_section = "General"
-    for section in sections:
-        section_stripped = section.strip()
-        if not section_stripped or len(section_stripped) < 15:
-            continue
-        first_line = section_stripped.split("\n")[0].lower().strip().rstrip(":")
-        for header in section_headers:
-            if header in first_line and len(first_line) < 60:
-                current_section = header.title()
-                break
-        sentences = re.split(r"(?<=[.!?])\s+", section_stripped)
-        for sentence in sentences:
+    current_section_system = None
+
+    def emit(buffer):
+        if not buffer:
+            return
+        # Flattened-table region: several short terminal-less cells on
+        # consecutive lines ("Utility room" / "Replace furnace, CO test…").
+        # find_tables extracts those rows structurally — skip the mush here.
+        cell_like = [len(ln) <= 60 and not re.search(r"[.!?;:\"]$", ln.strip()) for ln in buffer]
+        if len(buffer) >= 2 and all(cell_like):
+            return
+        block = "\n".join(buffer).strip()
+        if len(block) < 15:
+            return
+        for sentence in _split_sentences_safe(block):
             sentence = sentence.strip()
+            # Noise check sees RAW newlines (flattened-table signal),
+            # then wrap newlines collapse to spaces for display.
+            if _is_noise_finding(sentence):
+                continue
+            sentence = re.sub(r"\s*\n\s*", " ", sentence).strip()
             if len(sentence) < 15:
                 continue
             if any(
                 skip in sentence.lower()
-                for skip in [" inspector", " this report", " the buyer", " the seller", " disclaimer"]
+                for skip in [
+                    " inspector",
+                    " this report",
+                    " the buyer",
+                    " the seller",
+                    " disclaimer",
+                    "limitation of liability",
+                ]
             ):
                 continue
             severity, system = classify_severity(sentence)
             loc = extract_location_info(sentence)
-            sys_cat = system if system != "UNCLASSIFIED" else classify_finding_system(sentence)
-            finding = {
-                "description": sentence,
-                "severity": severity,
-                "severity_score": SeverityLevels.get(severity, {}).get("priority", 5),
-                "system_category": sys_cat,
-                "location": loc,
-                "component": current_section,
-                "subsystem": _extract_sub_component(sentence),
-                "source_section": current_section,
-                "confidence_score": score_finding(
-                    sentence,
-                    severity=severity,
-                    location=loc,
-                    system=sys_cat,
-                    source_type="pdf",
-                ),
-            }
-            findings.append(finding)
+            # System priority: section header > multi-keyword scoring >
+            # single-keyword severity hit (which misfiles chimney prose as
+            # EXTERIOR because 'damaged' fires before any ROOF keyword).
+            if current_section_system:
+                sys_cat = current_section_system
+            else:
+                scored = classify_finding_system(sentence)
+                if scored != "OTHER":
+                    sys_cat = scored
+                else:
+                    sys_cat = system if system != "UNCLASSIFIED" else "OTHER"
+            findings.append(
+                {
+                    "description": sentence,
+                    "severity": severity,
+                    "severity_score": SeverityLevels.get(severity, {}).get("priority", 5),
+                    "system_category": sys_cat,
+                    "location": loc,
+                    "component": current_section,
+                    "subsystem": _extract_sub_component(sentence),
+                    "source_section": current_section,
+                    "confidence_score": score_finding(
+                        sentence,
+                        severity=severity,
+                        location=loc,
+                        system=sys_cat,
+                        source_type="pdf",
+                    ),
+                }
+            )
+
+    # A1: line-based header scan — headers ride single newlines in real PDFs,
+    # so blank-line section splitting left them glued to the first finding.
+    buffer = []
+    for line in (text or "").splitlines():
+        if _is_section_header_line(line):
+            emit(buffer)
+            buffer = []
+            current_section = line.strip()
+            current_section_system = None
+            lower = current_section.lower()
+            for needle, sysname in _SECTION_SYSTEM_MAP:
+                if needle in lower:
+                    current_section_system = sysname
+                    break
+            continue
+        if not line.strip():
+            emit(buffer)
+            buffer = []
+            continue
+        buffer.append(line)
+    emit(buffer)
     return findings
 
 
@@ -804,7 +1126,10 @@ def extract_findings_from_tables(tables_found):
             description = str(row[desc_col]).strip() if desc_col < len(row) and row[desc_col] else ""
             if not description or len(description) < 10:
                 continue
-            has_finding_keyword = any(kw in description.lower() for kw in finding_keywords)
+            description = re.sub(r"\s+", " ", description)
+            if _is_noise_finding(description):
+                continue
+            has_finding_keyword = any(_kw_hit(kw, description.lower()) for kw in finding_keywords)
             if not has_finding_keyword:
                 continue
             table_severity = "INFO"
@@ -918,7 +1243,9 @@ def _extract_list_items(text):
             if len(item_text) < 12:
                 continue
             item_lower = item_text.lower()
-            has_keyword = any(kw in item_lower for kw in finding_keywords)
+            if _is_noise_finding(item_text):
+                continue
+            has_keyword = any(_kw_hit(kw, item_lower) for kw in finding_keywords)
             if not has_keyword:
                 continue
             text_hash = hashlib.md5(item_lower.encode()).hexdigest()[:10]
@@ -947,6 +1274,15 @@ def _extract_list_items(text):
     return findings
 
 
+def _already_present(candidate_text, findings):
+    """Cross-source duplicate guard: containment, not just shared prefix."""
+    norm = _normalize_for_dupe(candidate_text)
+    for f in findings:
+        if _dup_similarity(norm, _normalize_for_dupe(f.get("description", ""))) > 0.55:
+            return True
+    return False
+
+
 def process_uploaded_report(pdf_file):
     extraction_result = extract_text_from_pdf(pdf_file)
     images = extract_images_from_pdf(pdf_file)
@@ -954,47 +1290,40 @@ def process_uploaded_report(pdf_file):
     findings = parse_structured_findings(text, extraction_result["page_texts"])
     severity_blocks = extract_severity_block(text)
     for block in severity_blocks:
-        already_found = any(
-            _text_similarity(block["text"][:100], f["description"][:100]) > 0.5 for f in findings
+        if _is_noise_finding(block["text"]) or _already_present(block["text"], findings):
+            continue
+        system = classify_finding_system(block["text"])
+        findings.append(
+            {
+                "description": block["text"],
+                "severity": block["severity"],
+                "severity_score": SeverityLevels.get(block["severity"], {}).get("priority", 5),
+                "system_category": system,
+                "location": extract_location_info(block["text"]),
+                "component": "Parsed Block",
+                "subsystem": _extract_sub_component(block["text"]),
+                "source_section": "Severity Parser",
+                "confidence_score": score_finding(
+                    block["text"],
+                    severity=block["severity"],
+                    location=extract_location_info(block["text"]),
+                    system=system,
+                    source_type="pdf",
+                ),
+            }
         )
-        if not already_found:
-            system = classify_finding_system(block["text"])
-            findings.append(
-                {
-                    "description": block["text"],
-                    "severity": block["severity"],
-                    "severity_score": SeverityLevels.get(block["severity"], {}).get("priority", 5),
-                    "system_category": system,
-                    "location": extract_location_info(block["text"]),
-                    "component": "Parsed Block",
-                    "subsystem": _extract_sub_component(block["text"]),
-                    "source_section": "Severity Parser",
-                    "confidence_score": score_finding(
-                        block["text"],
-                        severity=block["severity"],
-                        location=extract_location_info(block["text"]),
-                        system=system,
-                        source_type="pdf",
-                    ),
-                }
-            )
-    table_findings = extract_findings_from_tables(extraction_result["tables_found"])
-    for tf in table_findings:
-        already_found = any(
-            _text_similarity(tf["description"][:100], f["description"][:100]) > 0.5 for f in findings
-        )
-        if not already_found:
-            findings.append(tf)
-    list_findings = _extract_list_items(text)
-    for lf in list_findings:
-        already_found = any(
-            _text_similarity(lf["description"][:100], f["description"][:100]) > 0.5 for f in findings
-        )
-        if not already_found:
-            findings.append(lf)
+    for tf in extract_findings_from_tables(extraction_result["tables_found"]):
+        if _already_present(tf["description"], findings):
+            continue
+        findings.append(tf)
+    for lf in _extract_list_items(text):
+        if _already_present(lf["description"], findings):
+            continue
+        findings.append(lf)
     deduplicated = deduplicate_findings(findings)
     for finding in deduplicated:
         finding["photos_matched"] = _match_photos_to_finding(finding, images, text)
+    assign_finding_ids(deduplicated, prefix="f")
     return {
         "full_text": text,
         "page_texts": extraction_result["page_texts"],
@@ -1009,6 +1338,7 @@ def process_uploaded_report(pdf_file):
             "table_count": len(extraction_result["tables_found"]),
             "finding_count": len(deduplicated),
             "has_text_layer": extraction_result["has_text_layer"],
+            "extractor": extraction_result.get("extractor", "unknown"),
         },
     }
 

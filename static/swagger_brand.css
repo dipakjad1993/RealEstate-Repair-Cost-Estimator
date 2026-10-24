@@ -1,0 +1,50 @@
+/* Swagger UI · Google Sans Flex brand skin (served from /static/ui.css) */
+@font-face {
+  font-family: 'Google Sans Flex';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 1 1000;
+  font-stretch: 75% 125%;
+  src: url('/static/fonts/GoogleSansFlex-VF.woff2') format('woff2-variations');
+}
+html, body, .swagger-ui, .swagger-ui * {
+  font-family: 'Google Sans Flex', 'Google Sans', 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+.swagger-ui .info-title {
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+.swagger-ui .info-description p {
+  color: #555;
+}
+.swagger-ui .topbar {
+  background: linear-gradient(90deg, #0071e3, #7c3aed);
+  padding: 10px 0;
+}
+.swagger-ui .topbar .url .base-url {
+  background: transparent;
+}
+.swagger-ui .opblock.opblock-summary-method,
+.swagger-ui .btn, .swagger-ui .btn-control {
+  border-radius: 999px;
+  font-weight: 600;
+}
+.swagger-ui .opblock.opblock-summary-method {
+  letter-spacing: 0.04em;
+}
+.swagger-ui .btn {
+  background: #0071e3;
+  border: 0;
+  box-shadow: none;
+}
+.swagger-ui .btn:hover {
+  background: #0077ed;
+}
+.swagger-ui .scheme-container {
+  border-radius: 14px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+.swagger-ui .table-container td,
+.swagger-ui .table-container th {
+  font-family: inherit;
+}

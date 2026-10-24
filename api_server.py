@@ -21,10 +21,11 @@ import os
 import uuid
 from datetime import datetime, timezone
 from html import escape
+from pathlib import Path
 from typing import Any
 
 from fastapi import FastAPI, Header, HTTPException, Request, Response
-from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, PlainTextResponse
 from pydantic import BaseModel, Field
 
 from engines.audit_log import log_event
@@ -49,7 +50,13 @@ app = FastAPI(
         "Deterministic — same inputs produce same outputs. Estimates, never simulations."
     ),
     openapi_url="/v1/openapi.json",
-    docs_url="/docs",
+    docs_url="/",
+    redoc_url="/redoc",
+    swagger_ui_parameters={
+        "customCssUrl": "/static/ui.css",
+        "persistAuthorization": True,
+        "deepLinking": True,
+    },
     contact={"name": "Dipak Jad", "url": "https://github.com/dipakjad1993/RealEstate-Repair-Cost-Estimator"},
     license_info={"name": "MIT"},
 )
@@ -59,8 +66,11 @@ app = FastAPI(
 # OWASP security headers (every response)
 # ------------------------------------------------------------------
 CSP_POLICY = (
-    "default-src 'self'; script-src 'self' 'unsafe-inline'; "
-    "style-src 'self' 'unsafe-inline'; img-src 'self' data:; "
+    "default-src 'self'; "
+    "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
+    "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
+    "img-src 'self' data: https://cdn.jsdelivr.net; "
+    "font-src 'self' data: https://cdn.jsdelivr.net; "
     "connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
 )
 
@@ -78,6 +88,32 @@ async def security_headers(request: Request, call_next):
     request_id = request.headers.get("X-Request-ID") or uuid.uuid4().hex[:16]
     response.headers.setdefault("X-Request-ID", request_id)
     return response
+
+
+# ------------------------------------------------------------------
+# Static brand assets (swagger skin + self-hosted Google Sans Flex)
+# ------------------------------------------------------------------
+STATIC_DIR = Path(__file__).resolve().parent / "static"
+_ALLOWED_FONTS = {"GoogleSansFlex-VF.woff2", "Inter-VF.woff2"}
+
+
+@app.get("/static/ui.css", include_in_schema=False)
+def swagger_brand_css():
+    css = STATIC_DIR / "swagger_brand.css"
+    if not css.is_file():
+        raise HTTPException(status_code=404, detail="stylesheet not found")
+    return FileResponse(css, media_type="text/css; charset=utf-8")
+
+
+@app.get("/static/fonts/{name}", include_in_schema=False)
+def font_file(name: str):
+    if name not in _ALLOWED_FONTS:
+        raise HTTPException(status_code=404, detail="font not found")
+    path = STATIC_DIR / "fonts" / name
+    if not path.is_file():
+        raise HTTPException(status_code=404, detail="font not found")
+    media = "font/woff2"
+    return FileResponse(path, media_type=media, headers={"Cache-Control": "public, max-age=86400"})
 
 
 # ------------------------------------------------------------------
@@ -174,6 +210,14 @@ def _config_version() -> str:
 @app.get("/v1/openapi.json")
 def openapi_v1():
     return JSONResponse(app.openapi())
+
+
+@app.get("/docs", include_in_schema=False)
+def docs_redirect():
+    """Swagger UI now lives at the site root — keep /docs working."""
+    from fastapi.responses import RedirectResponse
+
+    return RedirectResponse(url="/", status_code=308)
 
 
 @app.get("/api/openapi.json")
@@ -360,30 +404,100 @@ def share_portal(token: str):
     if not snap:
         raise HTTPException(status_code=404, detail="share link invalid or expired")
     totals = snap.get("totals") or {}
-    rows = "".join(
-        "<tr>"
-        f"<td>{escape(str(r.get('room', '')))}</td>"
-        f"<td>{escape(str(r.get('condition', '')))}</td>"
-        f"<td>{escape(str(r.get('priority', '')))}</td>"
-        f"<td>${r.get('low', 0):,.0f}–${r.get('high', 0):,.0f}</td>"
-        "</tr>"
-        for r in snap.get("rooms", [])
-    )
+
+    _prio_colors = {
+        "CRITICAL": ("#DC2626", "rgba(220,38,38,.12)"),
+        "HIGH": ("#EA580C", "rgba(234,88,12,.12)"),
+        "MEDIUM": ("#CA8A04", "rgba(202,138,4,.12)"),
+        "LOW": ("#16A34A", "rgba(22,163,74,.12)"),
+        "INFO": ("#2563EB", "rgba(37,99,235,.12)"),
+    }
+
+    def _room_row(r):
+        prio_raw = str(r.get("priority", "")).strip()
+        prio_key = prio_raw.upper()
+        color, bg = _prio_colors.get(prio_key, ("#6E6E73", "rgba(110,110,115,.10)"))
+        chip_label = escape(str(r.get("priority", "")))
+        chip_style = f"color:{color};background:{bg};border:1px solid {color}44"
+        return (
+            "<tr>"
+            f"<td>{escape(str(r.get('room', '')))}</td>"
+            f"<td>{escape(str(r.get('condition', '')))}</td>"
+            f"<td><span class='prio' style='{chip_style}'>{chip_label}</span></td>"
+            f"<td class='num'>${r.get('low', 0):,.0f}–${r.get('high', 0):,.0f}</td>"
+            "</tr>"
+        )
+
+    rows = "".join(_room_row(r) for r in snap.get("rooms", []))
     estimate_id = escape(str(snap.get("estimate_id", "unknown")))
     generated = escape(str(snap.get("generated_at", "unknown")))
+    room_count = len(snap.get("rooms", []))
     return (
-        "<html><head><title>Lender package</title>"
+        "<!doctype html><html lang='en'><head>"
         "<meta charset='utf-8'>"
+        "<meta name='viewport' content='width=device-width, initial-scale=1'>"
         "<meta name='robots' content='noindex'>"
-        "</head><body style='font-family:Inter,Arial'>"
-        "<h1>Repair estimate — lender package</h1>"
-        f"<p>Total avg ${totals.get('total_avg', 0):,.0f} · Range ${totals.get('total_low', 0):,.0f}–${totals.get('total_high', 0):,.0f}</p>"
-        f"<table border=1 cellpadding=6><caption>Room-by-room repair ranges</caption>"
-        f"<tr><th>Room</th><th>Condition</th><th>Priority</th><th>Range</th></tr>{rows}</table>"
-        "<p>Provenance: VERIFIED baselines + MODELED assembly. Not a quote.</p>"
-        f"<p><small>estimate_id: {estimate_id} · generated_at: {generated} · "
-        "badge legend: VERIFIED · USER_PROVIDED · MODELED · REQUIRES_KEY · UNAVAILABLE</small></p>"
-        "</body></html>"
+        "<title>Repair Estimate — Lender Package</title>"
+        "<style>"
+        "@font-face{font-family:'Google Sans Flex';font-style:normal;font-display:swap;"
+        "font-weight:1 1000;font-stretch:75% 125%;"
+        "src:url('/static/fonts/GoogleSansFlex-VF.woff2') format('woff2-variations')}"
+        ":root{--bg:#f5f5f7;--surface:#fff;--ink:#1d1d1f;--ink2:#6e6e73;"
+        "--line:rgba(0,0,0,.08);--accent:#0071E3;--grad:linear-gradient(90deg,#0071E3,#7C3AED)}"
+        "@media(prefers-color-scheme:dark){:root{--bg:#000;--surface:#111114;--ink:#f5f5f7;"
+        "--ink2:#98989d;--line:rgba(255,255,255,.14);"
+        "--grad:linear-gradient(90deg,#0071E3,#7C3AED)}}"
+        "*{box-sizing:border-box}"
+        "body{margin:0;background:var(--bg);color:var(--ink);"
+        "font-family:'Google Sans Flex','Google Sans','Inter',system-ui,-apple-system,sans-serif;"
+        "-webkit-font-smoothing:antialiased}"
+        "header{background:var(--grad);color:#fff;padding:30px 26px 44px}"
+        "header h1{margin:0;font-size:1.4rem;letter-spacing:-.02em;font-weight:700}"
+        "header p{margin:7px 0 0;opacity:.88;font-size:.85rem}"
+        "main{max-width:880px;margin:0 auto;padding:0 20px 44px}"
+        ".kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));"
+        "gap:12px;margin-top:-28px}"
+        ".kpi{background:var(--surface);border:1px solid var(--line);border-radius:16px;"
+        "padding:14px 16px;box-shadow:0 8px 30px rgba(0,0,0,.10);position:relative;overflow:hidden}"
+        ".kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;"
+        "background:var(--grad)}"
+        ".kpi .label{font-size:.66rem;text-transform:uppercase;letter-spacing:.07em;"
+        "color:var(--ink2);font-weight:700}"
+        ".kpi .value{font-size:1.3rem;font-weight:700;letter-spacing:-.02em;margin-top:5px}"
+        ".tablewrap{overflow-x:auto;background:var(--surface);border:1px solid var(--line);"
+        "border-radius:16px;margin-top:22px}"
+        "table{width:100%;border-collapse:collapse}"
+        "caption{caption-side:top;text-align:left;font-weight:700;padding:14px 16px 0;"
+        "font-size:.95rem;color:var(--ink)}"
+        "th{font-size:.66rem;text-transform:uppercase;letter-spacing:.06em;color:var(--ink2);"
+        "text-align:left;padding:12px 16px 8px;border-bottom:1px solid var(--line);font-weight:700}"
+        "td{padding:11px 16px;border-bottom:1px solid var(--line);font-size:.9rem}"
+        "tr:last-child td{border-bottom:none}"
+        "tbody tr:hover td{background:rgba(0,113,227,.05)}"
+        ".num{font-variant-numeric:tabular-nums;white-space:nowrap;text-align:right}"
+        ".prio{display:inline-block;font-size:.68rem;font-weight:700;letter-spacing:.05em;"
+        "padding:.16rem .6rem;border-radius:999px;white-space:nowrap}"
+        "footer{color:var(--ink2);font-size:.78rem;margin-top:24px;line-height:1.65}"
+        "@media print{header{-webkit-print-color-adjust:exact;print-color-adjust:exact}}"
+        "</style></head><body>"
+        "<header><h1>Repair Estimate — Lender Package</h1>"
+        "<p>Provenance-tracked · deterministic · not a quote</p></header><main>"
+        "<div class='kpis'>"
+        f"<div class='kpi'><div class='label'>Total (avg)</div>"
+        f"<div class='value'>${totals.get('total_avg', 0):,.0f}</div></div>"
+        f"<div class='kpi'><div class='label'>Range</div>"
+        f"<div class='value'>${totals.get('total_low', 0):,.0f}–${totals.get('total_high', 0):,.0f}</div></div>"
+        f"<div class='kpi'><div class='label'>Rooms</div><div class='value'>{room_count}</div></div>"
+        "</div>"
+        "<div class='tablewrap'><table>"
+        "<caption>Room-by-room repair ranges</caption>"
+        "<thead><tr><th>Room</th><th>Condition</th><th>Priority</th>"
+        "<th class='num'>Range</th></tr></thead>"
+        f"<tbody>{rows}</tbody></table></div>"
+        "<footer>Provenance: VERIFIED baselines + MODELED assembly. Not a quote.<br>"
+        f"estimate_id: {estimate_id} · generated_at: {generated}<br>"
+        "badge legend: VERIFIED · USER_PROVIDED · MODELED · REQUIRES_KEY · UNAVAILABLE"
+        "</footer></body></html>"
     )
 
 

@@ -111,6 +111,20 @@ BENCHMARK_RANGES = {
 
 SEVERITY_MULT = {"CRITICAL": 1.30, "HIGH": 1.15, "MEDIUM": 1.0, "LOW": 0.85, "INFO": 0.70}
 
+
+def _quote_matches(quote_key: str, finding_key: str, description: str) -> bool:
+    """Match a pasted quote row to a finding: exact key/description first, then
+    case-insensitive containment — users paste short keys like 'heat exchanger'."""
+    if not quote_key:
+        return False
+    q = str(quote_key).strip().lower()
+    for cand in (finding_key, description):
+        c = str(cand or "").strip().lower()
+        if c and (q == c or q in c or c in q):
+            return True
+    return False
+
+
 # Trade -> SOC code mapping for BLS wage lookup
 SYSTEM_TO_SOC = {
     "HVAC": "499021",
@@ -205,7 +219,7 @@ def calculate_cost_bounds(
     quote = None
     if user_quotes:
         for q in user_quotes:
-            if q.get("finding_key") and q["finding_key"] in (finding.get("key", ""), desc):
+            if _quote_matches(q.get("finding_key", ""), finding.get("key", ""), desc):
                 quote = q
                 break
 
@@ -282,6 +296,27 @@ def generate_cost_matrix(
     by_sev = {}
     for x in lines:
         by_sev[x["severity"]] = by_sev.get(x["severity"], 0) + x["total_avg"]
+    by_sys = {}
+    for x in lines:
+        bucket = by_sys.setdefault(
+            x["system"],
+            {
+                "items": 0,
+                "total_low": 0,
+                "total_avg": 0,
+                "total_high": 0,
+                "critical_high_items": 0,
+            },
+        )
+        bucket["items"] += 1
+        bucket["total_low"] += x["total_low"]
+        bucket["total_avg"] += x["total_avg"]
+        bucket["total_high"] += x["total_high"]
+        if x["severity"] in ("CRITICAL", "HIGH"):
+            bucket["critical_high_items"] += 1
+    for bucket in by_sys.values():
+        for field in ("total_low", "total_avg", "total_high"):
+            bucket[field] = round(bucket[field], 0)
     return {
         "line_items": lines,
         "summary": {
@@ -290,6 +325,7 @@ def generate_cost_matrix(
             "total_high": round(total_high, 0),
             "total_avg": round(total_avg, 0),
             "by_severity": by_sev,
+            "by_system": dict(sorted(by_sys.items(), key=lambda kv: kv[1]["total_avg"], reverse=True)),
             "state": state,
             "zip_code": zip_code,
             "generated_at": datetime.now().isoformat(),

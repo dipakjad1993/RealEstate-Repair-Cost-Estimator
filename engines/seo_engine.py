@@ -346,9 +346,9 @@ def generate_lead_magnet_widget_config(agent_name, agent_email, branding=None):
         "agent_email": agent_email,
         "branding": branding
         or {
-            "primary_color": "#1E40AF",
-            "accent_color": "#F59E0B",
-            "font_family": "Inter, sans-serif",
+            "primary_color": "#0071E3",
+            "accent_color": "#7C3AED",
+            "font_family": "'Google Sans Flex', 'Google Sans', 'Inter', sans-serif",
         },
         "lead_capture_fields": ["email", "phone"],
         "preview_items": 3,

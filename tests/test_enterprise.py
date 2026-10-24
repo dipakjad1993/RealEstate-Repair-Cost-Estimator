@@ -150,9 +150,9 @@ def test_owasp_headers_middleware():
 
 def test_share_portal_escapes_html():
     src = (REPO / "api_server.py").read_text(encoding="utf-8")
-    assert "escape(str(r.get('room'" in src
-    assert "escape(str(r.get('condition'" in src
-    assert "escape(str(r.get('priority'" in src
+    normalized = src.replace("'", '"')
+    for field in ("room", "condition", "priority"):
+        assert f'escape(str(r.get("{field}"' in normalized, f"missing HTML escape for {field}"
 
 
 # ------------------------------------------------------------------

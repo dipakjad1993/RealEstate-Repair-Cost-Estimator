@@ -78,6 +78,13 @@
           -apple-system, BlinkMacSystemFont, 'SF Pro Display',
           'SF Pro Text', 'Segoe UI', Roboto, sans-serif;
   --mono: 'SF Mono', 'Cascadia Code', 'Roboto Mono', 'Consolas', monospace;
+  /* Severity palette (mirrors data/severity_levels.json) */
+  --sev-critical: #DC2626; --sev-critical-bg: rgba(220, 38, 38, 0.12);
+  --sev-high: #EA580C;     --sev-high-bg: rgba(234, 88, 12, 0.12);
+  --sev-medium: #CA8A04;   --sev-medium-bg: rgba(202, 138, 4, 0.12);
+  --sev-low: #16A34A;      --sev-low-bg: rgba(22, 163, 74, 0.12);
+  --sev-info: #2563EB;     --sev-info-bg: rgba(37, 99, 235, 0.12);
+  --brand-grad: linear-gradient(90deg, #0071E3, #7C3AED);
   color-scheme: light;
 }
 
@@ -518,6 +525,8 @@ button[data-testid="baseButton-secondary"]:not([class*="nav"]):hover {
 
 /* ── METRICS ───────────────────────────────────────────── */
 [data-testid="stMetric"] {
+  position: relative;
+  overflow: hidden;
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: var(--r-md);
@@ -525,10 +534,25 @@ button[data-testid="baseButton-secondary"]:not([class*="nav"]):hover {
   box-shadow: var(--shadow-xs);
   transition: transform var(--t), box-shadow var(--t), border-color var(--t);
 }
+/* Enterprise gradient accent — brand blue → violet hairline across the top */
+[data-testid="stMetric"]::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--brand-grad);
+  opacity: 0.85;
+  transition: opacity var(--t);
+}
 [data-testid="stMetric"]:hover {
   transform: translateY(-2px);
   box-shadow: var(--shadow-sm);
   border-color: var(--line-strong);
+}
+[data-testid="stMetric"]:hover::before {
+  opacity: 1;
 }
 /* Apple layered translucency: hairline top-light in dark mode */
 :root.dark-mode [data-testid="stMetric"],
@@ -886,6 +910,31 @@ table.ent-table {
   text-align: right;
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
+}
+
+/* ── SEVERITY CHIPS · gradient pills driven by inline --sev vars ── */
+.sev-chip {
+  display: inline-block;
+  font-family: var(--font);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  line-height: 1.4;
+  padding: 0.18rem 0.62rem;
+  border-radius: var(--r-pill);
+  white-space: nowrap;
+  color: var(--sev, var(--ink));
+  background: linear-gradient(135deg, var(--sev-bg), color-mix(in srgb, var(--sev) 14%, transparent));
+  border: 1px solid color-mix(in srgb, var(--sev) 34%, transparent);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--sev) 18%, transparent);
+  transition: transform var(--t), box-shadow var(--t);
+}
+.sev-chip:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--sev) 26%, transparent);
+}
+.sev-chip.sev-critical {
+  background: linear-gradient(135deg, var(--sev-critical-bg), rgba(220, 38, 38, 0.30));
 }
 
 @media (prefers-reduced-motion: reduce) {

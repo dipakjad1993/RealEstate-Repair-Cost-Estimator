@@ -13,6 +13,7 @@ No hash-generated license numbers or invented contractor firms.
 
 import logging
 
+from engines.cost_engine import _quote_matches
 from engines.real_data_fetcher import get_bls_wages, state_to_fips
 
 logger = logging.getLogger(__name__)
@@ -50,15 +51,19 @@ def estimate_market_baseline(findings, zip_code, cost_matrix, state="", user_quo
     wage_prov = wages.provenance.status if wages else "UNAVAILABLE"
 
     bids_by_finding = {}
-    quote_index = {}
-    for q in user_quotes:
-        quote_index[q.get("finding_key", "")] = q
 
     for finding in findings:
         system = (finding.get("system_category") or "OTHER").upper()
         key = finding.get("key", finding.get("description", ""))
         trade = TRADE_BY_SYSTEM.get(system, TRADE_BY_SYSTEM["OTHER"])
-        quote = quote_index.get(key) or quote_index.get(finding.get("description", ""))
+        quote = next(
+            (
+                q
+                for q in user_quotes
+                if _quote_matches(q.get("finding_key", ""), key, finding.get("description", ""))
+            ),
+            None,
+        )
 
         # find cost row for this finding
         cost_row = None

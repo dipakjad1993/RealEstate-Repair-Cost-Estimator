@@ -381,6 +381,10 @@ def compile_session_input(
     findings = report["findings"] + audio["findings"]
     # dedupe by description similarity across sources
     findings = _dedupe(findings)
+    # stable ids so bids/legal/escrow join on exact keys (never on prose)
+    from engines.parser_engine import assign_finding_ids
+
+    assign_finding_ids(findings, prefix="f")
 
     user_mls = {
         "list_price": _num(mls.get("list_price")),
@@ -443,12 +447,28 @@ def _num(val):
 
 
 def _dedupe(findings):
+    """Exact-prefix + containment dedupe across PDF/audio sources."""
     out = []
-    seen = set()
+    norms = []
     for f in findings:
-        desc = (f.get("description") or "")[:60].lower()
-        if desc in seen:
+        desc = (f.get("description") or "").strip()
+        if not desc:
             continue
-        seen.add(desc)
+        norm = re.sub(r"\s+", " ", desc.lower())
+        norm = re.sub(r"\d+", "n", norm)
+        is_dup = False
+        for existing in norms:
+            a, b = set(norm.split()), set(existing.split())
+            if not a or not b:
+                continue
+            inter = len(a & b)
+            containment = inter / min(len(a), len(b))
+            jaccard = inter / len(a | b)
+            if containment > 0.8 or jaccard > 0.6:
+                is_dup = True
+                break
+        if is_dup:
+            continue
+        norms.append(norm)
         out.append(f)
     return out

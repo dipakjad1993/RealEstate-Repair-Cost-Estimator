@@ -37,6 +37,37 @@ def test_baseline_prefers_user_quote():
     assert out["k1"]["bid_low"] == 900
 
 
+def test_baseline_matches_short_quote_key():
+    """Short pasted keys ('heat exchanger') must match the finding description."""
+    findings = [
+        {
+            "key": "k1",
+            "description": "Cracked heat exchanger on Carrier furnace (mfg. 2012)",
+            "system_category": "HVAC",
+            "severity": "CRITICAL",
+        }
+    ]
+    cm = {
+        "line_items": [
+            {"finding_key": "k1", "finding": "Cracked heat exchanger", "total_low": 1000, "total_high": 2000}
+        ]
+    }
+    quotes = [
+        {
+            "finding_key": "heat exchanger",
+            "contractor": "Pacific Coast Heating & Air Inc",
+            "license": "CSLB C-20 1084552",
+            "low": "1800",
+            "high": "2600",
+            "eta_days": "5",
+        }
+    ]
+    out = estimate_market_baseline(findings, "90210", cm, "CA", quotes)
+    assert out["k1"]["cost_source"] == "USER_QUOTE"
+    assert out["k1"]["bid_low"] == 1800
+    assert out["k1"]["contractor"] == "Pacific Coast Heating & Air Inc"
+
+
 def test_baseline_without_quote_is_deterministic():
     findings = [{"key": "k1", "description": "Fix roof", "system_category": "ROOF", "severity": "HIGH"}]
     cm = {"line_items": [{"finding_key": "k1", "finding": "Fix roof", "total_low": 1000, "total_high": 2000}]}

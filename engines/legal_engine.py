@@ -262,11 +262,16 @@ relationship.
 def generate_escrow_holdback_agreement(property_data, high_risk_findings, contractor_bids):
     address = f"{property_data.get('address', 'N/A')}, {property_data.get('city', 'N/A')}, {property_data.get('state', 'N/A')} {property_data.get('zip_code', 'N/A')}"
     today = datetime.now().strftime("%B %d, %Y")
+    bids = _normalize_bids(contractor_bids)
     items = []
     total_holdback = 0
-    for finding in high_risk_findings:
-        bid = _get_best_bid(finding, contractor_bids)
-        bid_amount = bid.get("bid_amount", 0) if bid else finding.get("estimated_cost_avg", 0)
+    for finding in high_risk_findings or []:
+        if not isinstance(finding, dict):
+            continue
+        bid = _get_best_bid(finding, bids)
+        bid_amount = _bid_amount(bid) if bid else 0.0
+        if not bid_amount:
+            bid_amount = _finding_fallback_cost(finding)
         holdback = bid_amount * 1.5
         total_holdback += holdback
         items.append(
@@ -274,6 +279,8 @@ def generate_escrow_holdback_agreement(property_data, high_risk_findings, contra
                 "finding": finding.get("description", "")[:100],
                 "system": finding.get("system_category", "OTHER"),
                 "severity": finding.get("severity", "HIGH"),
+                "contractor": (bid or {}).get("contractor", "[AWAITING BID]"),
+                "cost_source": (bid or {}).get("cost_source", "FINDING_ESTIMATE"),
                 "contractor_bid": round(bid_amount, 0),
                 "holdback_amount": round(holdback, 0),
                 "release_conditions": _generate_release_conditions(finding),
@@ -294,10 +301,100 @@ def generate_escrow_holdback_agreement(property_data, high_risk_findings, contra
     }
 
 
+def _normalize_bids(contractor_bids):
+    """Accept every bid shape the pipeline emits and return a flat list of dicts.
+
+    The contractor engine returns {finding_key: bid_dict}; older callers pass a
+    list of bid dicts (optionally keyed by finding_id); defensive against stray
+    string rows so a malformed row can never crash the legal tab again.
+    """
+    if not contractor_bids:
+        return []
+    entries = []
+    if isinstance(contractor_bids, dict):
+        for key, value in contractor_bids.items():
+            if isinstance(value, dict):
+                enriched = dict(value)
+                enriched.setdefault("finding_id", key)
+                entries.append(enriched)
+    elif isinstance(contractor_bids, (list, tuple)):
+        for value in contractor_bids:
+            if isinstance(value, dict):
+                entries.append(dict(value))
+    return entries
+
+
+def _bid_amount(bid):
+    """Numeric mid/bid amount from any bid-dict shape (never raises)."""
+    if not isinstance(bid, dict):
+        return 0.0
+    for field in ("bid_amount", "bid_avg", "estimated_cost_avg", "total_avg"):
+        raw = bid.get(field)
+        try:
+            amount = float(raw)
+        except (TypeError, ValueError):
+            continue
+        if amount > 0:
+            return amount
+    try:
+        low = float(bid.get("bid_low", 0) or 0)
+        high = float(bid.get("bid_high", 0) or 0)
+    except (TypeError, ValueError):
+        low, high = 0.0, 0.0
+    return (low + high) / 2 if (low or high) else 0.0
+
+
+def _finding_fallback_cost(finding):
+    """Best non-bid cost estimate carried on the finding itself, else 0."""
+    for field in (
+        "estimated_cost_avg",
+        "estimated_cost",
+        "total_avg",
+        "cost_avg",
+        "contractor_avg",
+    ):
+        raw = finding.get(field)
+        try:
+            amount = float(raw)
+        except (TypeError, ValueError):
+            continue
+        if amount > 0:
+            return amount
+    return 0.0
+
+
 def _get_best_bid(finding, contractor_bids):
-    matching = [b for b in contractor_bids if b.get("finding_id") == finding.get("id")]
+    """Match a finding to its lowest binding bid.
+
+    Matches on finding_id / id / key first, then on normalized-description
+    containment (parser findings carry no stable id, so bids are keyed by the
+    description string). Returns None when no dict-shaped bid matches.
+    """
+    bids = _normalize_bids(contractor_bids)
+    if not isinstance(finding, dict) or not bids:
+        return None
+    candidates = [
+        finding.get("finding_id"),
+        finding.get("id"),
+        finding.get("key"),
+        finding.get("description"),
+    ]
+    candidates = [str(c).strip().lower() for c in candidates if c]
+    if not candidates:
+        return None
+    matching = []
+    for bid in bids:
+        bid_key = str(bid.get("finding_id") or bid.get("id") or "").strip().lower()
+        if bid_key and bid_key in candidates:
+            matching.append(bid)
+            continue
+        bid_desc = str(bid.get("finding") or bid.get("description") or "").strip().lower()
+        for cand in candidates:
+            if bid_desc and (bid_desc in cand or cand in bid_desc):
+                matching.append(bid)
+                break
     if matching:
-        matching.sort(key=lambda x: x.get("bid_amount", float("inf")))
+        matching.sort(key=lambda x: _bid_amount(x) or float("inf"))
         return matching[0]
     return None
 
