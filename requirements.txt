@@ -2,7 +2,7 @@
 # Last verified: 2026-10. Python 3.10–3.13.
 streamlit==1.37.*
 pandas==2.2.*
-numpy==1.26.*
+numpy==2.5.*
 plotly==5.22.*
 PyMuPDF==1.24.*
 pymupdf4llm==0.0.*
