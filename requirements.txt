@@ -27,7 +27,7 @@ faster-whisper==1.0.*
 supabase==2.7.*
 psycopg2-binary==2.9.*
 # --- Distributed rate limiting (optional; in-memory fallback automatic) ---
-redis==5.0.*
+redis==8.1.*
 # --- Quality / test (CI + local) ---
 pytest==8.3.*
 pytest-cov==5.0.*
