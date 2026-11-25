@@ -1,4 +1,4 @@
-# Repair Estimator — agent courtesy file (NOT a GEO strategy)
+# ScopeProof — agent courtesy file (NOT a GEO strategy)
 
 > Deterministic, provenance-tracked repair estimates from verified government data.
 > Every figure carries exactly one badge: VERIFIED / USER_PROVIDED / MODELED /

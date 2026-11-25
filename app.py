@@ -1,5 +1,5 @@
 """
-Real Estate Repair Cost Estimator - v3.1 ENTERPRISE (provenance-tracked)
+ScopeProof - v4.0.0 (provenance-tracked repair cost intelligence)
 =======================================================================
 Progressive intake: Address only -> instant ballpark -> deep dive after PDF.
 PIPELINE: ingestion -> gov data (official-first) -> deterministic cost
@@ -404,7 +404,7 @@ def render_top_nav():
             <div class="prem-brand">
               <span class="prem-logo">◈</span>
               <div class="prem-brand-text">
-                <div class="prem-brand-title">Repair Estimator</div>
+                <div class="prem-brand-title">ScopeProof</div>
                 <div class="prem-brand-sub"><span class="status-dot"></span>Property Intelligence · Verified</div>
               </div>
             </div>

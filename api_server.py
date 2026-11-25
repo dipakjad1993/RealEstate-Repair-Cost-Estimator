@@ -247,7 +247,7 @@ def openapi_legacy():
 @app.get("/llms.txt")
 def llms_txt():
     return PlainTextResponse(
-        "# Repair Estimator API\n"
+        "# ScopeProof API\n"
         "> Deterministic, provenance-tracked repair estimates from verified government data.\n\n"
         "## Endpoints\n"
         "- POST /v1/estimate_repair {address, state, zip_code, findings[]}  (Authorization: Bearer <API_KEY>)\n"

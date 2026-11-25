@@ -26,7 +26,7 @@ _AUDIT_AS_OF = datetime.now(timezone.utc).date().isoformat()
 def eu_ai_act_documentation() -> dict:
     """Return the EU AI Act Art. 13/14/11 documentation pack for this system."""
     return {
-        "system_name": "Real Estate Repair Cost Estimator",
+        "system_name": "ScopeProof",
         "system_version": _version(),
         "ai_act_classification": "High-adjacent (insurance/financial-adjacent decision support)",
         "intended_purpose": (
