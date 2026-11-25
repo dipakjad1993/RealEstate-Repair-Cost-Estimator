@@ -450,7 +450,7 @@ def test_engines_init_has_no_star_imports():
 
 
 # ------------------------------------------------------------------
-# 15. Kill-list: utils/ and config.legacy.py are gone
+# 15. Kill-list: utils/, config.legacy.py and legacy/ are gone
 # ------------------------------------------------------------------
 def test_kill_list_removed():
     assert not (REPO / "utils").exists(), "utils/ should be deleted (zero importers, 1168 lines dead)"
@@ -458,7 +458,7 @@ def test_kill_list_removed():
         "config.legacy.py should be deleted (git is the audit diff)"
     )
     assert not (REPO / "data" / "repair_estimator.db").exists(), "3.4MB sqlite DB must not be committed"
-    assert (REPO / "legacy" / "export_engine.py").exists(), "export_engine quarantined in legacy/"
+    assert not (REPO / "legacy").exists(), "legacy/ quarantine must be deleted after migration"
 
 
 # ------------------------------------------------------------------

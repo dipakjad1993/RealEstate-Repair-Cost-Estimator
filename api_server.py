@@ -1,9 +1,10 @@
-"""FastAPI backend: agent-ready estimate API + share portal + OpenAPI (enterprise v3.4).
+"""FastAPI backend: agent-ready estimate API + share portal + OpenAPI (ScopeProof v4.0).
 
 Run:  uvicorn api_server:app --port 8000
-Docs: /docs   OpenAPI: /v1/openapi.json   Share: /s/{token}   Metrics: /metrics
+Docs: /docs   OpenAPI: /v1/openapi.json   Share: /s/{token}   Estimate: /e/{id}
+      Compliance: /v1/compliance/eu-ai-act   Metrics: /metrics
 
-Enterprise hardening (v3.4):
+Enterprise hardening (v4.0):
 - Timing-safe API-key auth (hmac.compare_digest). Auth is REQUIRED unless
   explicitly disabled with API_AUTH_DISABLED=1 (dev only).
 - OWASP security headers (CSP, HSTS, X-Content-Type-Options, Referrer-Policy,
@@ -16,6 +17,7 @@ Enterprise hardening (v3.4):
 - Structured JSON logs + badge-mix metrics (North-Star VERIFIED%).
 """
 
+import hashlib
 import hmac
 import os
 import uuid
@@ -37,12 +39,28 @@ from engines.share_engine import ShareSecretError, open_snapshot, seal_snapshot,
 API_KEY = os.environ.get("API_KEY", "").strip()
 AUTH_DISABLED = os.environ.get("API_AUTH_DISABLED", "") == "1"
 
-API_VERSION = "3.4.0"
+API_VERSION = "4.0.0"
 IDEMPOTENCY_TTL_S = 24 * 3600
+ESTIMATE_TTL_S = 7 * 24 * 3600
 _idempotency_cache: dict[str, dict] = {}  # key -> {ts, response}
+_estimate_store: dict[str, dict] = {}  # estimate_id -> {ts, response} (in-proc cache; DB when configured)
+
+
+def _limit_key(token: str) -> str:
+    """Never use a raw API key as a rate-limiter dict key (memory scraping risk)."""
+    return hashlib.sha256((token or "anon").encode("utf-8")).hexdigest()[:32]
+
+
+def _remember_estimate(result: dict):
+    now = datetime.now(timezone.utc).timestamp()
+    _estimate_store[result["estimate_id"]] = {"ts": now, "result": result}
+    if len(_estimate_store) > 10_000:
+        for k in [k for k, v in _estimate_store.items() if now - v["ts"] >= ESTIMATE_TTL_S][:1000]:
+            _estimate_store.pop(k, None)
+
 
 app = FastAPI(
-    title="Repair Estimator API",
+    title="ScopeProof API",
     version=API_VERSION,
     description=(
         "Provenance-tracked repair estimates. Every figure carries exactly one badge: "
@@ -255,13 +273,26 @@ def health():
         h = detailed_health()
         h["api_version"] = API_VERSION
         h["metrics"] = metrics_snapshot()
+        try:
+            from engines.etl_engine import snapshot_manifest
+
+            h["snapshots"] = snapshot_manifest()["datasets"]
+        except Exception as e:
+            h["snapshots"] = {"error": str(e)[:120]}
+        try:
+            from engines.fred_engine import fetch_macro_context
+
+            h["fred"] = {"badge": fetch_macro_context()["badge"]}
+        except Exception as e:
+            h["fred"] = {"badge": "UNAVAILABLE", "error": str(e)[:120]}
         return h
     except Exception as e:
         return {"ok": False, "error": str(e)[:200], "api_version": API_VERSION}
 
 
 @app.get("/metrics")
-def metrics():
+def metrics(authorization: str = Header(default="")):
+    _auth(authorization)
     return PlainTextResponse(prometheus_text(), media_type="text/plain; version=0.0.4")
 
 
@@ -358,7 +389,7 @@ def estimate_repair_v1(
 ):
     _auth(authorization)
     limiter = get_limiter("estimate", max_calls=60, window_s=60)
-    if not limiter.allow(authorization or "anon"):
+    if not limiter.allow(_limit_key(authorization)):
         raise HTTPException(status_code=429, detail="rate limit exceeded")
     now = datetime.now(timezone.utc).timestamp()
     if idempotency_key:
@@ -368,6 +399,7 @@ def estimate_repair_v1(
             return cached["response"]
     req_id = uuid.uuid4().hex[:16]
     result = _run_estimate(req, req_id)
+    _remember_estimate(result)
     if idempotency_key:
         _idempotency_cache[idempotency_key] = {"ts": now, "response": result}
         if len(_idempotency_cache) > 10_000:
@@ -384,10 +416,11 @@ def estimate_repair_legacy(
     """Legacy alias — prefer /v1/estimate_repair (adds idempotency + richer provenance)."""
     _auth(authorization)
     limiter = get_limiter("estimate", max_calls=60, window_s=60)
-    if not limiter.allow(authorization or "anon"):
+    if not limiter.allow(_limit_key(authorization)):
         raise HTTPException(status_code=429, detail="rate limit exceeded")
     req_id = uuid.uuid4().hex[:16]
     result = _run_estimate(req, req_id)
+    _remember_estimate(result)
     return {
         "totals": result["totals"],
         "rooms": result["rooms"],
@@ -395,6 +428,43 @@ def estimate_repair_legacy(
         "share_token": result["share_token"],
         "provenance": result["provenance"],
     }
+
+
+@app.get("/e/{estimate_id}")
+def get_estimate(estimate_id: str, request: Request, authorization: str = Header(default="")):
+    """Canonical, citable estimate twin (markdown + JSON-LD + citation string).
+
+    Serves estimates produced in this process (7-day in-proc cache). With
+    Supabase/Postgres configured, persistence is handled by db_supabase.
+    """
+    _auth(authorization)
+    entry = _estimate_store.get(estimate_id)
+    if not entry or datetime.now(timezone.utc).timestamp() - entry["ts"] > ESTIMATE_TTL_S:
+        raise HTTPException(status_code=404, detail="estimate not found or expired")
+    result = entry["result"]
+    from engines.citable_engine import build_citable_package
+
+    totals = result.get("totals") or {}
+    base = str(request.base_url).rstrip("/")
+    twin = build_citable_package(
+        estimate_id,
+        totals,
+        result.get("line_items") or [],
+        base_url=base,
+        zip_code=str(totals.get("zip_code", "")),
+        state=str(totals.get("state", "")),
+    )
+    log_event("estimate.read", actor="api", payload={"estimate_id": estimate_id})
+    return {**result, "citable": twin}
+
+
+@app.get("/v1/compliance/eu-ai-act")
+def eu_ai_act(authorization: str = Header(default="")):
+    """EU AI Act Art. 11/13/14 documentation pack (deterministic system)."""
+    _auth(authorization)
+    from engines.compliance_engine import eu_ai_act_documentation
+
+    return eu_ai_act_documentation()
 
 
 @app.get("/s/{token}", response_class=HTMLResponse)

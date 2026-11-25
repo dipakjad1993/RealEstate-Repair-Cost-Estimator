@@ -124,8 +124,8 @@
     "license": {
       "name": "MIT"
     },
-    "title": "Repair Estimator API",
-    "version": "3.4.0"
+    "title": "ScopeProof API",
+    "version": "4.0.0"
   },
   "openapi": "3.1.0",
   "paths": {
@@ -211,6 +211,54 @@
         "summary": "Openapi Legacy"
       }
     },
+    "/e/{estimate_id}": {
+      "get": {
+        "description": "Canonical, citable estimate twin (markdown + JSON-LD + citation string).\n\nServes estimates produced in this process (7-day in-proc cache). With\nSupabase/Postgres configured, persistence is handled by db_supabase.",
+        "operationId": "get_estimate_e__estimate_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "estimate_id",
+            "required": true,
+            "schema": {
+              "title": "Estimate Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "default": "",
+              "title": "Authorization",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Estimate"
+      }
+    },
     "/llms.txt": {
       "get": {
         "operationId": "llms_txt_llms_txt_get",
@@ -230,6 +278,18 @@
     "/metrics": {
       "get": {
         "operationId": "metrics_metrics_get",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "default": "",
+              "title": "Authorization",
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "content": {
@@ -238,6 +298,16 @@
               }
             },
             "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
           }
         },
         "summary": "Metrics"
@@ -280,6 +350,45 @@
           }
         },
         "summary": "Share Portal"
+      }
+    },
+    "/v1/compliance/eu-ai-act": {
+      "get": {
+        "description": "EU AI Act Art. 11/13/14 documentation pack (deterministic system).",
+        "operationId": "eu_ai_act_v1_compliance_eu_ai_act_get",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "default": "",
+              "title": "Authorization",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Eu Ai Act"
       }
     },
     "/v1/estimate_repair": {

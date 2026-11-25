@@ -66,10 +66,11 @@ def estimate_arv(comps, subject_sqft=0, list_price=None, rent_monthly=None):
 
 
 def fetch_live_comps(provider: str, api_key: str, address: str, radius_mi: float = 1.0):
-    """Key-gated live comp fetch. Returns (comps, provenance). Honest stub when no key."""
+    """Key-gated live comp fetch. No fabricated comps — ever.
+
+    No key -> REQUIRES_KEY. Key present but no wired connector ->
+    PROVIDER_UNSUPPORTED (never REQUIRES_KEY: a key is not the blocker).
+    """
     if not api_key:
         return [], "REQUIRES_KEY"
-    # Provider integrations land here (Attom / RentCast / BatchData).
-    # Kept as explicit REQUIRES_KEY until credentials are configured so no
-    # fabricated comps ever enter the pipeline.
-    return [], "REQUIRES_KEY"
+    return [], "PROVIDER_UNSUPPORTED"

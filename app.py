@@ -14,6 +14,7 @@ import json
 import logging
 import sys
 import traceback
+import uuid
 from datetime import datetime
 from pathlib import Path
 
@@ -538,6 +539,7 @@ def run_pipeline(session):
         leverage = max(leverage, 65)
 
     results = {
+        "estimate_id": uuid.uuid4().hex[:16],
         "rates": rates,
         "cost_matrix": cost_matrix,
         "capex": capex,
@@ -1024,7 +1026,7 @@ def page_results():
             st.code(_su(tok), language="text")
         else:
             st.caption("Share link unavailable for this run.")
-    d1, d2, d3 = st.columns(3)
+    d1, d2, d3, d4 = st.columns(4)
     with d1:
         try:
             from engines.export_pdf import build_pdf_package as _pdf
@@ -1064,6 +1066,26 @@ def page_results():
             file_name="cost_matrix.json",
             use_container_width=True,
         )
+    with d4:
+        try:
+            from engines.citable_engine import build_citable_package as _cite
+
+            pkg = _cite(
+                res.get("estimate_id", "local"),
+                res["cost_matrix"].get("summary", {}),
+                res["cost_matrix"].get("line_items", []),
+                zip_code=str(sess.get("property", {}).get("zip_code", "")),
+                state=str(sess.get("property", {}).get("state", "")),
+            )
+            st.download_button(
+                "Citation twin (.md)",
+                pkg["markdown"],
+                file_name="scopeproof_citation.md",
+                mime="text/markdown",
+                use_container_width=True,
+            )
+        except Exception as e:
+            st.caption(f"Citation twin unavailable: {e}")
 
     t1, t2, t3, t4, t5, t6, t7, t8, t9 = st.tabs(
         [
@@ -2273,6 +2295,22 @@ def page_health():
         for k, v in health.items():
             ok = "🟢" if v is True else "🟠" if v == "REQUIRES_KEY" else "🔴" if v is False else "⚪"
             st.markdown(f"{ok} **{k}** — `{v}`")
+    try:
+        from engines.fred_engine import fetch_macro_context
+
+        macro = fetch_macro_context()
+        section("H-2", "FRED macro anchors", macro["note"])
+        st.markdown(f"Status: `{macro['badge']}` — set FRED_API_KEY (free) for live series.")
+    except Exception as e:
+        st.caption(f"FRED health unavailable: {e}")
+    try:
+        from engines.etl_engine import snapshot_manifest
+
+        snaps = snapshot_manifest()["datasets"]
+        section("H-3", "ETL snapshots", "Content-hashed nightly snapshots with lineage.")
+        st.json(snaps)
+    except Exception as e:
+        st.caption(f"Snapshot manifest unavailable: {e}")
     st.caption(
         "FEMA NFHL is unreachable from some networks; the engine retries multiple hosts "
         "and reports UNAVAILABLE honestly. BLS unregistered requests are limited to 25/day "
