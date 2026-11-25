@@ -26,7 +26,7 @@ def shared_session() -> requests.Session:
     s = requests.Session()
     s.headers.update(
         {
-            "User-Agent": "RepairEstimator/3.1 (enterprise; contact: support@example.com)",
+            "User-Agent": "ScopeProof/4.0 (deterministic repair estimates; provenance-tracked)",
             "Accept": "application/json",
         }
     )
@@ -47,11 +47,11 @@ def shared_session() -> requests.Session:
     return _session
 
 
-def timed_get(url, params=None, timeout=15):
+def timed_get(url, params=None, timeout=15, headers=None):
     s = shared_session()
     t0 = time.perf_counter()
     try:
-        r = s.get(url, params=params, timeout=timeout)
+        r = s.get(url, params=params, timeout=timeout, headers=headers)
         dt = (time.perf_counter() - t0) * 1000
         _record(url, dt, r.status_code)
         return r
@@ -61,11 +61,11 @@ def timed_get(url, params=None, timeout=15):
         raise e
 
 
-def timed_post(url, json_body=None, timeout=20):
+def timed_post(url, json_body=None, timeout=20, headers=None, params=None):
     s = shared_session()
     t0 = time.perf_counter()
     try:
-        r = s.post(url, json=json_body, timeout=timeout)
+        r = s.post(url, json=json_body, timeout=timeout, headers=headers, params=params)
         dt = (time.perf_counter() - t0) * 1000
         _record(url, dt, r.status_code)
         return r

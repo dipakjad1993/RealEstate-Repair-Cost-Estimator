@@ -10,7 +10,8 @@ REQUIRES_KEY / UNAVAILABLE honestly.
 Verified Working Sources (tested live):
 - US Census Geocoder v1.0  -> real address -> lat/lon
 - USGS Earthquake Catalog  -> real recent earthquakes
-- USGS National Seismic Hazard Model (via faultlinemap.com mirror) -> real PGA/SS/S1/SDC
+- USGS Seismic Design Maps ASCE 7-22 (official, first) -> real Ss/S1/SDS/SD1/SDC
+- faultlinemap.com mirror  -> labeled MODELED proxy only, never VERIFIED
 - Open-Meteo               -> real current weather / climate
 - BLS PPI                  -> real construction material price indexes
 - BLS OEWS                 -> real occupational wages (correct series format)
@@ -138,6 +139,15 @@ def _cached_api_call(
     headers: dict = None,
     timeout: int = REQUEST_TIMEOUT,
 ) -> Any | None:
+    """Cached JSON GET/POST through the shared HTTP session.
+
+    Routing every call through engines.http_client.shared_session() is
+    mandatory: it pools connections, applies one UA/retry policy, and records
+    per-host latency that the Health page renders. Bare requests.get would
+    silently bypass all of that.
+    """
+    from engines.http_client import timed_get, timed_post
+
     if cache_key is None:
         cache_key = f"{method}:{url}:{json.dumps(params or {}, sort_keys=True)}"
     cached = _cache.get(cache_key)
@@ -145,18 +155,18 @@ def _cached_api_call(
         return cached
 
     hdrs = {
-        "User-Agent": "RealEstateRepairCostEstimator/2.0 (research/verification)",
         "Accept": "application/json",
     }
     if headers:
         hdrs.update(headers)
 
     for attempt in range(MAX_RETRIES + 1):
+        resp = None
         try:
             if method == "GET":
-                resp = requests.get(url, params=params, timeout=timeout, headers=hdrs)
+                resp = timed_get(url, params=params, timeout=timeout, headers=hdrs)
             else:
-                resp = requests.post(url, params=params, json=json_body, timeout=timeout, headers=hdrs)
+                resp = timed_post(url, json_body=json_body, timeout=timeout, headers=hdrs, params=params)
             if resp.status_code == 404:
                 logger.warning(f"404 from {url}")
                 return None
@@ -406,17 +416,58 @@ def get_flood_zone_by_coords(lat: float, lon: float) -> DataResult:
 # USGS SEISMIC HAZARD
 # ============================================================
 
+USGS_DESIGN_MAPS = "https://earthquake.usgs.gov/ws/designmaps/asce7-22.json"
+
 
 def get_seismic_hazard_by_coords(lat: float, lon: float) -> DataResult:
     """
-    Real USGS National Seismic Hazard Model values (PGA, Ss, S1, SDC).
-    Uses the faultlinemap.com mirror which returns live USGS NSHM / ASCE 7-16
-    design values, and the official USGS earthquake catalog for recent quakes.
+    Real seismic design values (PGA, Ss, S1, SDC).
+
+    Official-first: USGS Seismic Design Maps (ASCE 7-22) at earthquake.usgs.gov
+    is tried BEFORE anything else and is the only path labeled VERIFIED. The
+    faultlinemap.com mirror is a third-party proxy and is labeled MODELED —
+    never VERIFIED — per CONTRIBUTING's proxy-labeling rule.
     """
     if lat is None or lon is None:
         return DataResult(
             None, Provenance("USGS NSHM", status="UNAVAILABLE", detail="No coordinates available.")
         )
+    # 1) Official USGS Design Maps — the only VERIFIED path.
+    official = _cached_api_call(
+        USGS_DESIGN_MAPS,
+        params={
+            "latitude": lat,
+            "longitude": lon,
+            "riskCategory": "II",
+            "siteClass": "D",
+            "title": "scopeproof",
+        },
+        cache_key=f"usgs_design_{lat}_{lon}",
+    )
+    if isinstance(official, dict) and ("data" in official or "ss" in str(official).lower()):
+        d = official.get("data", official)
+        return DataResult(
+            {
+                "pga": d.get("pga"),
+                "ss": d.get("ss"),
+                "s1": d.get("s1"),
+                "sds": d.get("sds"),
+                "sd1": d.get("sd1"),
+                "seismic_design_category": d.get("sdc", "Unknown"),
+                "hazard_level": d.get("level", "Unknown"),
+                "nearest_fault": None,
+                "report_url": f"{USGS_DESIGN_MAPS}?latitude={lat}&longitude={lon}",
+                "source_path": "official",
+            },
+            Provenance(
+                "USGS Seismic Design Maps ASCE 7-22 — official",
+                url=USGS_DESIGN_MAPS,
+                status="VERIFIED",
+                detail=f"Official USGS design values; SDC {d.get('sdc')}",
+                raw=official,
+            ),
+        )
+    # 2) Third-party mirror fallback — labeled proxy, never VERIFIED.
     data = _cached_api_call(
         f"{USGS_SEISMIC_MIRROR}/risk", params={"lat": lat, "lon": lon}, cache_key=f"seis_{lat}_{lon}"
     )
@@ -426,7 +477,7 @@ def get_seismic_hazard_by_coords(lat: float, lon: float) -> DataResult:
             Provenance(
                 "USGS National Seismic Hazard Model",
                 status="UNAVAILABLE",
-                detail="Seismic service unreachable.",
+                detail="Official USGS Design Maps and mirror both unreachable.",
             ),
         )
     h = data.get("hazard", {}) or {}
@@ -441,12 +492,13 @@ def get_seismic_hazard_by_coords(lat: float, lon: float) -> DataResult:
             "hazard_level": h.get("level", "Unknown"),
             "nearest_fault": data.get("nearest_fault"),
             "report_url": data.get("report_url"),
+            "source_path": "third_party_proxy",
         },
         Provenance(
-            "USGS National Seismic Hazard Model (ASCE 7-16 design values)",
+            "USGS NSHM via faultlinemap.com mirror (third-party proxy — not authoritative)",
             url=data.get("report_url", f"{USGS_SEISMIC_MIRROR}/risk?lat={lat}&lon={lon}"),
-            status="VERIFIED",
-            detail=f"PGA={h.get('pga')}g SDC={h.get('sdc')}",
+            status="MODELED",
+            detail="Official USGS Design Maps unreachable; mirror result is a labeled proxy, not a source of record.",
             raw=data,
         ),
     )
@@ -872,8 +924,22 @@ def fetch_all_real_data(lat=None, lon=None, zip_code="", state="") -> dict[str, 
     return results
 
 
-def check_api_health() -> dict[str, Any]:
-    """Live health check of every real data source."""
+# Health probes are expensive (8 live HTTP calls). Cache the result so the
+# pipeline / health page never re-probes more than once per 10 minutes.
+HEALTH_TTL_S = 600
+_health_cache: dict[str, Any] = {"ts": 0.0, "data": None}
+
+
+def check_api_health(force: bool = False) -> dict[str, Any]:
+    """Live health check of every real data source (cached 10 min).
+
+    Never call this inline on the estimate request path — it fans out to 8
+    hosts. The Streamlit pipeline does not call it at all; the Health page
+    uses the cached result.
+    """
+    now = time.time()
+    if not force and _health_cache["data"] is not None and now - _health_cache["ts"] < HEALTH_TTL_S:
+        return _health_cache["data"]
     lat, lon = 34.0522, -118.2437
     health = {}
     health["census_geocoder"] = bool(geocode_address("1600 Pennsylvania Ave NW, Washington DC 20500"))
@@ -882,11 +948,17 @@ def check_api_health() -> dict[str, Any]:
         get_recent_earthquakes(lat, lon, radius_km=50, days_back=7, min_magnitude=3.0).provenance.status
         == "VERIFIED"
     )
-    health["usgs_seismic"] = get_seismic_hazard_by_coords(lat, lon).provenance.status == "VERIFIED"
+    # VERIFIED = official USGS Design Maps answered; MODELED = labeled proxy answered.
+    health["usgs_seismic"] = get_seismic_hazard_by_coords(lat, lon).provenance.status in (
+        "VERIFIED",
+        "MODELED",
+    )
     health["fema_nfhl"] = get_flood_zone_by_coords(lat, lon).provenance.status == "VERIFIED"
     health["cpsc_recalls"] = search_cpsc_recalls(keyword="generator").provenance.status == "VERIFIED"
     health["open_meteo"] = get_weather(lat, lon).provenance.status == "VERIFIED"
     health["census_acs"] = "REQUIRES_KEY" if not CENSUS_API_KEY else "KEY_CONFIGURED"
     health["bls_ppi"] = get_bls_ppi_materials().provenance.status == "VERIFIED"
     health["bls_oews"] = "REQUIRES_KEY" if not BLS_API_KEY else "KEY_CONFIGURED"
+    _health_cache["ts"] = time.time()
+    _health_cache["data"] = health
     return health

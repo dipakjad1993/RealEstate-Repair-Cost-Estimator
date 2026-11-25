@@ -10,9 +10,11 @@ Real repair cost estimation built on:
 Every estimate is labeled with its data provenance. NO hash/random values.
 """
 
+import json
 import logging
 from datetime import datetime
 
+from config import DATA_DIR, STATE_TAX_MULTIPLIERS, ZIP_COST_MODIFIERS
 from engines.real_data_fetcher import (
     DataResult,
     get_bls_ppi_materials,
@@ -203,6 +205,33 @@ def get_real_benchmark(system: str, subsystem: str, description: str):
     return table["default"]
 
 
+def _dataset_label(name: str) -> str:
+    """'zip_cost_modifiers@2026.09.25' — dataset name + version from data/."""
+    try:
+        payload = json.loads((DATA_DIR / f"{name}.json").read_text(encoding="utf-8"))
+        ver = payload.get("version")
+        return f"{name}@{ver}" if ver else name
+    except Exception:
+        return name
+
+
+def _geo_lookup(state: str, zip_code: str) -> tuple:
+    """Local cost-of-living factor for the subject property.
+
+    Returns (factor, basis, dataset). The ZIP metro dataset (83 markets)
+    wins over the state COL index; both are versioned curated datasets in
+    data/. factor == 1.0 means no local dataset applies.
+    """
+    z = str(zip_code or "").strip()
+    row = ZIP_COST_MODIFIERS.get(z) if z else None
+    if isinstance(row, dict) and row.get("modifier"):
+        return (float(row["modifier"]), "zip", _dataset_label("zip_cost_modifiers"))
+    st = (state or "").strip().upper()
+    if st in STATE_TAX_MULTIPLIERS:
+        return (float(STATE_TAX_MULTIPLIERS[st]), "state", _dataset_label("state_tax_multipliers"))
+    return (1.0, "none", "")
+
+
 def calculate_cost_bounds(
     finding, state: str, zip_code: str = "", user_quotes: list = None, rates: RealRates = None
 ) -> dict:
@@ -210,6 +239,12 @@ def calculate_cost_bounds(
     Calculate a real, provenance-labeled cost estimate for one finding.
     user_quotes: list of {finding_key, low, high, contractor} user-supplied quotes
                  which override benchmarks when present.
+
+    Geo wiring: the national material benchmark is multiplied by a local
+    COL factor (ZIP metro dataset first, state index as fallback). Labor is
+    already state-localized by BLS OEWS when available, so the geo factor is
+    never applied to labor (no double counting). User quotes are local truth
+    and bypass geo entirely.
     """
     rates = rates or RealRates(state, zip_code)
     system = finding.get("system_category", "OTHER").upper()
@@ -227,21 +262,27 @@ def calculate_cost_bounds(
     mult = SEVERITY_MULT.get(severity, 1.0)
     h_low, h_high, h_src = rates.hourly_rate(system)
     mat_factor = rates.material_index_factor()
+    geo_factor, geo_basis, geo_dataset = _geo_lookup(state, zip_code)
 
     if quote:
         low = float(quote["low"])
         high = float(quote["high"])
         cost_src = f"USER-PROVIDED contractor quote: {quote.get('contractor', '')}"
+        # Quote is already local truth — no geo adjustment applied.
+        geo_factor, geo_basis, geo_dataset = 1.0, "user_quote", ""
     else:
-        mat_low = low_r * 0.40 * mat_factor
-        mat_high = high_r * 0.45 * mat_factor
+        # National material benchmark localized by geo factor; labor already
+        # state-localized by BLS OEWS when available (never double-counted).
+        mat_low = low_r * 0.40 * mat_factor * geo_factor
+        mat_high = high_r * 0.45 * mat_factor * geo_factor
         # labor hours from published repair manuals
         hours = _estimate_hours(system, severity)
         lab_low = hours * h_low
         lab_high = hours * h_high
         low = (mat_low + lab_low) * mult
         high = (mat_high + lab_high) * mult
-        cost_src = f"Benchmark ({h_src}; PPI material factor {mat_factor})"
+        geo_note = f"; geo x{geo_factor:g} ({geo_basis})" if geo_factor != 1.0 else ""
+        cost_src = f"Benchmark ({h_src}; PPI material factor {mat_factor}{geo_note})"
 
     from datetime import datetime, timezone
 
@@ -266,6 +307,9 @@ def calculate_cost_bounds(
         "badge": badge,
         "as_of": as_of,
         "source_url": source_url,
+        "geo_factor": round(geo_factor, 3),
+        "geo_basis": geo_basis,
+        "geo_dataset": geo_dataset,
         "total_low": round(low, 0),
         "total_high": round(high, 0),
         "total_avg": round((low + high) / 2, 0),

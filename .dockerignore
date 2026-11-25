@@ -1,0 +1,37 @@
+# Never bake secrets, VCS history, or caches into the image.
+.git
+.gitignore
+.gitattributes
+.env
+.env.*
+!.env.example
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.hypothesis/
+.mypy_cache/
+.coverage
+.coverage.*
+htmlcov/
+*.log
+
+# Runtime / local-only artifacts
+data/audit_log.jsonl
+data/snapshots/
+data/citable/
+data/*.db
+.streamlit/secrets.toml
+
+# Dev + CI scaffolding not needed at runtime
+.venv/
+venv/
+env/
+tests/
+docs/
+legacy/
+.vscode/
+.idea/
+.github/
+*.md
+!README.md

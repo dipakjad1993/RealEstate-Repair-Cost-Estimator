@@ -52,7 +52,6 @@ from engines.legal_engine import (
     generate_legal_addendum,
 )
 from engines.market_engine import (
-    generate_market_profile,
     generate_negotiation_strategies,
 )
 from engines.permit_engine import (
@@ -62,7 +61,6 @@ from engines.permit_engine import (
 )
 from engines.pii_vault import vault_store
 from engines.rate_limit import GLOBAL_LIMITER
-from engines.real_data_fetcher import check_api_health
 from engines.recall_engine import check_recalls_for_findings
 from engines.roi_engine import generate_brokerage_roi_data
 from engines.sandbox_engine import (
@@ -461,7 +459,8 @@ def page_header(page):
 
 
 # ------------------------------------------------------------------
-# Pipeline (cached gov baselines: 24h TTL; deterministic assembly)
+# Pipeline (cached gov baselines: market 24h TTL, health 10min TTL;
+# deterministic assembly — same inputs produce same outputs)
 # ------------------------------------------------------------------
 @st.cache_data(ttl=86400, show_spinner=False)
 def _cached_market(zip_code, state, mls_json):
@@ -472,8 +471,9 @@ def _cached_market(zip_code, state, mls_json):
     return _gmp(zip_code, state, _j.loads(mls_json))
 
 
-@st.cache_data(ttl=86400, show_spinner=False)
+@st.cache_data(ttl=600, show_spinner=False)
 def _cached_health():
+    """10-min cached data-source probe. Never called on the estimate path."""
     from engines.real_data_fetcher import check_api_health as _h
 
     return _h()
@@ -498,7 +498,7 @@ def run_pipeline(session):
     rates = RealRates(pd_["state"], pd_["zip_code"])
     cost_matrix = generate_cost_matrix(findings, pd_["state"], pd_["zip_code"], quotes, rates)
     capex = generate_capex_horizon(findings, pd_)
-    market = generate_market_profile(pd_["zip_code"], pd_["state"], mls)
+    market = _cached_market(pd_["zip_code"], pd_["state"], json.dumps(mls, sort_keys=True, default=str))
     env = assess_environmental_risks(pd_, findings)
     bids = estimate_market_baseline(findings, pd_["zip_code"], cost_matrix, pd_["state"], quotes)
     insurance = analyze_insurance_risk(findings, pd_, uw)
@@ -529,7 +529,6 @@ def run_pipeline(session):
     brokerage = generate_brokerage_roi_data("", session.get("transactions"))
     sandbox = create_sandbox_session(pd_, findings, cost_matrix)
     strategies = generate_negotiation_strategies(findings, market, pd_)
-    health = check_api_health()
 
     # leverage score from real MLS signals
     leverage = 50
@@ -559,7 +558,6 @@ def run_pipeline(session):
         "brokerage": brokerage,
         "sandbox": sandbox,
         "strategies": strategies,
-        "health": health,
         "leverage": leverage,
         "generated_at": datetime.now().isoformat(),
     }
@@ -2271,7 +2269,7 @@ def page_health():
             st.json(det.get("official_endpoints", {}))
     except Exception as e:
         st.warning(f"Detailed health unavailable ({e}); basic check below.")
-        health = check_api_health()
+        health = _cached_health()
         for k, v in health.items():
             ok = "🟢" if v is True else "🟠" if v == "REQUIRES_KEY" else "🔴" if v is False else "⚪"
             st.markdown(f"{ok} **{k}** — `{v}`")

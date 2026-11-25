@@ -68,20 +68,20 @@ def generate_seo_landing_pages(zip_code, cost_data):
                 "system_type": system_name,
                 "system_display": system_display,
                 "avg_cost": avg_cost,
-                "cost_provenance": "VERIFIED" if avg_cost else "UNAVAILABLE",
+                "cost_provenance": "MODELED" if avg_cost else "UNAVAILABLE",
                 "as_of": as_of,
                 "page_slug": slug,
                 "nextjs_route": f"/{slug}",
                 "markdown_twin_route": f"/{slug}.md",
                 "page_title": f"Average Cost to Fix {system_display} in {zip_code} ({datetime.now().year}) — Provenance-tracked",
-                "meta_description": f"What does {system_display.lower()} repair cost in {zip_code} in {datetime.now().year}? Verified baseline from inspection findings + BLS wages/PPI. Low/Mid/High with per-figure badges and as_of timestamps.",
+                "meta_description": f"What does {system_display.lower()} repair cost in {zip_code} in {datetime.now().year}? Deterministic baseline from inspection findings + BLS wages/PPI. Low/Mid/High with per-figure badges and as_of timestamps.",
                 "h1": f"{system_display} Repair Costs in {zip_code} ({datetime.now().year}) — Low / Mid / High",
                 "answer_capsule_50w": (
                     f"{system_display} repair in {zip_code} averages ${avg_cost:,.0f} in {datetime.now().year} "
-                    f"(verified cost matrix, BLS wages + PPI). Low for minor scope, high for "
+                    f"(deterministic cost matrix, BLS wages + PPI, badged MODELED). Low for minor scope, high for "
                     f"emergency/replacement. On-site quotes win; this is a baseline, not a bid."
                     if avg_cost
-                    else f"No verified {system_display.lower()} cost data for {zip_code} yet — upload an inspection report."
+                    else f"No cost data for {zip_code} yet — upload an inspection report."
                 ),
                 "content_sections": _generate_content_sections(system_name, zip_code, avg_cost),
                 "qa_block": _generate_qa_block(system_display, zip_code, avg_cost),
@@ -106,17 +106,17 @@ def generate_seo_landing_pages(zip_code, cost_data):
 
 def _generate_content_sections(system, zip_code, avg_cost):
     cost_line = (
-        f"Verified estimates for this zip range around ${avg_cost:,.0f} (from real inspection "
-        f"findings indexed to BLS OEWS wages and BLS PPI materials)."
+        f"Deterministic estimates for this zip range around ${avg_cost:,.0f} (from real inspection "
+        f"findings indexed to BLS OEWS wages and BLS PPI materials, badged MODELED)."
         if avg_cost
-        else "No verified cost data yet for this zip in this system — upload an inspection report to build it."
+        else "No cost data yet for this zip in this system — upload an inspection report to build it."
     )
     return [
         {"heading": f"What Does {system} Repair Cost in {zip_code}?", "content": cost_line},
         {
             "heading": f"Common {system} Issues Found in {zip_code} Homes",
             "content": f"Findings are parsed from actual uploaded home inspection reports. System-level "
-            f"averages update automatically as verified reports are processed for {zip_code}.",
+            f"averages update automatically as provenance-tracked reports are processed for {zip_code}.",
         },
         {
             "heading": f"DIY vs. Professional {system} Repair in {zip_code}",

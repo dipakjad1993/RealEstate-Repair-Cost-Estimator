@@ -88,10 +88,10 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install pip-audit==2.7.* -r requirements.txt
-      - name: pip-audit (known CVEs in dependencies)
-        run: pip-audit --strict --progress-spinner off || true  # advisory: fail-open until baseline triaged
+      - name: pip-audit (fail-closed on known CVEs)
+        run: pip-audit --strict --progress-spinner off
       - name: Trivy filesystem scan (secrets + misconfig)
-        uses: aquasecurity/trivy-action@master
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           scan-type: fs
           severity: CRITICAL,HIGH

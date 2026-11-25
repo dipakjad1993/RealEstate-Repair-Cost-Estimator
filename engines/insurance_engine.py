@@ -87,7 +87,7 @@ def analyze_insurance_risk(findings, property_data, user_quote=None):
                         "recommendation": "Roof certification may be required for insurance. Budget for replacement.",
                         "severity": "HIGH",
                         "badge": "MODELED",
-                        "source_url": "https://wwwiii.org/article/roof-age-and-homeowners-insurance",
+                        "source_url": "https://www.iii.org/article/roof-age-and-homeowners-insurance",
                         "source_note": _FLAG_SOURCE_NOTE,
                         "as_of": datetime.now(timezone.utc).date().isoformat(),
                     }

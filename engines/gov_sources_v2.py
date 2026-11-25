@@ -100,8 +100,8 @@ def fema_flood_official_first(lat: float, lon: float) -> DataResult:
                 Provenance(
                     "FEMA NFHL via floodzonemap.org proxy (FALLBACK — not authoritative)",
                     url="https://floodzonemap.org/api/lookup",
-                    status="VERIFIED",
-                    detail="Official FEMA hosts unreachable; proxy result labeled fallback.",
+                    status="MODELED",
+                    detail="Official FEMA hosts unreachable; proxy result labeled fallback, not a source of record.",
                 ),
             )
     except Exception as e:
@@ -162,8 +162,8 @@ def usgs_seismic_official_first(
                 Provenance(
                     "USGS via faultlinemap.com mirror (FALLBACK — not authoritative)",
                     url="https://faultlinemap.com/api/risk",
-                    status="VERIFIED",
-                    detail="Official USGS Design Maps unreachable; mirror labeled fallback.",
+                    status="MODELED",
+                    detail="Official USGS Design Maps unreachable; mirror is a labeled proxy, not a source of record.",
                 ),
             )
     except Exception as e:

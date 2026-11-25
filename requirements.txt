@@ -1,16 +1,17 @@
 # Pinned runtime — reproducible enterprise deploys (Streamlit Cloud / Docker / Linux).
-# Last verified: 2026-10. Python 3.10–3.13.
-streamlit==1.37.*
+# Last verified: 2026-11. Python 3.10–3.13 (numpy range auto-selects per interpreter).
+# CVE-triaged bumps: streamlit>=1.54, requests>=2.33, urllib3>=2.8, fpdf2>=2.8.8, pytest>=9.0.3.
+streamlit==1.56.*
 pandas==2.2.*
-numpy==1.26.*
+numpy>=1.26,<3
 plotly==5.22.*
 PyMuPDF==1.24.*
 pymupdf4llm==0.0.*
-requests==2.32.*
-urllib3==2.2.*
+requests==2.34.*
+urllib3==2.8.*
 openpyxl==3.1.*
 XlsxWriter==3.2.*
-fpdf2==2.7.*
+fpdf2==2.8.*
 reportlab==4.2.*
 python-dateutil==2.9.*
 pydantic==2.8.*
@@ -29,10 +30,10 @@ psycopg2-binary==2.9.*
 # --- Distributed rate limiting (optional; in-memory fallback automatic) ---
 redis==5.0.*
 # --- Quality / test (CI + local) ---
-pytest==8.3.*
-pytest-cov==5.0.*
+pytest==9.1.*
+pytest-cov==7.*
 hypothesis==6.112.*
-ruff==0.6.*
+ruff==0.15.*
 # --- Optional observability (no-op if unset; install to enable OTel traces) ---
 # opentelemetry-sdk==1.27.*
 # opentelemetry-exporter-otlp==1.27.*
