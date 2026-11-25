@@ -46,3 +46,15 @@ def test_live_comps_key_present_is_unsupported():
     comps, status = fetch_live_comps("attom", "dummy-key", "1 Main St")
     assert comps == []
     assert status == "PROVIDER_UNSUPPORTED"
+
+
+def test_mcp_tool_and_resource_expansion():
+    import mcp_server
+
+    names = {t["name"] for t in mcp_server.TOOLS}
+    assert {"estimate_repair", "get_macro_context", "get_snapshot_manifest", "get_compliance_pack"} <= names
+    uris = {r["uri"] for r in mcp_server.RESOURCES}
+    assert "scopeproof://macro/fred" in uris
+    assert "scopeproof://snapshots/manifest" in uris
+    manifest = mcp_server.read_resource("scopeproof://snapshots/manifest")
+    assert "datasets" in manifest

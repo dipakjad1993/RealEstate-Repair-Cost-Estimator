@@ -1,4 +1,4 @@
-"""MCP server: repair-estimator-mcp — agents call estimate_repair (enterprise v3.4).
+"""MCP server: scopeproof-mcp — agents call estimate_repair (ScopeProof v4.0).
 
 Stdio JSON-RPC (MCP-compatible): tools/list + tools/call + resources/list +
 resources/read. Agents cite RESOURCES (repair://cost-tables/{zip},
@@ -34,6 +34,21 @@ TOOLS = [
         "description": "Return the 5-badge provenance legend and the deterministic-pipeline contract.",
         "inputSchema": {"type": "object", "properties": {}},
     },
+    {
+        "name": "get_macro_context",
+        "description": "FRED macro anchors (fed funds, housing starts, rent CPI, construction PPI) with VERIFIED/REQUIRES_KEY badges.",
+        "inputSchema": {"type": "object", "properties": {}},
+    },
+    {
+        "name": "get_snapshot_manifest",
+        "description": "Lineage of nightly ETL snapshots: source URL, sha256, row counts, retrieval timestamps.",
+        "inputSchema": {"type": "object", "properties": {}},
+    },
+    {
+        "name": "get_compliance_pack",
+        "description": "EU AI Act Art. 11/13/14 documentation pack for this deterministic system.",
+        "inputSchema": {"type": "object", "properties": {}},
+    },
 ]
 
 RESOURCES = [
@@ -47,6 +62,18 @@ RESOURCES = [
         "uri": "repair://cost-tables/{zip}",
         "name": "ZIP cost modifier table",
         "description": "Versioned ZIP-level cost modifier for a ZIP code (MODELED, as_of-stamped).",
+        "mimeType": "application/json",
+    },
+    {
+        "uri": "scopeproof://macro/fred",
+        "name": "FRED macro anchors",
+        "description": "Official Fed series (FEDFUNDS/HOUST/CUUR0000SEHA/WPU13), badge-stamped.",
+        "mimeType": "application/json",
+    },
+    {
+        "uri": "scopeproof://snapshots/manifest",
+        "name": "ETL snapshot manifest",
+        "description": "Content-hashed snapshot lineage with source URLs and retrieval timestamps.",
         "mimeType": "application/json",
     },
 ]
@@ -123,6 +150,14 @@ def read_resource(uri: str):
         if not row:
             return {"zip_code": zip_code, "badge": "UNAVAILABLE", "note": "No modifier for this ZIP."}
         return {"zip_code": zip_code, "badge": "MODELED", "modifier": row.get("modifier", 1.0), **row}
+    if uri == "scopeproof://macro/fred":
+        from engines.fred_engine import fetch_macro_context
+
+        return fetch_macro_context()
+    if uri == "scopeproof://snapshots/manifest":
+        from engines.etl_engine import snapshot_manifest
+
+        return snapshot_manifest()
     return None
 
 
@@ -170,6 +205,27 @@ def main():
                     print(json.dumps({"id": mid, "error": str(e)[:300]}), flush=True)
             elif name == "get_provenance_legend":
                 print(json.dumps({"id": mid, "result": PROVENANCE_LEGEND}), flush=True)
+            elif name == "get_macro_context":
+                try:
+                    from engines.fred_engine import fetch_macro_context
+
+                    print(json.dumps({"id": mid, "result": fetch_macro_context()}), flush=True)
+                except Exception as e:
+                    print(json.dumps({"id": mid, "error": str(e)[:300]}), flush=True)
+            elif name == "get_snapshot_manifest":
+                try:
+                    from engines.etl_engine import snapshot_manifest
+
+                    print(json.dumps({"id": mid, "result": snapshot_manifest()}), flush=True)
+                except Exception as e:
+                    print(json.dumps({"id": mid, "error": str(e)[:300]}), flush=True)
+            elif name == "get_compliance_pack":
+                try:
+                    from engines.compliance_engine import eu_ai_act_documentation
+
+                    print(json.dumps({"id": mid, "result": eu_ai_act_documentation()}), flush=True)
+                except Exception as e:
+                    print(json.dumps({"id": mid, "error": str(e)[:300]}), flush=True)
             else:
                 print(json.dumps({"id": mid, "error": f"unknown tool {name}"}), flush=True)
         elif method == "ping":
