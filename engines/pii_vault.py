@@ -1,10 +1,11 @@
-"""PII vault: redaction + minimum retention for address/APN/session (enterprise).
+"""PII vault: redaction + TTL in-process cache for address/APN/session.
 
-Rules: never log raw address/APN/phone; store redacted display by default;
-full values only in an encrypted-at-rest vault dict with TTL, keyed by
-session id. Supabase RLS path used when configured (see db_supabase).
+Rules: never log raw address/APN/phone; store redacted display by default.
+Full values live ONLY in a process-local, in-memory dict with TTL — NOT
+encrypted at rest, NOT shared across workers. For durable storage use
+db_supabase with your own encryption and RLS policies (see that module).
 
-Every vault_store / vault_get is audit-logged (append-only chain via
+Every vault_store / vault_get is audit-logged (append-only hash chain via
 engines.audit_log). Vault entries expire on TTL and are purged on read.
 """
 

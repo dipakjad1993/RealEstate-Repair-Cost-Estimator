@@ -1,9 +1,13 @@
-"""Supabase/Postgres persistence with RLS + sqlite fallback (enterprise).
+"""Supabase/Postgres persistence with sqlite dev fallback (ScopeProof v4.0).
 
-- If SUPABASE_URL + key (or DATABASE_URL) configured: use Postgres via
-  supabase client (RLS policies enforce tenant isolation server-side).
+- If SUPABASE_URL + key configured: INSERT into the `estimates` table via the
+  supabase client. RLS policies are NOT applied by this module — SCHEMA_SQL
+  contains an example policy that the operator must install and verify.
+- If DATABASE_URL is set: backend() reports "postgres", but no insert path is
+  wired for it yet; save_estimate returns an error status. Never claim a write.
 - Else: local sqlite cache at data/repair_estimator.db (dev/single-tenant).
-- PII is redacted before logging; raw address/APN only in vault + DB row.
+- Only redacted zip5/state/totals/findings are written; no raw address/APN
+  columns exist in either schema.
 """
 
 import json
@@ -90,5 +94,5 @@ def save_estimate(tenant_id: str, estimate: dict) -> dict:
         )
         return {"backend": "supabase", "id": str((res.data or [{}])[0].get("id", ""))}
     except Exception as e:
-        logger.warning(f"supabase save failed, falling back to sqlite: {e}")
-        return {"backend": "sqlite-fallback", "error": str(e)[:200]}
+        logger.warning(f"supabase save failed (no write performed): {e}")
+        return {"backend": "unavailable", "error": str(e)[:200]}
