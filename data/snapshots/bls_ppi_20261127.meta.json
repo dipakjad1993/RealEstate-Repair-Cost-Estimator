@@ -1,0 +1,13 @@
+{
+  "badge": "VERIFIED",
+  "byte_size": 291,
+  "content_sha256": "1f582227c4e68829dd540e41c780112995a64e6e0eef8018e13ce38577038c35",
+  "dataset": "bls_ppi",
+  "fetched_at": "2026-11-27T12:12:03.483016Z",
+  "provenance_stamp": "BLS PPI@VERIFIED",
+  "retrieved_at": "2026-11-27T12:12:03.483261+00:00",
+  "row_count": 8,
+  "snapshot_date": "20261127",
+  "source": "BLS PPI",
+  "source_url": "https://www.bls.gov/ppi/"
+}
