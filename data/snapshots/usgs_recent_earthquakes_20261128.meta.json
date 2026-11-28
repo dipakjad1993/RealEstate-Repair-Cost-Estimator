@@ -1,0 +1,13 @@
+{
+  "badge": "VERIFIED",
+  "byte_size": 917,
+  "content_sha256": "88e8b78987de877f42e4f145a8979b40d352ea13f6882a0dd6e458c85f34b19a",
+  "dataset": "usgs_recent_earthquakes",
+  "fetched_at": "2026-11-28T11:41:10.830919Z",
+  "provenance_stamp": "USGS Earthquake Catalog@VERIFIED",
+  "retrieved_at": "2026-11-28T11:41:10.831160+00:00",
+  "row_count": 3,
+  "snapshot_date": "20261128",
+  "source": "USGS Earthquake Catalog",
+  "source_url": "https://earthquake.usgs.gov/fdsnws/event/1/query"
+}

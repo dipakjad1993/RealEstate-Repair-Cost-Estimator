@@ -1,0 +1,13 @@
+{
+  "badge": "VERIFIED",
+  "byte_size": 31748,
+  "content_sha256": "88de32fda32ef73887c7c128fbde6b711b09dc5948259e03ba897ce5f2e31ed8",
+  "dataset": "cpsc_recalls",
+  "fetched_at": "2026-11-28T11:41:10.714203Z",
+  "provenance_stamp": "CPSC SaferProducts@VERIFIED",
+  "retrieved_at": "2026-11-28T11:41:10.714597+00:00",
+  "row_count": 25,
+  "snapshot_date": "20261128",
+  "source": "CPSC SaferProducts",
+  "source_url": "https://www.saferproducts.gov/"
+}
